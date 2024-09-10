@@ -205,7 +205,7 @@ async def root():
     return {"message": "Hello World"}
 
 @app.post("/generator")
-async def generator(resume_text: str, job_description_text: str):
+async def generator(resume_text: str, job_description_text: str, email_address: str):
     # Combine the two given URLs
     data = {
     "model": "gpt-3.5-turbo-0125",
@@ -231,7 +231,7 @@ async def generator(resume_text: str, job_description_text: str):
     with open('./tailored_cv.pdf', 'wb') as f:
         f.write(cv_pdf.content)
     
-    send_mail(files=["./tailored_cv.pdf"])
+    send_mail(send_to=[email_address], files=["./tailored_cv.pdf"])
 
     remove("./tailored_cv.pdf")
 
