@@ -2,9 +2,11 @@ import requests
 from os import remove
 from fastapi import FastAPI
 from urllib import parse
-from envs import OPEN_AI_KEY
+from envs import OPEN_AI_KEY, ADD_GDRIVE_ZAP_URL
 from templates import latex_template
 from mail import send_mail
+
+folder_num = 0
 
 app = FastAPI()
 
@@ -19,7 +21,7 @@ async def root():
     return {"message": "Hello World"}
 
 @app.post("/generator")
-async def generator(resume_text: str, job_description_text: str, email_address: str):
+async def generator(resume_text: str, job_description_text: str, email_address: str = None):
     # Combine the two given URLs
     data = {
       "model": "gpt-4o-mini", #gpt-4o-mini, gpt-3.5-turbo-0125
@@ -59,11 +61,22 @@ async def generator(resume_text: str, job_description_text: str, email_address: 
         else:
             break
 
-
     with open('./tailored_cv.pdf', 'wb') as f:
         f.write(latex_compiler_reponse.content)
     
-    send_mail(send_to=[email_address], subject="Tailored CV", text="Hi there!\n\nPlease find your tailored CV attached to this email.\n\nWishing you all the best in your job search :)" ,files=["./tailored_cv.pdf"])
+    # add the file to the GDRIVE
+    file_path = "./tailored_cv.pdf"
+
+    with open(file_path, 'rb') as file:
+        files = {'file': file}
+    # response = requests.post(url, )
+        requests.post(url=ADD_GDRIVE_ZAP_URL, data={'name': folder_num, 'latex_compiler_url': latex_compiler_url[:-6], 'tailored_cv_latex': parse.quote(tailored_cv_latex)}, files=files)
+
+    
+    
+    # we can use this line to send the cv to the email
+    if email_address is not None:
+        send_mail(send_to=[email_address], subject="Tailored CV", text="Hi there!\n\nPlease find your tailored CV attached to this email.\n\nWishing you all the best in your job search :)" ,files=["./tailored_cv.pdf"])
 
     remove("./tailored_cv.pdf")
 
