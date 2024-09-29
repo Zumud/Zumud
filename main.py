@@ -3,7 +3,7 @@ from os import remove
 from fastapi import FastAPI
 from urllib import parse
 from envs import OPEN_AI_KEY, ADD_GDRIVE_ZAP_URL
-from templates import latex_template
+# from templates import latex_template
 from mail import send_mail
 
 folder_num = 0
@@ -22,11 +22,13 @@ async def root():
 
 @app.post("/generator")
 async def generator(resume_text: str, job_description_text: str, email_address: str = None):
+    global folder_num
     # Combine the two given URLs
     data = {
-      "model": "gpt-4o-mini", #gpt-4o-mini, gpt-3.5-turbo-0125
-      "messages": [{"role": "user", "content": f"""Generate a tailored resume using for the given job description in the LaTeX template I give you. Latex template: {latex_template}.
-                    Resume text: {resume_text}.
+      "model": "gpt-3.5-turbo-0125", #gpt-4o-mini, gpt-3.5-turbo-0125, gpt-4o
+      #in the LaTeX template I give you. Latex template: {latex_template}.
+      "messages": [{"role": "user", "content": f"""Generate a tailored resume using for the given job description.
+                    Resume: {resume_text}.
                     Job Description text: {job_description_text}"""}],
       "temperature": 0.7
     }
@@ -56,10 +58,10 @@ async def generator(resume_text: str, job_description_text: str, email_address: 
         latex_compiler_reponse = requests.get(url=latex_compiler_url+parse.quote(tailored_cv_latex))
         print(f"{i} Corrected URL is: {latex_compiler_reponse.url}")
         print(f"{i} Corrected CV pdf text is: {latex_compiler_reponse.content}")
-        if i < 5:
-            i = i+1
-        else:
+        if i > 4:
             break
+        i = i+1
+            
 
     with open('./tailored_cv.pdf', 'wb') as f:
         f.write(latex_compiler_reponse.content)
@@ -70,7 +72,10 @@ async def generator(resume_text: str, job_description_text: str, email_address: 
     with open(file_path, 'rb') as file:
         files = {'file': file}
     # response = requests.post(url, )
-        requests.post(url=ADD_GDRIVE_ZAP_URL, data={'name': folder_num, 'latex_compiler_url': latex_compiler_url[:-6], 'tailored_cv_latex': parse.quote(tailored_cv_latex)}, files=files)
+        requests.post(url=ADD_GDRIVE_ZAP_URL, data={'name': folder_num},  #, 'latex_compiler_url': latex_compiler_url[:-6], 'tailored_cv_latex': parse.quote(tailored_cv_latex)},
+                       files=files)
+        folder_num += 1
+    
 
     
     
