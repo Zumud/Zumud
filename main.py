@@ -2,94 +2,39 @@ import requests
 from os import remove
 from fastapi import FastAPI
 from urllib import parse
-from envs import OPEN_AI_KEY, ADD_GDRIVE_ZAP_URL
-# from templates import latex_template
+
+from envs import ADD_GDRIVE_ZAP_URL, LaTeX_COMPILER_URL
+from openai_wrapper import client, ai_prompt
 from mail import send_mail
-from openai import OpenAI
+from models import AIModel
 
 folder_num = 0
-
 app = FastAPI()
-
-# Set your OpenAI API key
-# openai.api_key = OPEN_AI_KEY
-client = OpenAI(
-    # This is the default and can be omitted
-    api_key=OPEN_AI_KEY
-)
-
-
-model = "gpt-3.5-turbo-0125"
-# url = "https://api.openai.com/v1/chat/completions"
-# headers = {
-#     "Content-Type": "application/json",
-#     "Authorization": f"Bearer {OPEN_AI_KEY}"
-# }
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
 
 @app.post("/generator")
-async def generator(resume_text: str, job_description_text: str, email_address: str = None, cover_letter: bool = False):
-    global folder_num, client
-    # Combine the two given URLs
-    # data = {
-    #   "model": model, #gpt-4o-mini, gpt-3.5-turbo-0125, gpt-4o
-    #   #in the LaTeX template I give you. Latex template: {latex_template}.
-    #   "messages": [{"role": "user", "content": f"""Generate a tailored resume using for the given job description.
-    #                 Resume: {resume_text}.
-    #                 Job Description text: {job_description_text}"""}],
-    #   "temperature": 0.7
-    # }
-    # ai_tailored_cv_response = requests.post(url, json=data, headers=headers).json()["choices"][0]["message"]["content"]
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[
-            # {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", 
-             "content": f"""Generate a tailored resume using for the given job description.
-             Resume: {resume_text}.
-             Job Description text: {job_description_text}"""}
-        ]
-    )
-    ai_tailored_cv_response = completion.choices[0].message.content
+async def generator(resume_text: str, job_description_text: str, email_address: str | None = None, cover_letter: bool = False, model: AIModel | None = AIModel.gpt_3_5_turbo_cheap):
+    global folder_num
+    ai_tailored_cv_response = ai_prompt(f"""Generate a tailored resume using for the given job description. Resume: {resume_text}. Job Description text: {job_description_text}""", model)
     tailored_cv_latex = ai_tailored_cv_response[ai_tailored_cv_response.find(r"\documentclass"):ai_tailored_cv_response.find(r"\end{document}")+len(r"\end{document}")]
 
-    print(f"Tailored CV latex code is:\n{tailored_cv_latex}")
+    print(f"Tailored CV latex code is:\n{tailored_cv_latex}")  # make these prints as logs
 
-    latex_compiler_url = "https://latexonline.cc/compile?command=xelatex&text="
-    # git command example: https://texlive2020.latexonline.cc/compile?command=xelatex&git=https://github.com/mohammadi-com/resume&target=MohammadMohammadi2/MohammadMohammadi.tex
-
-    latex_compiler_reponse = requests.get(url=latex_compiler_url+parse.quote(tailored_cv_latex))
+    latex_compiler_reponse = requests.get(url=LaTeX_COMPILER_URL+parse.quote(tailored_cv_latex))
     print(f"URL is: {latex_compiler_reponse.url}")
     print(f"CV pdf text is: {latex_compiler_reponse.content}")
 
     i = 1
-    while b"error: " in latex_compiler_reponse.content:
-        # data = {
-        #   "model": model, #we can use better ai in here to get better faster reponse, we can use a thread also
-        #   "messages": [{"role": "user", "content": f"""Fix the latex code given with it's error. LaTeX: {tailored_cv_latex}.
-        #                  error: {latex_compiler_reponse.content}."""}],
-        #   "temperature": 0.7
-        # }
-        # ai_tailored_cv_response = requests.post(url, json=data, headers=headers).json()["choices"][0]["message"]["content"]
-        completion = client.chat.completions.create(
-            model=model,
-            messages=[
-                # {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": f"""Fix the latex code given with it's error. LaTeX: {tailored_cv_latex}.
-                          error: {latex_compiler_reponse.content}."""}
-            ]
-        )
-        ai_tailored_cv_response = completion.choices[0].message.content
+    while b"error: " in latex_compiler_reponse.content and i < 5:
+        ai_tailored_cv_response = ai_prompt(f"""Fix the latex code given with it's error. LaTeX: {tailored_cv_latex}. error: {latex_compiler_reponse.content}.""", model)
         tailored_cv_latex = ai_tailored_cv_response[ai_tailored_cv_response.find(r"\documentclass"):ai_tailored_cv_response.find(r"\end{document}")+len(r"\end{document}")]
         print(f"{i} Corrected Tailored CV latex code is:\n{tailored_cv_latex}")
-        latex_compiler_reponse = requests.get(url=latex_compiler_url+parse.quote(tailored_cv_latex))
+        latex_compiler_reponse = requests.get(url=LaTeX_COMPILER_URL+parse.quote(tailored_cv_latex))
         print(f"{i} Corrected URL is: {latex_compiler_reponse.url}")
         print(f"{i} Corrected CV pdf text is: {latex_compiler_reponse.content}")
-        if i > 4:
-            break
         i = i+1
             
 
