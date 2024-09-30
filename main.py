@@ -4,11 +4,11 @@ from fastapi import FastAPI
 from urllib import parse
 
 from envs import ADD_GDRIVE_ZAP_URL, LaTeX_COMPILER_URL
-from openai_wrapper import client, ai_prompt
+from openai_wrapper import ai_prompt
 from mail import send_mail
 from models import AIModel
 
-folder_num = 0
+folder_num = 0  # maybe better to save it in a DB, so can keep it value when we restart the server
 app = FastAPI()
 
 @app.get("/")
@@ -19,6 +19,7 @@ async def root():
 async def generator(resume_text: str, job_description_text: str, email_address: str | None = None, cover_letter: bool = False, model: AIModel | None = AIModel.gpt_3_5_turbo_cheap):
     global folder_num
     ai_tailored_cv_response = ai_prompt(f"""Generate a tailored resume using for the given job description. Resume: {resume_text}. Job Description text: {job_description_text}""", model)
+    job_name = ai_prompt(f"Give the name of the company that this job post is for. As the output hust give the name, nothing else. Job post: {job_description_text}")
     tailored_cv_latex = ai_tailored_cv_response[ai_tailored_cv_response.find(r"\documentclass"):ai_tailored_cv_response.find(r"\end{document}")+len(r"\end{document}")]
 
     print(f"Tailored CV latex code is:\n{tailored_cv_latex}")  # make these prints as logs
@@ -36,7 +37,7 @@ async def generator(resume_text: str, job_description_text: str, email_address: 
         print(f"{i} Corrected URL is: {latex_compiler_reponse.url}")
         print(f"{i} Corrected CV pdf text is: {latex_compiler_reponse.content}")
         i = i+1
-            
+
 
     with open('./tailored_cv.pdf', 'wb') as f:
         f.write(latex_compiler_reponse.content)
@@ -46,13 +47,8 @@ async def generator(resume_text: str, job_description_text: str, email_address: 
 
     with open(file_path, 'rb') as file:
         files = {'file': file}
-    # response = requests.post(url, )
-        requests.post(url=ADD_GDRIVE_ZAP_URL, data={'name': folder_num},  #, 'latex_compiler_url': latex_compiler_url[:-6], 'tailored_cv_latex': parse.quote(tailored_cv_latex)},
-                       files=files)
+        requests.post(url=ADD_GDRIVE_ZAP_URL, data={'name': f"{folder_num:04}_"+job_name}, files=files)
         folder_num += 1
-    
-
-    
     
     # we can use this line to send the cv to the email
     if email_address is not None:
