@@ -2,7 +2,6 @@ import requests
 from os import remove
 from fastapi import FastAPI
 from urllib import parse
-import json
 
 from envs import ADD_GDRIVE_ZAP_URL, LaTeX_COMPILER_URL
 from openai_wrapper import create_customized_cv, create_customized_cl, ai_prompt
@@ -10,7 +9,7 @@ from mail import send_mail
 from models import AIModel
 from cover_letter import save_string_to_pdf
 
-folder_num = 90  # maybe better to save it in a DB, so can keep it value when we restart the server
+folder_num = 61  # maybe better to save it in a DB, so can keep it value when we restart the server
 app = FastAPI()
 
 @app.get("/")
@@ -22,7 +21,7 @@ async def generator(resume_text: str, job_description_text: str, email_address: 
     global folder_num
     ai_tailored_cv_response = create_customized_cv(resume_text, job_description_text, model)
     ai_tailored_cl_response = create_customized_cl(resume_text, job_description_text, model)
-    company_name = ai_prompt(f"Give the name of the company that this job description is for. As the output hust give the name, nothing else. Job description: {job_description_text}")  # Since this is a simple task we use the cheapest ai    
+    company_name = ai_prompt(f"Give the name of the company that this job description is for. As the output just give the name, nothing else. Job description: {job_description_text}")  # Since this is a simple task we use the cheapest ai    
     
     print(f"The ai_tailored_cv_response is: {ai_tailored_cv_response}\nThe ai_tailored_cl_response is: {ai_tailored_cl_response}\nthe company_name is: {company_name}")
     tailored_cv_latex = ai_tailored_cv_response[ai_tailored_cv_response.find(r"\documentclass"):ai_tailored_cv_response.rfind(r"\end{document}")+len(r"\end{document}")]  # striming to the part we want
@@ -32,7 +31,9 @@ async def generator(resume_text: str, job_description_text: str, email_address: 
     print(f"CV pdf text is: {latex_compiler_reponse.content}")
     i = 1
     while b"error: " in latex_compiler_reponse.content and i < 5:  # if there is an error, provide whole previous response not the truncated
-        ai_tailored_cv_response = ai_prompt(f"""Fix the latex code given with it's error. LaTeX:\n{ai_tailored_cv_response}.\n\nError:\n{latex_compiler_reponse.content}.""", model)
+        ai_tailored_cv_response = ai_prompt(f"""You've generated the given LaTeX code, but it faces compilation error.
+                                            Fix the code based on the error.
+                                            LaTeX:\n{ai_tailored_cv_response}.\n\nError:\n{latex_compiler_reponse.content}.""", AIModel.gpt_4o_mini)  # since this is a simple request, we use gpt4o mini for it
         tailored_cv_latex = ai_tailored_cv_response[ai_tailored_cv_response.find(r"\documentclass"):ai_tailored_cv_response.find(r"\end{document}")+len(r"\end{document}")]
         print(f"{i} Corrected Tailored CV latex code is:\n{tailored_cv_latex}")
         latex_compiler_reponse = requests.get(url=LaTeX_COMPILER_URL+parse.quote(tailored_cv_latex))
