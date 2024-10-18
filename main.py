@@ -9,7 +9,7 @@ from mail import send_mail
 from models import AIModel
 from cover_letter import save_string_to_pdf
 
-folder_num = 61  # maybe better to save it in a DB, so can keep it value when we restart the server
+folder_num = 71  # maybe better to save it in a DB, so can keep it value when we restart the server
 app = FastAPI()
 
 @app.get("/")
