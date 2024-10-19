@@ -58,12 +58,19 @@ def create_customized_cl(resume_text: str, job_description_text: str, model=AIMo
     return ai_tailored_cl_response
 
 
-def ai_prompt(prompt: str, model=AIModel.gpt_3_5_turbo_cheap):
+def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini):
     completion = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
         ]
+    )
+    return completion.choices[0].message.content
+
+def ai_messages(messages: list[dict], model=AIModel.gpt_4o_mini):
+    completion = client.chat.completions.create(
+        model=model,
+        messages=messages
     )
     return completion.choices[0].message.content
