@@ -58,7 +58,7 @@ def create_customized_cl(resume_text: str, job_description_text: str, model=AIMo
     return ai_tailored_cl_response
 
 
-def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini):
+def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini) -> str:
     completion = client.chat.completions.create(
         model=model,
         messages=[
@@ -68,7 +68,7 @@ def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini):
     )
     return completion.choices[0].message.content
 
-def ai_messages(messages: list[dict], model=AIModel.gpt_4o_mini):
+def ai_messages(messages: list[tuple[str, str]], model=AIModel.gpt_4o_mini) -> str:
     completion = client.chat.completions.create(
         model=model,
         messages=messages
