@@ -1,4 +1,6 @@
 import json
+import prompts
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from openai import OpenAI
 from envs import OPEN_AI_KEY
@@ -6,7 +8,14 @@ from models import AIModel
 
 client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
 
-class TailoredCV(BaseModel):
+
+class TailoredResume(BaseModel):
+    tailored_resume: str
+
+class TailoredCoverLetter(BaseModel):
+    tailored_coverletter: str
+
+class CustomizedCV(BaseModel):
     customized_resume: str
 
 class TailoredCL(BaseModel):
@@ -32,7 +41,7 @@ def create_customized_cv(resume_text: str, job_description_text: str, model=AIMo
              Resume LaTeX:""" + resume_text},
             {"role": "user", "content": "Job description: "+job_description_text}
         ],
-        response_format=TailoredCV  # ensures the out put is a json with the given format. For unsupported models, we can use JSON mode. read here: https://platform.openai.com/docs/guides/structured-outputs/json-mode
+        response_format=CustomizedCV  # ensures the out put is a json with the given format. For unsupported models, we can use JSON mode. read here: https://platform.openai.com/docs/guides/structured-outputs/json-mode
     )
 
     ai_tailored_cv_response, = json.loads(completion.choices[0].message.content).values()  # create the json object and unpack
@@ -64,9 +73,31 @@ def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini) -> str:
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
-        ]
+        ],
     )
     return completion.choices[0].message.content
+
+def create_tailored_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompts.create_tailored_resume_prompt.format(resume=resume, job_description=job_description)}
+        ],
+        response_format=TailoredResume
+    )
+    return json.loads(completion.choices[0].message.content)["tailored_resume"]
+
+def create_tailored_coverletter(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompts.create_tailored_coverletter_prompt.format(resume=resume, job_description=job_description)}
+        ],
+        response_format=TailoredCoverLetter
+    )
+    return json.loads(completion.choices[0].message.content)["tailored_coverletter"]
 
 def ai_messages(messages: list[tuple[str, str]], model=AIModel.gpt_4o_mini) -> str:
     completion = client.chat.completions.create(
