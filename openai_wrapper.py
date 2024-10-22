@@ -1,10 +1,14 @@
 import json
+import requests
 import prompts
+from urllib import parse
+from loguru import logger
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from openai import OpenAI
-from envs import OPEN_AI_KEY
+from envs import OPEN_AI_KEY, LaTeX_COMPILER_URL
 from models import AIModel
+from templates import latex_template
 
 client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
 
@@ -77,18 +81,45 @@ def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini) -> str:
     )
     return completion.choices[0].message.content
 
-def create_tailored_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
+def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompts.create_tailored_resume_prompt.format(resume=resume, job_description=job_description)}
+            {"role": "user", "content": prompts.create_tailored_resume.format(resume=resume, job_description=job_description)}
         ],
         response_format=TailoredResume
     )
-    return json.loads(completion.choices[0].message.content)["tailored_resume"]
+    tailored_resume = json.loads(completion.choices[0].message.content)["tailored_resume"]
+    logger.debug(f"The tailored CV plain text is: {tailored_resume}")
+    return tailored_resume
 
-def create_tailored_coverletter(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
+def covert_plain_resume_to_latex(plain_resume: str, model=AIModel.gpt_4o_mini):
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": prompts.convert_plain_resume_to_latex.format(resume=plain_resume, latex_template=latex_template)}
+    ]
+    i = 1
+    while i < 5: # and error in the code 
+        completion = client.beta.chat.completions.parse(
+            model=model,
+            messages=messages,
+            response_format=TailoredResume
+        )
+        tailored_resume = json.loads(completion.choices[0].message.content)["tailored_resume"]
+        logger.debug(f"The tailored CV Latex code in iteration {i} is: {tailored_resume}")
+        trimed_tailored_resume = tailored_resume[tailored_resume.find(r"\documentclass"):tailored_resume.rfind(r"\end{document}")+len(r"\end{document}")]  # removes possible extra things that AI adds
+        latex_compiler_reponse = requests.get(url=LaTeX_COMPILER_URL+parse.quote(trimed_tailored_resume))
+        logger.debug(f"Request url to the LaTeX compiler is: {latex_compiler_reponse.url}")
+        if not b"error: " in latex_compiler_reponse.content:  # there is no error in the compiled code
+            return latex_compiler_reponse, trimed_tailored_resume
+        logger.debug(f"There is an error in the latex code: {latex_compiler_reponse.content}")
+        messages.extend([{"role": "assistant", "content": tailored_resume},
+                         {"role": "user", "content": prompts.fix_latex_error.format(error=latex_compiler_reponse.content)}])
+        i += 1
+    return latex_compiler_reponse, trimed_tailored_resume
+
+def create_tailored_plain_coverletter(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[

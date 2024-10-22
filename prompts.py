@@ -1,4 +1,4 @@
-create_tailored_resume_prompt = """Please help me tailor my resume to match the following job description, emphasizing relevant skills and experiences to maximize my chances of getting an interview.
+create_tailored_resume = """Please help me tailor my resume to match the following job description, emphasizing relevant skills and experiences to maximize my chances of getting an interview.
 
 **My Current Resume:**
 {resume}
@@ -16,6 +16,7 @@ create_tailored_resume_prompt = """Please help me tailor my resume to match the 
 Thank you!
 """
 
+
 create_tailored_coverletter_prompt = """You are an expert career coach and professional writer. Using the resume and job description provided below, write a personalized cover letter. The cover letter should:
 
 - Highlight how my skills, experiences, and achievements, and explains why I am an excellent fit for the position.
@@ -30,3 +31,36 @@ create_tailored_coverletter_prompt = """You are an expert career coach and profe
 **Job Description:**
 {job_description}
 """
+
+
+convert_plain_resume_to_latex = """I have a resume in text format and a LaTeX resume template. I need you to help me populate the LaTeX template with the information from my resume. Please parse the resume text, extract all relevant information, and fill in the LaTeX template accordingly. Make sure to:
+
+- Add or remove sections in the LaTeX template based on the content of the resume.
+- Populate all fields such as personal information, education, experience, skills, certifications, honors & awards, and additional information.
+- Format the bullet points and lists appropriately in LaTeX.
+- Escape any LaTeX special characters in the content.
+- Ensure the final output is valid LaTeX code ready for compilation.
+
+Here is my resume text:
+
+{resume}
+
+---
+
+And here is my LaTeX template:
+
+{latex_template}
+
+---
+
+Please provide the complete populated LaTeX code."""
+
+
+fix_latex_error = """I tried compiling the LaTeX resume code you provided earlier, but I encountered an error during compilation. The error message is:
+
+```
+{error}
+```
+
+Could you please help me fix the LaTeX code so it compiles successfully? 
+Please provide the corrected LaTeX code with the issue resolved."""

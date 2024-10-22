@@ -1,12 +1,13 @@
 import requests
 import prompts
+from loguru import logger
 from os import remove
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from urllib import parse
 
 from envs import ADD_GDRIVE_ZAP_URL, LaTeX_COMPILER_URL
-from openai_wrapper import create_customized_cv, create_customized_cl, ai_prompt, ai_messages, create_tailored_resume, create_tailored_coverletter
+from openai_wrapper import create_customized_cv, create_customized_cl, ai_prompt, ai_messages, create_tailored_plain_resume, create_tailored_plain_coverletter, covert_plain_resume_to_latex
 from mail import send_mail
 from models import AIModel
 from cover_letter import save_string_to_pdf
@@ -18,19 +19,32 @@ app = FastAPI()
 async def root():
     return {"message": "Hello World"}
 
-@app.get("/generate-tailored-resume")
-async def generate_tailored_resume(resume: str, job_description: str, model: AIModel = AIModel.gpt_4o_mini) -> str:
+@app.get("/generate-tailored-plain-resume")
+async def generate_tailored_plain_resume(resume: str, job_description: str, model: AIModel = AIModel.gpt_4o_mini) -> str:
     """
-    Gets resume and job description in plain text and returns tailored resume as a plain text
+    Gets resume and job description in plain text and returns tailored resume as a string
     """
-    return create_tailored_resume(resume, job_description, model)
+    return create_tailored_plain_resume(resume, job_description, model)
 
-@app.get("/generate-tailored-coverletter")
-async def generate_tailored_coverletter(resume: str, job_description: str, model: AIModel = AIModel.gpt_4o_mini) -> str:
+@app.get("/generate-tailored-plain-coverletter")
+async def generate_tailored_plain_coverletter(resume: str, job_description: str, model: AIModel = AIModel.gpt_4o_mini) -> str:
     """
-    Gets resume and job description in plain text and returns customized cover letter as a plain text
+    Gets resume and job description in plain text and returns customized cover letter as a string
     """
-    return create_tailored_coverletter(resume, job_description, model)
+    return create_tailored_plain_coverletter(resume, job_description, model)
+
+@app.get("/generate-tailored-latex-resume")
+async def generate_tailored_latex_resume(resume: str, job_description: str, model: AIModel = AIModel.gpt_4o_mini) -> str:
+    """
+    Gets resume and job description in plain text and returns tailored resume as a latex
+    """
+    tailored_plain_resume = create_tailored_plain_resume(resume, job_description, model)
+    latex_compiler_reponse, tailored_latex_resume = covert_plain_resume_to_latex(tailored_plain_resume, model)
+    company_name = ai_prompt(f"Give the name of the company that this job description is for. As the output just give the name, nothing else. Job description: {job_description}")  # Since this is a simple task we use the cheapest ai
+    with open(f'./CVs/{company_name}_cv.pdf', 'wb') as f:
+        f.write(latex_compiler_reponse.content)
+    return tailored_latex_resume
+
 
 @app.post("/generator")
 async def generator(resume_text: str, job_description_text: str, email_address: str | None = None, cover_letter: bool = False, model: AIModel = AIModel.gpt_4o_mini):
