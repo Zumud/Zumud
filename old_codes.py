@@ -23,3 +23,20 @@
 ## git command example: https://texlive2020.latexonline.cc/compile?command=xelatex&git=https://github.com/mohammadi-com/resume&target=MohammadMohammadi2/MohammadMohammadi.tex
 
 
+    # tailored_cl_path = './tailored_cl.pdf'
+    # save_string_to_pdf(filename=tailored_cl_path, text=ai_tailored_cl_response)
+
+    # with open('./tailored_cv.pdf', 'wb') as f:
+    #     f.write(latex_compiler_reponse.content)
+    
+    # # add the file to the GDRIVE
+    # tailored_cv_path = "./tailored_cv.pdf"
+
+    # with open(tailored_cv_path, 'rb') as tailored_cv, open(tailored_cl_path, 'rb') as tailored_cl:
+    #     files = {'tailored_cv': tailored_cv, 'tailored_cl': tailored_cl}
+    #     requests.post(url=ADD_GDRIVE_ZAP_URL, data={'name': f"{folder_num:04}_"+company_name}, files=files)
+    #     folder_num += 1
+    
+    # # we can use this line to send the cv to the email
+    # if email_address is not None:
+    #     send_mail(send_to=[email_address], subject="Tailored CV", text="Hi there!\n\nPlease find your tailored CV attached to this email.\n\nWishing you all the best in your job search :)" ,files=["./tailored_cv.pdf"])

@@ -47,29 +47,3 @@ def save_string_to_pdf(text, filename):
 
     # Build the PDF document
     doc.build(story)
-
-
-if __name__ == "__main__":
-
-    test_text = """
-    Lorem ipsum\n dolor sit amet, consectetur adipiscing elit. Curabitur dignissim ligula et nisi facilisis, 
-    et consectetur neque pharetra. Quisque finibus justo vitae mauris sodales, sit amet gravida mi pellentesque. 
-    Sed vulputate risus ut quam scelerisque convallis. \nNullam nec vehicula est. Duis in lectus id velit commodo sodales. 
-    Maecenas varius mauris et libero pharetra, a facilisis ipsum interdum.
-    """
-    text = """Dear Hiring manager,\nThis is an example string. \n It contains multiple lines.gfnbjbjjjjjjgfnbjbjjjjjjgfnbjbjjjjjjgfnbjbjjjjjjgfnbjbjjjjjjgfnbjbjjjjjjgfnbjbjjjjjjgfnbjbjjjjjjgfnbjbjjjjjjgfnbjbjjjjjj
-            Each new line will be processed properly."""
-    
-    text = """Dear Hiring Manager,
-
-    I am writing to apply for the Data Engineer position at your esteemed company.
-    My experience and technical expertise make me an ideal candidate for this role.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-    I look forward to the opportunity to contribute to your team.
-
-    Sincerely,
-    Mohammad"""
-    save_string_to_pdf(text, "output.pdf")
-
-    # Call the function with the test case
-    # write_string_to_pdf("test_output.pdf", test_text)
