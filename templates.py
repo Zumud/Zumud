@@ -193,5 +193,4 @@ PERSONAL ATTRIBUTES
 	•	Excellent team player with a proven ability to collaborate across departments.
 	•	Effective communicator, capable of presenting technical concepts to non-technical audiences.
 
-Let me know if you’d like any specific adjustments!
 """
