@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 import openai_wrapper
 from models import AIModel
-from templates import mohammad_resume
+from templates import john_doe_resume
 
 app = FastAPI()
 
@@ -37,7 +37,7 @@ def generate_tailored_latex_resume(resume: str, job_description: str, model: AIM
     return trimed_tailored_resume
 
 @app.get("/generate-latex-resume-save")
-def generate_tailored_latex_resume_save(job_description: str, resume: str = mohammad_resume, model: AIModel = AIModel.gpt_4o_mini):
+def generate_tailored_latex_resume_save(job_description: str, resume: str = john_doe_resume, model: AIModel = AIModel.gpt_4o_mini):
     """
     Gets resume and job description in plain text and saves tailored resume
     """
