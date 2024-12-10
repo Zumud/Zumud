@@ -3,3 +3,4 @@
 .env
 CVs/
 __pycache__/
+log/
