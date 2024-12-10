@@ -1,0 +1,35 @@
+name: Sync Fork
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight (UTC)
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Repository Owner
+        run: |
+          if [ "${{ github.repository }}" == "Form-pilot/TailorMade" ]; then
+            echo "This is the upstream repository. Skipping sync workflow.";
+            exit 0;
+          fi
+
+      - name: Checkout Fork
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false # Disable GitHub token for this step
+
+      - name: Add Upstream Repository
+        run: |
+          git remote add upstream https://github.com/Form-pilot/TailorMade.git
+          git fetch upstream
+
+      - name: Sync Changes
+        run: |
+          git checkout main
+          git merge upstream/main --allow-unrelated-histories
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
