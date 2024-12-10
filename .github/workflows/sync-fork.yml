@@ -18,8 +18,6 @@ jobs:
 
       - name: Checkout Fork
         uses: actions/checkout@v3
-        with:
-          persist-credentials: false # Disable GitHub token for this step
 
       - name: Add Upstream Repository
         run: |
