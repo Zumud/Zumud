@@ -7,15 +7,9 @@ on:
 
 jobs:
   sync:
+    if: ${{ github.repository != 'Form-pilot/TailorMade' }} # Run only if this is not the upstream repo
     runs-on: ubuntu-latest
     steps:
-      - name: Check Repository Owner
-        run: |
-          if [ "${{ github.repository }}" == "Form-pilot/TailorMade" ]; then
-            echo "This is the upstream repository. Skipping sync workflow.";
-            exit 0;
-          fi
-
       - name: Checkout Fork
         uses: actions/checkout@v3
 
