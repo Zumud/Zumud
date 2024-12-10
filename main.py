@@ -1,11 +1,12 @@
 import os
 
-from loguru import logger
 from fastapi import FastAPI
 
 import openai_wrapper
 from models import AIModel
 from templates import john_doe_resume
+
+from log import logger
 
 app = FastAPI()
 
