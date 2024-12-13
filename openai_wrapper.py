@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from openai import OpenAI
 from envs import OPEN_AI_KEY, LaTeX_COMPILER_URL
 from models import AIModel
-from templates import latex_template
+from templates import TemplateName, Template_Details
 
 client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
 
@@ -81,12 +81,12 @@ def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini) -> str:
     )
     return completion.choices[0].message.content
 
-def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
+def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=TemplateName.Blue_Modern_CV) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompts.create_tailored_resume.format(resume=resume, job_description=job_description)}
+            {"role": "user", "content": prompts.create_tailored_resume.format(resume=resume, job_description=job_description, num_pages=Template_Details[template]['num_pages'])}
         ],
         response_format=TailoredResume
     )
@@ -94,10 +94,11 @@ def create_tailored_plain_resume(resume: str, job_description: str, model=AIMode
     logger.debug(f"The tailored CV plain text is: {tailored_resume}")
     return tailored_resume
 
-def covert_plain_resume_to_latex(plain_resume: str, model=AIModel.gpt_4o_mini):
+def covert_plain_resume_to_latex(plain_resume: str, model=AIModel.gpt_4o_mini, template=TemplateName.Blue_Modern_CV):
+
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": prompts.convert_plain_resume_to_latex.format(resume=plain_resume, latex_template=latex_template)}
+        {"role": "user", "content": prompts.convert_plain_resume_to_latex.format(num_pages=Template_Details[template]['num_pages'], resume=plain_resume, latex_template=Template_Details[template]['structure'])}
     ]
     i = 1
     while i < 5: # and error in the code 

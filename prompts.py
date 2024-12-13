@@ -1,3 +1,4 @@
+
 create_tailored_resume = """Please help me tailor my resume to match the following job description, emphasizing relevant skills and experiences to maximize my chances of getting an interview.
 
 **My Current Resume:**
@@ -11,7 +12,8 @@ create_tailored_resume = """Please help me tailor my resume to match the followi
 - Incorporate keywords and phrases from the job description into my resume.
 - Remove or de-emphasize experiences that are not relevant to the job.
 - Ensure the resume remains professional and well-organized.
-- Keep the final resume within two pages.
+- Keep the final resume within {num_pages} pages.
+
 
 Thank you!
 """
@@ -36,10 +38,12 @@ create_tailored_coverletter_prompt = """You are an expert career coach and profe
 convert_plain_resume_to_latex = """I have a resume in text format and a LaTeX resume template. I need you to help me populate the LaTeX template with the information from my resume. Please parse the resume text, extract all relevant information, and fill in the LaTeX template accordingly. Make sure to:
 
 - Add or remove sections in the LaTeX template based on the content of the resume.
-- Populate all fields such as personal information, education, experience, skills, certifications, honors & awards, and additional information.
+- Populate all fields such as personal information, summary, experience, skills, education, projects, certifications.
+- Add necessary bullet points for each part instead of very long sentences.
 - Format the bullet points and lists appropriately in LaTeX.
 - Escape any LaTeX special characters in the content.
 - Ensure the final output is valid LaTeX code ready for compilation.
+- Ensure the final output is {num_pages} pages.
 
 Here is my resume text:
 

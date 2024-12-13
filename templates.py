@@ -1,4 +1,5 @@
-latex_template = r"""\documentclass[11pt,a4paper,sans]{moderncv}
+from enum import Enum
+template_1 = r"""\documentclass[11pt,a4paper,sans]{moderncv}
 
 \moderncvstyle{classic}
 \moderncvcolor{blue}
@@ -130,8 +131,130 @@ Detailed achievements:
 
 \end{document}"""
 
-john_doe_resume = """
-John Doe
+template_2 = r"""\documentclass[letterpaper,10pt]{article}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec,enumitem,hyperref,fancyhdr,multicol,xcolor,lastpage}
+\usepackage{CormorantGaramond,charter}
+
+\definecolor{accentTitle}{HTML}{000000}
+\definecolor{accentText}{HTML}{000000}
+\definecolor{accentLine}{HTML}{000000}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\oddsidemargin}{-0.7in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1.19in}
+\addtolength{\topmargin}{-0.7in}
+\addtolength{\textheight}{1.4in}
+
+\setlength{\multicolsep}{-3pt}
+\setlength{\footskip}{3.7pt}
+\raggedbottom
+\raggedright
+
+\titleformat{\section}{
+  \vspace{-5pt}
+  \color{accentText}\raggedright\large\bfseries
+}{}{0em}{}[\color{accentLine}\titlerule]
+
+\newcommand{\documentTitle}[2]{
+  \begin{center}
+    {\Huge\color{accentTitle} #1}
+    \vspace{10pt}
+    {\color{accentLine}\hrule}
+    \vspace{2pt}
+    \footnotesize{#2}
+    \vspace{2pt}
+    {\color{accentLine}\hrule}
+  \end{center}
+}
+
+\newcommand{\heading}[2]{\hspace{10pt}#1\hfill#2\\}
+\newcommand{\headingBf}[2]{\heading{\textbf{#1}}{\textbf{#2}}}
+\newcommand{\headingIt}[2]{\heading{\textit{#1}}{\textit{#2}}}
+
+\newenvironment{resume_list}{
+  \vspace{-7pt}
+  \begin{itemize}[itemsep=-2px, parsep=1pt, leftmargin=30pt]
+}{\end{itemize}}
+
+\renewcommand\labelitemi{--}
+
+\begin{document}
+
+\documentTitle{[Your Name]}{
+  \href{tel:[Your Phone Number]}{[Your Phone Number]} ~ | ~
+  \href{mailto:[Your Email]}{[Your Email]} ~ | ~
+  \href{https://linkedin.com/in/[Your LinkedIn Handle]}{linkedin.com/in/[Your LinkedIn Handle]} ~ | ~
+  \href{https://github.com/[Your GitHub Handle]}{github.com/[Your GitHub Handle]}
+}
+
+\section{Summary}
+[Provide a brief summary of your professional background and key skills.]
+
+\section{Experience}
+\headingBf{[Company Name]}{[Start Date] -- [End Date]}
+\headingIt{[Job Title]}{}
+\begin{resume_list}
+  \item [Describe a key responsibility or achievement in this role.]
+  \item [List additional accomplishments or contributions.]
+\end{resume_list}
+
+\headingBf{[Company Name]}{[Start Date] -- [End Date]}
+\headingIt{[Job Title]}{}
+\begin{resume_list}
+  \item [Highlight a significant task or result from this position.]
+\end{resume_list}
+
+\section{Skills}
+\begin{multicols}{2}
+\begin{itemize}[itemsep=0px, parsep=1pt, left=10pt, labelsep=10pt, align=left]
+  \item[\textbf{Languages}] [List programming languages]
+  \item[\textbf{Frameworks}] [List frameworks or libraries]
+  \item[\textbf{Databases}] [List databases]
+  \item[\textbf{DevOps}] [List DevOps tools or practices]
+  \item[\textbf{Tools}] [List development tools]
+\end{itemize}
+\end{multicols}
+
+\section{Education}
+\headingBf{[University Name]}{}
+\headingIt{[Degree and Field of Study]}{[Graduation Date]}
+
+\section{Certifications}
+\begin{resume_list}
+  \item [Certification Name]
+  \item [Certification Name]
+\end{resume_list}
+
+\section{Projects}
+\headingBf{[Project Title]}{[Organization or Context]}
+\begin{resume_list}
+  \item [Briefly describe the project, its goal, and your contribution.]
+\end{resume_list}
+
+\headingBf{[Project Title]}{[Organization or Context]}
+\begin{resume_list}
+  \item [Summarize the project and its outcomes.]
+\end{resume_list}
+
+\end{document}
+"""
+
+# Define name of classes
+class TemplateName(str, Enum):
+    Blue_Modern_CV = "Blue Modern CV"
+    One_page_Simple_CV = "One_page Simple CV"
+
+# Define details of classes
+Template_Details = { TemplateName.Blue_Modern_CV : {'num_pages':2, 'structure':template_1},
+                 TemplateName.One_page_Simple_CV : {'num_pages':1, 'structure':template_2}
+        }
+
+john_doe_resume = """John Doe
 
 [Email: johndoe@example.com] | [Phone: +44 123 456 7890] | [LinkedIn: linkedin.com/in/johndoe] | [GitHub: github.com/johndoe]
 London, UK
