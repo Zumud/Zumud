@@ -21,7 +21,8 @@
 
 
 ## git command example: https://texlive2020.latexonline.cc/compile?command=xelatex&git=https://github.com/mohammadi-com/resume&target=MohammadMohammadi2/MohammadMohammadi.tex
-
+## git command example: https://latexonline.cc/compile?git=https://github.com/mohammadi-com/resume&target=MohammadMohammadi2/MohammadMohammadi.tex&force=true
+## .tar command example: https://latexonline.cc/data?target=resume/MohammadMohammadi2/MohammadMohammadi.tex&force=true&command=xelatex
 
     # tailored_cl_path = './tailored_cl.pdf'
     # save_string_to_pdf(filename=tailored_cl_path, text=ai_tailored_cl_response)
@@ -34,7 +35,7 @@
 
     # with open(tailored_cv_path, 'rb') as tailored_cv, open(tailored_cl_path, 'rb') as tailored_cl:
     #     files = {'tailored_cv': tailored_cv, 'tailored_cl': tailored_cl}
-    #     requests.post(url=ADD_GDRIVE_ZAP_URL, data={'name': f"{folder_num:04}_"+company_name}, files=files)
+    #     requests.post(url=ADD_GDRIVE_ZAP_URL, data={'name': f"{folder_num:04}_"+company_name}, files= )
     #     folder_num += 1
     
     # # we can use this line to send the cv to the email

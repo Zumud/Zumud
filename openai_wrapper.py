@@ -116,7 +116,7 @@ def covert_plain_resume_to_latex(company_name: str, plain_resume: str, model=AIM
         created_tar_file = generate_tex_and_tar(company_name, trimed_tailored_resume, TEX_FILE_NAME, TAR_FOLDER_NAME)
         with open(created_tar_file, 'rb') as tar_file:
             files = {'file':(os.path.basename(created_tar_file), tar_file, "application/x-tar")}
-            latex_compiler_response = requests.post(url=LaTeX_COMPILER_URL_DATA.format(tex_folder_path=f"{TAR_FOLDER_NAME}/{TEX_FILE_NAME}.tex"), files= files)
+            latex_compiler_response = requests.post(url=LaTeX_COMPILER_URL_DATA.format(tex_folder_path=f"{TAR_FOLDER_NAME}/{TEX_FILE_NAME}.tex", compiler=Template_Details[template]['compiler']), files= files)
         logger.debug(f"Request url to the LaTeX compiler is: {latex_compiler_response.url}")
         if not b"error: " in latex_compiler_response.content:  # there is no error in the compiled code
             return latex_compiler_response, trimed_tailored_resume
