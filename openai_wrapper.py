@@ -7,8 +7,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from openai import OpenAI
 from envs import OPEN_AI_KEY, LaTeX_COMPILER_URL_TEXT, LaTeX_COMPILER_URL_DATA
-from models import AIModel
-from templates import TemplateName, Template_Details
+from models.ai_models import AIModel
+from models.templates import ResumeTemplate, Template_Details
 import os
 from utils import generate_tex_and_tar
 from config import TEX_FILE_NAME, TAR_FOLDER_NAME
@@ -84,7 +84,7 @@ def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini) -> str:
     )
     return completion.choices[0].message.content
 
-def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=TemplateName.Blue_Modern_CV) -> str:
+def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_CV) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
@@ -97,7 +97,7 @@ def create_tailored_plain_resume(resume: str, job_description: str, model=AIMode
     logger.debug(f"The tailored CV plain text is: {tailored_resume}")
     return tailored_resume
 
-def covert_plain_resume_to_latex(company_name: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=TemplateName.Blue_Modern_CV):
+def covert_plain_resume_to_latex(company_name: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_CV):
 
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},

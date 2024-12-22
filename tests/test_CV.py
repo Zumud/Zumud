@@ -5,7 +5,7 @@ import json
 from enum import Enum
 from main import app, generate_tailored_plain_resume
 from models import AIModel
-from templates import TemplateName, Template_Details
+from models.templates import ResumeTemplate, Template_Details
 
 # Initialize test client
 client = TestClient(app)
@@ -71,7 +71,7 @@ class TestCreateTailoredPlainResume:
                 resume=sample_resume,
                 job_description=sample_job_description,
                 model=AIModel.gpt_4o_mini,
-                template=TemplateName.Blue_Modern_CV
+                template=ResumeTemplate.Blue_Modern_CV
             )
             
             # Verify results
@@ -90,7 +90,7 @@ class TestCreateTailoredPlainResume:
             assert call_args['messages'][0]['role'] == "system"
             assert call_args['messages'][1]['role'] == "user"
 
-    @pytest.mark.parametrize("template", list(TemplateName))
+    @pytest.mark.parametrize("template", list(ResumeTemplate))
     def test_different_template_pages(self, sample_resume, sample_job_description, mock_tailored_resume, template):
         with patch('openai_wrapper.client.beta.chat.completions.parse') as mock_openai:
             mock_response = Mock()
@@ -153,7 +153,7 @@ class TestTailoredCVEndpoint:
                     "resume": sample_resume,
                     "job_description": sample_job_description,
                     "model": AIModel.gpt_4o_mini.value,
-                    "template": TemplateName.MTeck_resume.value
+                    "template": ResumeTemplate.MTeck_resume.value
                 }
             )
             # Test whether request works correctly
@@ -172,7 +172,7 @@ class TestTailoredCVEndpoint:
                 "resume": sample_resume,
                 "job_description": sample_job_description,
                 "model": "invalid_model",
-                "template": TemplateName.Blue_Modern_CV.value
+                "template": ResumeTemplate.Blue_Modern_CV.value
             }
         )
         # Test whether request gives error when it is given invalid model
