@@ -1,4 +1,32 @@
 
+consider_eligibility = """Please help me to understand am I legally authorized for this job based on my legal authorization info or not.
+** My legal authorization:**
+{legal_authorization}
+
+** Job description:**
+{job_description}
+
+**Instructions:**
+- Identify specific legal authorization and work eligibility requirements in the job description.
+- Search for specific legal requiremnets for working in the job's location.
+- Match the identified legal requirements with the my legal authorization details provided.
+- Based on the legal authorization details and the requirements in the job description, assess whether I am legally authorized to work for the company in the specified location.
+- Answer with True or False to whether I am legally eligible to work for the company in their location, providing a concise explanation for the determination.
+"""
+
+consider_suitability = """Please help me understand if I am suitable for this job based on my preferences for in-person, hybrid, or fully remote work, in relation to the job description.
+** My preferences:**
+{preferences}
+
+** Job description:**
+{job_description}
+
+**Instructions:**
+- Identify specific rules and regulations for flexible work in the job description.
+- Match the identified flexible work regulations with my preferences provided.
+- Based on my preferences and flexible work regulations in the job description, assess whether I am suitable for this job.
+- Answer with True or False to whether I am suitable to work for the company, providing a concise explanation for the determination.
+"""
 create_tailored_resume = """Please help me tailor my resume to match the following job description, emphasizing relevant skills and experiences to maximize my chances of getting an interview.
 
 **My Current Resume:**

@@ -4,7 +4,7 @@ import prompts
 from urllib import parse
 from loguru import logger
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from openai import OpenAI
 from envs import OPEN_AI_KEY, LaTeX_COMPILER_URL_TEXT, LaTeX_COMPILER_URL_DATA
 from models.ai_models import AIModel
@@ -15,7 +15,13 @@ from config import TEX_FILE_NAME, TAR_FOLDER_NAME
 
 client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
 
+class Eligibility(BaseModel):
+    eligibility: bool = Field(..., description="Indicates eligibility: 'True' or 'False'.")
+    reason: str = Field(..., description="Explanation of eligibility")
 
+class Suitability(BaseModel):
+    suitability: bool = Field(..., description="Indicates suitability: 'True' or 'False.")
+    reason: str = Field(..., description="Explanation of suitability")
 class TailoredResume(BaseModel):
     tailored_resume: str
 
@@ -83,6 +89,36 @@ def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini) -> str:
         ],
     )
     return completion.choices[0].message.content
+
+def consider_eligibility(job_description: str, legal_authorization: str, model: AIModel = AIModel.gpt_4o_mini):
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompts.consider_eligibility.format(legal_authorization=legal_authorization, job_description=job_description)}
+        ],
+        response_format=Eligibility
+    )
+    eligibility = json.loads(completion.choices[0].message.content)["eligibility"]
+    logger.debug(f"Is user eligible for this job: {eligibility}")
+    reason = json.loads(completion.choices[0].message.content)["reason"]
+    logger.debug(f"Reason of eligibility desicion: {reason}")
+    return eligibility, reason
+
+def consider_suitability(job_description: str, preferences: str, model: AIModel = AIModel.gpt_4o_mini):
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompts.consider_suitability.format(preferences=preferences, job_description=job_description)}
+        ],
+        response_format=Suitability
+    )
+    suitability = json.loads(completion.choices[0].message.content)["suitability"]
+    logger.debug(f"Is user eligible for this job: {suitability}")
+    reason = json.loads(completion.choices[0].message.content)["reason"]
+    logger.debug(f"Reason of eligibility desicion: {reason}")
+    return suitability, reason
 
 def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_CV) -> str:
     completion = client.beta.chat.completions.parse(

@@ -807,5 +807,28 @@ PERSONAL ATTRIBUTES
 	•	Strong problem-solving skills with a passion for continuous learning.
 	•	Excellent team player with a proven ability to collaborate across departments.
 	•	Effective communicator, capable of presenting technical concepts to non-technical audiences.
+"""
+john_doe_legal_authorization = """
+  eu_work_authorization: Yes
+  us_work_authorization: Yes
+  requires_us_visa: Yes
+  requires_us_sponsorship: Yes
+  requires_eu_visa: No
+  legally_allowed_to_work_in_eu: Yes
+  legally_allowed_to_work_in_us: Yes
+  requires_eu_sponsorship: No
+  canada_work_authorization: Yes
+  requires_canada_visa: No
+  legally_allowed_to_work_in_canada: Yes
+  requires_canada_sponsorship: No
+  uk_work_authorization: Yes
+  requires_uk_visa: No
+  legally_allowed_to_work_in_uk: Yes
+  requires_uk_sponsorship: No
+  """
 
+john_doe_preferences = """
+remote_work: Yes
+in_person_work: No
+open_to_relocation: No
 """
