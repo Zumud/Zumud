@@ -6,10 +6,9 @@ from models.templates import john_doe_resume, john_doe_legal_authorization, john
 from models.tailoring_options import TailoringOptions
 from models.job import Job
 from models.profile import Profile, Resume
-from datetime import datetime
-
+from utils import generate_pdf
 from log import logger
-from config import APPLICANT_NAME
+
 
 app = FastAPI()
 
@@ -70,21 +69,9 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
     company_name = openai_wrapper.ai_prompt(
         f"Give the name of the company that this job description is for. As the output just give the name, nothing else. Job description: {job.description}"
     )  # Since this is a simple task we use the cheapest ai
+    
+    pdf_path = generate_pdf(company_name, tailored_plain_resume, tailoring_options)
 
-    # Get the current time formatted as YYYY-MM-DD_HH-MM-SS
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-    # Make a folder for each job description to save PDF, .tex, and .tar files of tailored resume.
-    os.makedirs(f'./CVs/{current_time}_{company_name}', exist_ok=True)
-
-    latex_compiler_response, _ = openai_wrapper.covert_plain_resume_to_latex(
-        current_time, company_name, tailored_plain_resume, tailoring_options.ai_model, tailoring_options.resume_template
-    )
-    # Path to save pdf file of tailored resume
-    pdf_path = f'./CVs/{current_time}_{company_name}/{APPLICANT_NAME}_cv.pdf'
-    with open(pdf_path, 'wb') as f:
-        f.write(latex_compiler_response.content)
-    logger.debug(f"Generated resume saved at here: {pdf_path}")
     return {
         "success": f"Generated resume saved at here: {pdf_path}",
         "path": os.path.abspath(pdf_path)
