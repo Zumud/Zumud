@@ -2,7 +2,7 @@ import os
 import tarfile
 from log import logger
 
-def generate_tex_and_tar(company_name: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
+def generate_tex_and_tar(current_time: str, company_name: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
     """
     Creates a folder, generates a .tex file inside it, and compresses the folder into a .tar file.
 
@@ -13,10 +13,10 @@ def generate_tex_and_tar(company_name: str, latex_content: str, file_name: str= 
     """
     try:
         # Path of a folder for saving .tex files
-        resume_folder_path = f'./CVs/{company_name}/{folder_name}'
+        resume_folder_path = f'./CVs/{current_time}_{company_name}/{folder_name}'
 
         # Path of .tar file
-        tar_path = f'./CVs/{company_name}'
+        tar_path = f'./CVs/{current_time}_{company_name}'
 
         # Ensure the folder exists
         os.makedirs(resume_folder_path, exist_ok=True)
