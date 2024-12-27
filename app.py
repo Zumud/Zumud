@@ -1,0 +1,71 @@
+import streamlit as st
+import requests
+from typing import Dict, Any
+from config import API_URL
+from models.ai_models import AIModel
+from models.templates import ResumeTemplate
+
+class ResumeApp:
+    def __init__(self, api_url: str = API_URL):
+        self.api_url = api_url
+        
+    def call_api(self, endpoint: str, data: Dict[str, Any]) -> Dict:
+        response = requests.post(f"{self.api_url}/{endpoint}", json=data)
+        return response.json()
+    
+def main():
+    st.set_page_config(page_title="Resume Tailorer", layout="wide")
+    app = ResumeApp()
+
+    st.title("Resume Tailoring Application")
+
+    # Sidebar for configurations
+    with st.sidebar:
+        st.header("Configuration")
+        ai_model = st.selectbox("Select AI Model", [model.value for model in AIModel], index=0)
+        resume_template = st.selectbox("Select Resume Template", [template.value for template in ResumeTemplate], index=2)
+        job_description = st.text_area("Enter Job Description", height=200)
+        use_default = st.checkbox("Use Default Resume", value=True)
+    if not use_default:
+        resume_file = st.file_uploader("Upload Your Resume (TXT format)")
+        if resume_file:
+            resume_text = resume_file.getvalue().decode()
+        else:
+            st.warning("No resume uploaded. Will use default resume.")
+            resume_text = None
+    tab1, tab2 = st.tabs(["Generate Resume", "Generate Cover Letter"])
+    
+    
+    job_data = {
+        "job": {"description": job_description},
+        "tailoring_options": {
+            "ai_model": ai_model,
+            "resume_template": resume_template
+        }
+    }
+    if not use_default and resume_text:
+        job_data["profile"] = {"resume": {"text": resume_text}}
+    
+    with tab1:
+        if st.button("Check Eligibility"):
+            result = app.call_api("determine_eligibility", job_data)
+            st.write("Eligibility:", result["eligibility"])
+            st.write("Reason:", result["reason"])
+        
+        if st.button("Check Suitability"):
+            result = app.call_api("determine_suitability", job_data)
+            st.write("Suitability:", result["suitability"])
+            st.write("Reason:", result["reason"])
+        
+        if st.button("Generate Resume"):
+            result = app.call_api("generate-latex-resume-save", job_data)
+            st.success(f"Resume saved: {result['path']}")
+
+    
+    with tab2:
+        if st.button("Generate Cover Letter"):
+            result = app.call_api("generate-tailored-plain-coverletter", job_data)
+            st.text_area("Generated Cover Letter", value=result, height=400)
+
+if __name__ == "__main__":
+    main()

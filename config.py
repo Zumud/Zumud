@@ -9,3 +9,4 @@ LOG_FORMAT = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}
 APPLICANT_NAME = "John Doe"
 TEX_FILE_NAME = "resume"
 TAR_FOLDER_NAME = "resume"
+API_URL = "http://localhost:8000"
