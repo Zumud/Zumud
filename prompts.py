@@ -69,7 +69,7 @@ convert_plain_resume_to_latex = """I have a resume in text format and a LaTeX re
 - Populate all fields such as personal information, summary, experience, skills, education, projects, certifications.
 - Add necessary bullet points for each part instead of very long sentences.
 - Format the bullet points and lists appropriately in LaTeX.
-- Escape any LaTeX special characters in the content.
+- Escape any LaTeX special characters in the content. For example, replace "&" with "\&", "%" with "\%", "#" with "\#", etc.
 - Ensure the final output is valid LaTeX code ready for compilation.
 - Ensure the final output is {num_pages} pages.
 
