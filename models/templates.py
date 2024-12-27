@@ -605,6 +605,7 @@ mteck_resume = r"""
       \raisebox{-0.05\height} \faPhone\ 123-456-7890} ~ | ~
     \href{mailto:user@domain.tld}{
       \raisebox{-0.15\height} \faEnvelope\ USER@domain.tld} ~ | ~
+    \raisebox{-0.05\height}{\faMapMarker\ Tallinn, Estonia} ~ | ~
     \href{https://linkedin.com/in/USER/}{
       \raisebox{-0.15\height} \faLinkedin\ linkedin.com/in/USER} ~ | ~
     \href{https://github.com/USER}{
@@ -640,30 +641,8 @@ mteck_resume = r"""
 
   \section{Experience}
 
-  \headingBf{Consulting Corp}{Jul 2015 -- Jun 2025}
-  \headingIt{Senior DevOps Engineer (FTE Consultant)}{}
-  \begin{resume_list}
-    \itemTitle{Client: Notable Placement}
-    \item Analyzed network traffic patterns to identify bottlenecks and optimize performance
-    \item Implemented firewall rules to enhance network security and prevent unauthorized access
-    \item Conducted regular vulnerability assessments and applied patches to secure systems
-    \item Collaborated with cross-functional teams to streamline IT processes and improve efficiency
-    \vspace{3pt}
-    \itemTitle{Client: Challenges Unlimited}
-    \item Configured monitoring tools to track system performance and troubleshoot issues proactively
-    \item Automated routine tasks using scripts to reduce manual effort and increase productivity
-    \item Documented system configurations and procedures for knowledge sharing within the team
-    \item Participated in disaster recovery planning and drills to ensure business continuity in case of emergencies
-    \vspace{3pt}
-    \itemTitle{Client: Broken Galleries}
-    \item Implemented cloud migration strategies to move applications to a hybrid environment
-    \item Optimized database performance through indexing and query tuning techniques
-    \item Conducted capacity planning and scalability assessments to support future growth
-    \item Provided on-call support for critical issues and worked on root cause analysis for incident resolution
-  \end{resume_list}
-
-  \headingBf{HealthCo Industries}{Feb 2011 -- Mar 2016}
-  \headingIt{Senior Systems Administrator (SRE)}{}
+  \headingBf{[Company name]}{[Date range]}
+  \headingIt{[Role]}{[Location]}
   \begin{resume_list}
     \item Managed virtualized server environment spanning multiple data centers
     \item Oversaw migration of critical business applications to cloud-based platforms
@@ -682,7 +661,7 @@ mteck_resume = r"""
 
   \section{Education}
 
-  \headingBf{State University}{} % Note: Adding year(s) exposes an implied age
+  \headingBf{State University}{}
   \headingIt{Bachelor of Science in Computer Information Systems}{}
   \headingIt{Minors: Networking ; Network Security}{}
 
