@@ -25,27 +25,19 @@ def main():
         ai_model = st.selectbox("Select AI Model", [model.value for model in AIModel], index=0)
         resume_template = st.selectbox("Select Resume Template", [template.value for template in ResumeTemplate], index=2)
         job_description = st.text_area("Enter Job Description", height=200)
-        use_default = st.checkbox("Use Default Resume", value=True)
-    if not use_default:
-        resume_file = st.file_uploader("Upload Your Resume (TXT format)")
-        if resume_file:
-            resume_text = resume_file.getvalue().decode()
-        else:
-            st.warning("No resume uploaded. Will use default resume.")
-            resume_text = None
+        resume = st.text_area("Enter Resume", height=200)
     tab1, tab2 = st.tabs(["Generate Resume", "Generate Cover Letter"])
     
     
     job_data = {
+        "profile": {"resume": {"text": resume}},
         "job": {"description": job_description},
         "tailoring_options": {
             "ai_model": ai_model,
             "resume_template": resume_template
         }
     }
-    if not use_default and resume_text:
-        job_data["profile"] = {"resume": {"text": resume_text}}
-    
+
     with tab1:
         if st.button("Check Eligibility"):
             result = app.call_api("determine_eligibility", job_data)
