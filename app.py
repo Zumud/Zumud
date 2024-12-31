@@ -26,7 +26,7 @@ def main():
         resume_template = st.selectbox("Select Resume Template", [template.value for template in ResumeTemplate], index=2)
         job_description = st.text_area("Enter Job Description", height=200)
         resume = st.text_area("Enter Resume", height=200)
-    tab1, tab2 = st.tabs(["Generate Resume", "Generate Cover Letter"])
+    tab1, tab2, tab3 = st.tabs(["Generate Resume", "Generate Cover Letter", "Answer application questions"])
     
     
     job_data = {
@@ -58,6 +58,14 @@ def main():
         if st.button("Generate Cover Letter"):
             result = app.call_api("generate-tailored-plain-coverletter", job_data)
             st.text_area("Generated Cover Letter", value=result, height=400)
+    
+    with tab3:
+        question_description = st.text_area("Enter Question", height=200)
+        # Adding the question description
+        job_data["question"] = {"description": question_description}
+        if st.button("Generate answer"):
+            result = app.call_api("answer-application-questions", job_data)
+            st.text_area("Generated Answer", value=result, height=400)
 
 if __name__ == "__main__":
     main()

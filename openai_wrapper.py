@@ -37,6 +37,9 @@ class TailoredCL(BaseModel):
 class CompanyName(BaseModel):
     company_name: str
 
+class TailoredAnswer(BaseModel):
+    tailored_answer: str
+
 def create_customized_cv(resume_text: str, job_description_text: str, model=AIModel.gpt_4o_mini):
     completion = client.beta.chat.completions.parse(
         model=model,
@@ -179,3 +182,14 @@ def ai_messages(messages: list[tuple[str, str]], model=AIModel.gpt_4o_mini) -> s
         messages=messages
     )
     return completion.choices[0].message.content
+
+def generate_answer_questions(resume: str, job_description: str, question: str, model=AIModel.gpt_4o_mini):
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a helpful assisstant."},
+            {"role": "user", "content": prompts.answer_application_question.format(resume=resume, job_description=job_description, question=question)}
+        ],
+        response_format=TailoredAnswer
+    )
+    return json.loads(completion.choices[0].message.content)["tailored_answer"]

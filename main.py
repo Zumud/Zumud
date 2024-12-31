@@ -8,6 +8,7 @@ from models.job import Job
 from models.profile import Profile, Resume
 from utils import generate_pdf
 from log import logger
+from models.question import Question
 
 
 app = FastAPI()
@@ -76,3 +77,11 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
         "success": f"Generated resume saved at here: {pdf_path}",
         "path": os.path.abspath(pdf_path)
     }
+
+@app.post("/answer-application-questions")
+def answer_application_questions(job: Job, question: Question, profile: Profile = Profile(Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()) -> str:
+    """
+    Gets resume, job description, and questions in the job applicaton and answer to them based on resume and job description.
+    """
+
+    return openai_wrapper.generate_answer_questions(profile.resume.text, job.description, question.description, tailoring_options.ai_model)

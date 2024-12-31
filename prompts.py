@@ -49,11 +49,12 @@ Thank you!
 
 create_tailored_coverletter_prompt = """You are an expert career coach and professional writer. Using the resume and job description provided below, write a personalized cover letter. The cover letter should:
 
-- Highlight how my skills, experiences, and achievements, and explains why I am an excellent fit for the position.
+- Highlight how my skills, experiences, and achievements fit for this position, and explains why I am an excellent fit for the position.
 - Emphasize the most relevant aspects of my resume that match the job description.
 - Demonstrate my enthusiasm for the role and the company.
 - Be professional, engaging, and tailored to maximize my chances of securing an interview.
 - Follow standard cover letter format. Start with "Dear", there is no need for contact details, date, and so on. No place holders.
+- Write the cover letter in 2 paragraphs.
 
 **Resume:**
 {resume}
@@ -96,3 +97,14 @@ fix_latex_error = """I tried compiling the LaTeX resume code you provided earlie
 
 Could you please help me fix the LaTeX code so it compiles successfully? 
 Please provide the corrected LaTeX code with the issue resolved."""
+
+answer_application_question = """
+I want you to assist me in answering a question from a job application form based on my resume and the job description. Here is the information:
+Resume: {resume}
+Job description: {job_description}
+Question: {question}
+Make sure to:
+- Craft a precise and tailored response to the question.
+- The answer aligns with both resume and the requirements and expectations outlined in the job description.
+- The answer should be professional, concise, and highlight my most relevant skills and experiences.
+"""
