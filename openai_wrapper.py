@@ -28,7 +28,7 @@ class TailoredResume(BaseModel):
 class TailoredCoverLetter(BaseModel):
     tailored_coverletter: str
 
-class CustomizedCV(BaseModel):
+class CustomizedResume(BaseModel):
     customized_resume: str
 
 class TailoredCL(BaseModel):
@@ -40,7 +40,7 @@ class CompanyName(BaseModel):
 class TailoredAnswer(BaseModel):
     tailored_answer: str
 
-def create_customized_cv(resume_text: str, job_description_text: str, model=AIModel.gpt_4o_mini):
+def create_customized_resume(resume_text: str, job_description_text: str, model=AIModel.gpt_4o_mini):
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
@@ -57,11 +57,11 @@ def create_customized_cv(resume_text: str, job_description_text: str, model=AIMo
              Resume LaTeX:""" + resume_text},
             {"role": "user", "content": "Job description: "+job_description_text}
         ],
-        response_format=CustomizedCV  # ensures the out put is a json with the given format. For unsupported models, we can use JSON mode. read here: https://platform.openai.com/docs/guides/structured-outputs/json-mode
+        response_format=CustomizedResume  # ensures the out put is a json with the given format. For unsupported models, we can use JSON mode. read here: https://platform.openai.com/docs/guides/structured-outputs/json-mode
     )
 
-    ai_tailored_cv_response, = json.loads(completion.choices[0].message.content).values()  # create the json object and unpack
-    return ai_tailored_cv_response
+    ai_tailored_resume_response, = json.loads(completion.choices[0].message.content).values()  # create the json object and unpack
+    return ai_tailored_resume_response
 
 
 def create_customized_cl(resume_text: str, job_description_text: str, model=AIModel.gpt_4o_mini):
@@ -123,7 +123,7 @@ def consider_suitability(job_description: str, preferences: str, model: AIModel 
     logger.debug(f"Reason of eligibility desicion: {reason}")
     return suitability, reason
 
-def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_CV) -> str:
+def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_Resume) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
@@ -133,10 +133,10 @@ def create_tailored_plain_resume(resume: str, job_description: str, model=AIMode
         response_format=TailoredResume
     )
     tailored_resume = json.loads(completion.choices[0].message.content)["tailored_resume"]
-    logger.debug(f"The tailored CV plain text is: {tailored_resume}")
+    logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-def covert_plain_resume_to_latex(current_time: str, company_name: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_CV):
+def covert_plain_resume_to_latex(current_time: str, company_name: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_Resume):
 
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
@@ -150,7 +150,7 @@ def covert_plain_resume_to_latex(current_time: str, company_name: str, plain_res
             response_format=TailoredResume
         )
         tailored_resume = json.loads(completion.choices[0].message.content)["tailored_resume"]
-        logger.debug(f"The tailored CV Latex code in iteration {i} is: {tailored_resume}")
+        logger.debug(f"The tailored resume Latex code in iteration {i} is: {tailored_resume}")
         trimed_tailored_resume = tailored_resume[tailored_resume.find(r"\documentclass"):tailored_resume.rfind(r"\end{document}")+len(r"\end{document}")]  # removes possible extra things that AI adds
         created_tar_file = generate_tex_and_tar(current_time, company_name, trimed_tailored_resume, TEX_FILE_NAME, TAR_FOLDER_NAME)
         with open(created_tar_file, 'rb') as tar_file:

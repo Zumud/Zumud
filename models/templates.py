@@ -699,19 +699,19 @@ mteck_resume = r"""
 
 # Define name of classes
 class ResumeTemplate(str, Enum):
-  Blue_Modern_CV = "Blue Modern CV"
-  One_page_Simple_CV = "One_page Simple CV"
+  Blue_Modern_Resume = "Blue Modern CV"
+  One_page_Simple_Resume = "One_page Simple CV"
   MTeck_resume = "MTeck's Resume"
 
 # Define details of classes
 Template_Details = {
-  ResumeTemplate.Blue_Modern_CV: {
+  ResumeTemplate.Blue_Modern_Resume: {
     'num_pages': 2,
     'structure': template_1,
     'compiler': 'xelatex',
     'version': 'texlive2020'
   },
-  ResumeTemplate.One_page_Simple_CV: {
+  ResumeTemplate.One_page_Simple_Resume: {
     'num_pages': 1,
     'structure': template_2,
     'compiler': 'pdflatex',

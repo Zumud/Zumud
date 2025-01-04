@@ -17,7 +17,7 @@ def generate_tex_and_tar(current_time: str, company_name: str, latex_content: st
     """
     try:
         # Path of a folder for saving .tex files
-        resume_folder_path = f'./CVs/{current_time}_{company_name}'
+        resume_folder_path = f'./Resumes/{current_time}_{company_name}'
 
         # Path of .tar file
         tar_path = f'./CVs/{current_time}_{company_name}'
@@ -53,13 +53,13 @@ def generate_pdf(company_name: str, tailored_plain_resume: str, tailoring_option
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Make a folder for each job description to save PDF, .tex, and .tar files of tailored resume.
-    os.makedirs(f'./CVs/{current_time}_{company_name}', exist_ok=True)
+    os.makedirs(f'./Resumes/{current_time}_{company_name}', exist_ok=True)
 
     latex_compiler_response, _ = openai_wrapper.covert_plain_resume_to_latex(
         current_time, company_name, tailored_plain_resume, tailoring_options.ai_model, tailoring_options.resume_template
     )
     # Path to save pdf file of tailored resume
-    pdf_path = f'./CVs/{current_time}_{company_name}/{APPLICANT_NAME}_cv.pdf'
+    pdf_path = f'./Resumes/{current_time}_{company_name}/{APPLICANT_NAME}_resume.pdf'
     with open(pdf_path, 'wb') as f:
         f.write(latex_compiler_response.content)
     logger.debug(f"Generated resume saved at here: {pdf_path}")

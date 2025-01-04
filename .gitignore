@@ -2,6 +2,7 @@
 .venv/
 .env
 CVs/
+Resumes/
 __pycache__/
 log/
 resume/
