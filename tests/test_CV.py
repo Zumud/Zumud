@@ -71,13 +71,13 @@ class TestCreateTailoredPlainResume:
                 resume=sample_resume,
                 job_description=sample_job_description,
                 model=AIModel.gpt_4o_mini,
-                template=ResumeTemplate.Blue_Modern_CV
+                template=ResumeTemplate.Blue_Modern_Resume
             )
             
             # Verify results
-            # Test whether the output CV is string or not
+            # Test whether the output resume is string or not
             assert isinstance(result, str)
-            # Test whether the output CV contains tailored information
+            # Test whether the output resume contains tailored information
             assert "Senior Software Engineer" in result
             assert "Tech Corp" in result
 
@@ -142,10 +142,10 @@ class TestCreateTailoredPlainResume:
             assert "API Error" in str(exc_info.value)
 
 # Integration tests for the GET endpoint
-class TestTailoredCVEndpoint:
+class TestTailoredResumeEndpoint:
     def test_successful_request(self, sample_resume, sample_job_description, mock_tailored_resume):
-        with patch('openai_wrapper.create_tailored_plain_resume') as mock_create_cv:
-            mock_create_cv.return_value = mock_tailored_resume['tailored_resume']
+        with patch('openai_wrapper.create_tailored_plain_resume') as mock_create_resume:
+            mock_create_resume.return_value = mock_tailored_resume['tailored_resume']
             
             response = client.get(
                 "/generate-tailored-plain-resume",
@@ -172,7 +172,7 @@ class TestTailoredCVEndpoint:
                 "resume": sample_resume,
                 "job_description": sample_job_description,
                 "model": "invalid_model",
-                "template": ResumeTemplate.Blue_Modern_CV.value
+                "template": ResumeTemplate.Blue_Modern_Resume.value
             }
         )
         # Test whether request gives error when it is given invalid model
