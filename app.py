@@ -26,7 +26,7 @@ def main():
         resume_template = st.selectbox("Select Resume Template", [template.value for template in ResumeTemplate], index=2)
         job_description = st.text_area("Enter Job Description", height=200)
         resume = st.text_area("Enter Resume", height=200)
-    tab1, tab2, tab3 = st.tabs(["Generate Resume", "Generate Cover Letter", "Answer application questions"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Generate Resume", "Generate Cover Letter", "Answer application questions", "CV Editor"])
     
     
     job_data = {
@@ -51,7 +51,9 @@ def main():
         
         if st.button("Generate Resume"):
             result = app.call_api("generate-latex-resume-save", job_data)
-            st.success(f"Resume saved: {result['path']}")
+            # session_state shows that whether latex code is present or not, as in the cv_editor part, we want to edit the latex code
+            st.session_state['latex_code'] = result['latex_code']
+            st.success(f"Resume saved: {result['pdf_file_path']}")
 
     
     with tab2:
@@ -66,6 +68,30 @@ def main():
         if st.button("Generate answer"):
             result = app.call_api("answer-application-questions", job_data)
             st.text_area("Generated Answer", value=result, height=400)
+    
+    with tab4:
+        # There should be a latex code to display, as the purpose of this section is to edit the latex code
+        if 'latex_code' not in st.session_state:
+            st.session_state['latex_code'] = ""
+            
+        st.header("LaTeX Editor")
+        edited_latex = st.text_area("Edit LaTeX Code", value=st.session_state['latex_code'], height=400)
+        if st.button("Save Final PDF"):
+            save_data = {
+                "latex": {
+                    "latex_code":edited_latex
+                },
+                "tailoring_options": {
+                    "ai_model":ai_model,
+                    "resume_template": resume_template
+                }
+            }
+            result = app.call_api("save-latex-resume", save_data)
+            if result.get('path'):
+                st.success(f"PDF saved at: {result['path']}")
+            else:
+                st.error("An error occured. Please try again.")
+
 
 if __name__ == "__main__":
     main()

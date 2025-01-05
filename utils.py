@@ -1,12 +1,15 @@
 import os
+import requests
 import tarfile
 import openai_wrapper
 from log import logger
 from datetime import datetime
 from models.tailoring_options import TailoringOptions
 from config import APPLICANT_NAME
+from config import TEX_FILE_NAME, TAR_FOLDER_NAME
+from envs import LaTeX_COMPILER_URL_DATA
 
-def generate_tex_and_tar(current_time: str, company_name: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
+def generate_tex_and_tar(time: str, company_name: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
     """
     Creates a folder, generates a .tex file inside it, and compresses the folder into a .tar file.
 
@@ -17,10 +20,10 @@ def generate_tex_and_tar(current_time: str, company_name: str, latex_content: st
     """
     try:
         # Path of a folder for saving .tex files
-        resume_folder_path = f'./Resumes/{current_time}_{company_name}'
+        resume_folder_path = f'./Resumes/{time}_{company_name}'
 
         # Path of .tar file
-        tar_path = f'./CVs/{current_time}_{company_name}'
+        tar_path = f'./Resumes/{time}_{company_name}'
 
         # Ensure the folder exists
         os.makedirs(resume_folder_path, exist_ok=True)
@@ -48,19 +51,24 @@ def generate_tex_and_tar(current_time: str, company_name: str, latex_content: st
     except Exception as e:
         logger.debug(f"An error occurred: {e}")
 
-def generate_pdf(company_name: str, tailored_plain_resume: str, tailoring_options: TailoringOptions):
-    # Get the current time formatted as YYYY-MM-DD_HH-MM-SS
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+def generate_pdf_from_latex(time, company_name, latex_code, compiler):
+    """ 
+    generate pdf file from latex code
+    """
+    tar_file = generate_tex_and_tar(time, company_name, latex_code, TEX_FILE_NAME, TAR_FOLDER_NAME)
+    with open(tar_file, 'rb') as tar_file:
+        files = {'file':(os.path.basename(tar_file.name), tar_file, "application/x-tar")}
+        latex_compiler_response = requests.post(url=LaTeX_COMPILER_URL_DATA.format(tex_folder_path=f"{TAR_FOLDER_NAME}/{TEX_FILE_NAME}.tex", compiler=compiler), files= files)
+    return latex_compiler_response
 
-    # Make a folder for each job description to save PDF, .tex, and .tar files of tailored resume.
-    os.makedirs(f'./Resumes/{current_time}_{company_name}', exist_ok=True)
-
-    latex_compiler_response, _ = openai_wrapper.covert_plain_resume_to_latex(
-        current_time, company_name, tailored_plain_resume, tailoring_options.ai_model, tailoring_options.resume_template
-    )
-    # Path to save pdf file of tailored resume
-    pdf_path = f'./Resumes/{current_time}_{company_name}/{APPLICANT_NAME}_resume.pdf'
-    with open(pdf_path, 'wb') as f:
-        f.write(latex_compiler_response.content)
-    logger.debug(f"Generated resume saved at here: {pdf_path}")
-    return pdf_path
+def save_pdf(pdf_path, pdf_file):
+    """
+    Save pdf file in pdf_path
+    """
+    os.makedirs(pdf_path,exist_ok=True)
+    file_name = f"{APPLICANT_NAME}_cv.pdf"
+    pdf_file_path = os.path.join(pdf_path,file_name)
+    with open(pdf_file_path,'wb') as f:
+        f.write(pdf_file)
+    logger.debug(f"Generated pdf saved at here: {pdf_file_path}")
+    return pdf_file_path
