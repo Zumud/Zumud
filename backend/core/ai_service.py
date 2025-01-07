@@ -1,12 +1,14 @@
 import json
-import utils.prompts as prompts
+
 from loguru import logger
-from pydantic import BaseModel, Field
 from openai import OpenAI
+from pydantic import BaseModel, Field
+
+import utils.prompts as prompts
 from config.envs import OPEN_AI_KEY
 from models.ai_models import AIModel
 from models.templates import ResumeTemplate, Template_Details
-from .utils import generate_pdf_from_latex
+from utils.file_ops import generate_pdf_from_latex
 
 client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
 
