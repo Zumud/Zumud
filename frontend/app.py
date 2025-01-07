@@ -1,9 +1,12 @@
 import streamlit as st
 import requests
 from typing import Dict, Any
-from config import API_URL
-from models.ai_models import AIModel
-from models.templates import ResumeTemplate
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # This is to add the root directory to sys.path. We need to remove this in future
+from backend.config.config import API_URL
+from backend.models.ai_models import AIModel
+from backend.models.templates import ResumeTemplate
 
 class ResumeApp:
     def __init__(self, api_url: str = API_URL):

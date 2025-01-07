@@ -1,18 +1,12 @@
 import json
-import requests
-import prompts
-from urllib import parse
+import utils.prompts as prompts
 from loguru import logger
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from openai import OpenAI
-from envs import OPEN_AI_KEY, LaTeX_COMPILER_URL_TEXT, LaTeX_COMPILER_URL_DATA
+from config.envs import OPEN_AI_KEY
 from models.ai_models import AIModel
 from models.templates import ResumeTemplate, Template_Details
-import os
-from utils import generate_tex_and_tar, generate_pdf_from_latex
-from config import TEX_FILE_NAME, TAR_FOLDER_NAME
-from datetime import datetime
+from .utils import generate_pdf_from_latex
 
 client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
 
