@@ -13,7 +13,7 @@ class ResumeApp:
         self.api_url = api_url
         
     def call_api(self, endpoint: str, data: Dict[str, Any]) -> Dict:
-        response = requests.post(f"{self.api_url}/{endpoint}", json=data)
+        response = requests.post(f"{self.api_url}/api/{endpoint}", json=data)
         return response.json()
     
 def main():
