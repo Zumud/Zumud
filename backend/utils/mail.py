@@ -5,7 +5,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 
-from envs import GMAIL_APP_PASSWORD
+from config.envs import GMAIL_APP_PASSWORD
 
 def send_mail(send_from = "noreply@example.com", send_to=["noreply@example.com"], subject="TestTailoredResume", text="This is a test email!", files=None, server="smtp.gmail.com", port=465):
     assert isinstance(send_to, list)

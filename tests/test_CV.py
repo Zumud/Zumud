@@ -3,9 +3,9 @@ from fastapi.testclient import TestClient
 from unittest.mock import Mock, patch
 import json
 from enum import Enum
-from main import app, generate_tailored_plain_resume
-from models import AIModel
-from models.templates import ResumeTemplate, Template_Details
+from backend.main import app, generate_tailored_plain_resume
+from backend.models import AIModel
+from backend.models.templates import ResumeTemplate, Template_Details
 
 # Initialize test client
 client = TestClient(app)

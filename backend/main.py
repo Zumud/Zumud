@@ -1,13 +1,12 @@
 import os
 from datetime import datetime
 from fastapi import FastAPI
-import openai_wrapper
+import utils.openai_wrapper as openai_wrapper
 from models.templates import john_doe_resume, john_doe_legal_authorization, john_doe_preferences, Template_Details
 from models.tailoring_options import TailoringOptions
 from models.job import Job
 from models.profile import Profile, Resume
-from utils import save_pdf, generate_pdf_from_latex
-from log import logger
+from utils.utils import save_pdf, generate_pdf_from_latex
 from models.question import Question
 from models.latex import Latex
 

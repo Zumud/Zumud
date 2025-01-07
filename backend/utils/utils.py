@@ -1,10 +1,9 @@
 import os
 import requests
 import tarfile
-from backend.utils.log import logger
-from backend.config.config import APPLICANT_NAME
-from backend.config.config import TEX_FILE_NAME, TAR_FOLDER_NAME
-from backend.config.envs import LaTeX_COMPILER_URL_DATA
+from .log import logger
+from config.config import APPLICANT_NAME, TEX_FILE_NAME, TAR_FOLDER_NAME
+from config.envs import LaTeX_COMPILER_URL_DATA
 
 def generate_tex_and_tar(time: str, company_name: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
     """
