@@ -1,10 +1,9 @@
 import os
 import sys
-import time
 import logging
 from loguru import logger
 
-from config import LOG_LEVEL, LOG_TO_CONSOLE, LOG_TO_FILE, LOG_FILE, LOG_FORMAT
+from backend.config.config import LOG_LEVEL, LOG_TO_CONSOLE, LOG_TO_FILE, LOG_FILE, LOG_FORMAT
 
 log_file = LOG_FILE
 

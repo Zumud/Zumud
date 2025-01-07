@@ -1,13 +1,10 @@
 import os
 import requests
 import tarfile
-import openai_wrapper
-from log import logger
-from datetime import datetime
-from models.tailoring_options import TailoringOptions
-from config import APPLICANT_NAME
-from config import TEX_FILE_NAME, TAR_FOLDER_NAME
-from envs import LaTeX_COMPILER_URL_DATA
+from backend.utils.log import logger
+from backend.config.config import APPLICANT_NAME
+from backend.config.config import TEX_FILE_NAME, TAR_FOLDER_NAME
+from backend.config.envs import LaTeX_COMPILER_URL_DATA
 
 def generate_tex_and_tar(time: str, company_name: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
     """
