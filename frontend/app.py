@@ -3,10 +3,14 @@ import requests
 from typing import Dict, Any
 import sys
 import os
+import base64
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # This is to add the root directory to sys.path. We need to remove this in future
 from backend.config.config import API_URL
 from backend.models.ai_models import AIModel
 from backend.models.templates import ResumeTemplate
+from datetime import datetime
+from backend.utils.file_ops import PDFGenerator
+from backend.core import ai_service
 
 class ResumeApp:
     def __init__(self, api_url: str = API_URL):
@@ -15,6 +19,18 @@ class ResumeApp:
     def call_api(self, endpoint: str, data: Dict[str, Any]) -> Dict:
         response = requests.post(f"{self.api_url}/api/{endpoint}", json=data)
         return response.json()
+
+def display_pdf(pdf_file_path):
+    # Opening and reading the PDF file
+    with open(pdf_file_path, "rb") as f:
+        base64_pdf = base64.b64encode(f.read()).decode('utf-8')
+    
+    # Embedding PDF in HTML
+    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
+    
+    # Displaying the PDF
+    st.markdown(pdf_display, unsafe_allow_html=True)
+
     
 def main():
     st.set_page_config(page_title="Resume Tailorer", layout="wide")
@@ -56,13 +72,31 @@ def main():
             result = app.call_api("generate-latex-resume-save", job_data)
             # session_state shows that whether latex code is present or not, as in the cv_editor part, we want to edit the latex code
             st.session_state['latex_code'] = result['latex_code']
-            st.success(f"Resume saved: {result['pdf_file_path']}")
+            pdf_file_path = result['pdf_file_path']
+            if os.path.exists(pdf_file_path):
+                st.success(f"PDF saved: {pdf_file_path}")
+                display_pdf(pdf_file_path)
+            else:
+                st.error("Pdf file is not existed. Please try again.")
 
-    
     with tab2:
         if st.button("Generate Cover Letter"):
-            result = app.call_api("generate-tailored-plain-coverletter", job_data)
-            st.text_area("Generated Cover Letter", value=result, height=400)
+            company_name = ai_service.get_company_name(job_description)
+            cover_letter_text = app.call_api("generate-tailored-plain-coverletter", job_data)
+            st.text_area("Generated Cover Letter", value=cover_letter_text, height=400)
+            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            cover_letter_folder_path = os.path.join("Application","Cover Letters",f"{current_time}-{company_name}")
+            # Generate the PDF
+            try:
+                pdf_generator = PDFGenerator()
+                output_path = pdf_generator.create_pdf_document(
+                    cover_letter_text,
+                    output_folder=cover_letter_folder_path,
+                )
+                st.success(f"PDF generated successfully! Saved to: {output_path}")
+                
+            except Exception as e:
+                st.error(f"Error generating PDF: {str(e)}")
     
     with tab3:
         question_description = st.text_area("Enter Question", height=200)

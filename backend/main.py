@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.endpoints import router
+from backend.api.endpoints import router
 
 app = FastAPI(title="TailorMade Backend", version="1.0.0")
 app.include_router(router)

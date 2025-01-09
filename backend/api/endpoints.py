@@ -3,19 +3,19 @@ import os
 
 from fastapi import APIRouter
 
-import core.ai_service as ai_service
-from models.job import Job
-from models.latex import Latex
-from models.profile import Profile, Resume
-from models.question import Question
-from models.tailoring_options import TailoringOptions
-from models.templates import (
+import backend.core.ai_service as ai_service
+from backend.models.job import Job
+from backend.models.latex import Latex
+from backend.models.profile import Profile, Resume
+from backend.models.question import Question
+from backend.models.tailoring_options import TailoringOptions
+from backend.models.templates import (
     Template_Details,
     john_doe_legal_authorization,
     john_doe_preferences,
     john_doe_resume,
 )
-from utils.file_ops import generate_pdf_from_latex, save_pdf
+from backend.utils.file_ops import generate_pdf_from_latex, save_pdf
 
 router = APIRouter(prefix="/api")
 
@@ -61,12 +61,10 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
     Gets resume and job description in plain text and saves tailored resume
     """
     tailored_plain_resume = generate_tailored_plain_resume(job, profile, tailoring_options)
-    company_name = ai_service.ai_prompt(
-        f"Give the name of the company that this job description is for. As the output just give the name, nothing else. Job description: {job.description}"
-    )  # Since this is a simple task we use the cheapest ai
+    company_name = ai_service.get_company_name(job.description)
     
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    pdf_path = f'./Resumes/{current_time}_{company_name}'
+    pdf_path = f'Application/Resumes/{current_time}_{company_name}'
     os.makedirs(pdf_path, exist_ok=True)
     latex_compiler_response, latex_code = ai_service.covert_plain_resume_to_latex(
         current_time,

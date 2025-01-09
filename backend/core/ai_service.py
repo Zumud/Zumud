@@ -4,11 +4,11 @@ from loguru import logger
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-import utils.prompts as prompts
-from config.envs import OPEN_AI_KEY
-from models.ai_models import AIModel
-from models.templates import ResumeTemplate, Template_Details
-from utils.file_ops import generate_pdf_from_latex
+import backend.utils.prompts as prompts
+from backend.config.envs import OPEN_AI_KEY
+from backend.models.ai_models import AIModel
+from backend.models.templates import ResumeTemplate, Template_Details
+from backend.utils.file_ops import generate_pdf_from_latex
 
 client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
 
@@ -89,6 +89,15 @@ def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini) -> str:
         ],
     )
     return completion.choices[0].message.content
+
+def get_company_name(job_description):
+    """
+    Identifying the name of the company based on the job description
+    """
+    company_name = ai_prompt(
+        f"Give the name of the company that this job description is for. As the output just give the name, nothing else. Job description: {job_description}"
+    )  # Since this is a simple task we use the cheapest ai
+    return company_name
 
 def consider_eligibility(job_description: str, legal_authorization: str, model: AIModel = AIModel.gpt_4o_mini):
     completion = client.beta.chat.completions.parse(
