@@ -54,7 +54,7 @@ create_tailored_coverletter_prompt = """You are an expert career coach and profe
 - Demonstrate my enthusiasm for the role and the company.
 - Be professional, engaging, and tailored to maximize my chances of securing an interview.
 - Follow standard cover letter format. Start with "Dear", there is no need for contact details, date, and so on. No place holders.
-- Write the cover letter in 2 paragraphs.
+- Write the cover letter in 2 main paragraphs and at the end add Yours sincerely and Applicant name in different lines.
 
 **Resume:**
 {resume}
