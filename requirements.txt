@@ -47,3 +47,5 @@ watchfiles>=0.24.0
 websockets>=13.1
 pytest
 streamlit
+passlib
+python-jose[cryptography]
