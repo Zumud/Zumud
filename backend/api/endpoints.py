@@ -16,10 +16,12 @@ from backend.models.templates import (
     john_doe_resume,
 )
 from backend.utils.file_ops import generate_pdf_from_latex, save_pdf
+from fastapi import APIRouter
 
-router = APIRouter(prefix="/api")
+func_router = APIRouter()
 
-@router.post("/determine_eligibility")
+
+@func_router.post("/determine_eligibility")
 def determine_eligibility(job: Job, profile: Profile = Profile(resume=Resume(john_doe_resume),legal_authorization=john_doe_legal_authorization), tailoring_options: TailoringOptions = TailoringOptions()):
     """
     Gets profile and job description and determines eligibility for applying to the job
@@ -30,7 +32,7 @@ def determine_eligibility(job: Job, profile: Profile = Profile(resume=Resume(joh
         "reason": reason
     }
 
-@router.post("/determine_suitability")
+@func_router.post("/determine_suitability")
 def determine_suitability(job: Job, profile: Profile = Profile(resume=Resume(john_doe_resume), preferences=john_doe_preferences), tailoring_options: TailoringOptions = TailoringOptions()):
     """
     Gets profile and job description and determines suitability for applying to the job 
@@ -41,21 +43,21 @@ def determine_suitability(job: Job, profile: Profile = Profile(resume=Resume(joh
         "reason": reason
     }
 
-@router.post("/generate-tailored-plain-resume")
+@func_router.post("/generate-tailored-plain-resume")
 def generate_tailored_plain_resume(job: Job, profile: Profile = Profile(resume=Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()) -> str:
     """
     Gets resume and job description in plain text and returns tailored resume as a string
     """
     return ai_service.create_tailored_plain_resume(profile.resume.text, job.description, tailoring_options.ai_model, tailoring_options.resume_template)
 
-@router.post("/generate-tailored-plain-coverletter")
+@func_router.post("/generate-tailored-plain-coverletter")
 def generate_tailored_plain_coverletter(job: Job, profile: Profile = Profile(Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()) -> str:  # We should not pass tailoring options everytime, should be a config for each user. It could be kept with a session for example.
     """
     Gets resume and job description in plain text and returns customized cover letter as a string
     """
     return ai_service.create_tailored_plain_coverletter(profile.resume.text, job.description, tailoring_options.ai_model)
 
-@router.post("/generate-latex-resume-save")
+@func_router.post("/generate-latex-resume-save")
 def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()):
     """
     Gets resume and job description in plain text and saves tailored resume
@@ -81,7 +83,7 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
         "latex_code": latex_code
     }
 
-@router.post("/answer-application-questions")
+@func_router.post("/answer-application-questions")
 def answer_application_questions(
     job: Job,
     question: Question,
@@ -98,7 +100,7 @@ def answer_application_questions(
         tailoring_options.ai_model
     )
 
-@router.post("/save-latex-resume")
+@func_router.post("/save-latex-resume")
 def save_latex_resume(
     latex: Latex,
     tailoring_options: TailoringOptions
