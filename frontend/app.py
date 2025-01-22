@@ -144,42 +144,42 @@ def show_auth_page(app: ResumeApp):
     
 def show_main_app(app:ResumeApp):
     st.title(f"Welcome back, {st.session_state.user_data['username']}!")
-    
-    # Sidebar configuration
+
+    # Sidebar for Configuration and Resume Management
     with st.sidebar:
         if st.button("Logout"):
             st.session_state.logged_in = False
             st.rerun()
-        
+
         st.header("Configuration")
         ai_model = st.selectbox("Select AI Model", [model.value for model in AIModel], index=0)
         resume_template = st.selectbox("Select Resume Template", [template.value for template in ResumeTemplate], index=2)
-        job_description = st.text_area("Enter Job Description", height=200)
-
-    # Resume Management Section
-    st.header("Resume Management")
-    with st.expander("View/Edit Your Resume", expanded=True):
-         # Get current resume using the token-based authentication
+        
+        # Resume Management
+        st.header("Your Resume")
         resume_data = app.get_resume()
         current_resume = resume_data.get("resume_content", "") if resume_data else ""
-        
-        new_resume = st.text_area("Your Resume", value=current_resume, height=300)
-        
+        new_resume = st.text_area("Edit Resume", value=current_resume, height=300)
+
         if st.button("Update Resume"):
             if new_resume.strip():
                 result = app.update_resume(new_resume)
                 if result:
                     st.success("Resume updated successfully!")
-                    
                 else:
                     st.error("Failed to update resume")
+
+    # Middle Section: Job Description
+    st.header("Job Description")
+    job_description = st.text_area("Enter Job Description", height=200)
+    company_name = ai_service.get_company_name(job_description)
     
     tab1, tab2, tab3, tab4 = st.tabs(["Generate Resume", "Generate Cover Letter", "Answer application questions", "CV Editor"])
     
     
     job_data = {
-        "profile": {"resume": {"text": current_resume}},
-        "job": {"description": job_description},
+        "profile": {"resume": {"text": current_resume}, "username": st.session_state.user_data['username']},
+        "job": {"description": job_description, "company_name":company_name},
         "tailoring_options": {
             "ai_model": ai_model,
             "resume_template": resume_template
@@ -210,11 +210,10 @@ def show_main_app(app:ResumeApp):
 
     with tab2:
         if st.button("Generate Cover Letter"):
-            company_name = ai_service.get_company_name(job_description)
             cover_letter_text = app.call_api("generate-tailored-plain-coverletter", job_data)
             st.text_area("Generated Cover Letter", value=cover_letter_text, height=400)
             current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            cover_letter_folder_path = os.path.join("Application","Cover Letters",f"{current_time}-{company_name}")
+            cover_letter_folder_path = os.path.join("Application",f"{company_name}","Cover Letters",f"{current_time}-{company_name}")
             # Generate the PDF
             try:
                 pdf_generator = PDFGenerator()
@@ -265,6 +264,7 @@ def main():
     # Initialize session state
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
+    
 
     # Show either auth page or main app based on login status
     if not st.session_state.logged_in:
