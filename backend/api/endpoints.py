@@ -63,10 +63,10 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
     Gets resume and job description in plain text and saves tailored resume
     """
     tailored_plain_resume = generate_tailored_plain_resume(job, profile, tailoring_options)
-    company_name = ai_service.get_company_name(job.description)
+    company_name = job.company_name
     
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    pdf_path = f'Application/Resumes/{current_time}_{company_name}'
+    pdf_path = f'Applications/{company_name}/Resumes/{current_time}_{company_name}'
     os.makedirs(pdf_path, exist_ok=True)
     latex_compiler_response, latex_code = ai_service.covert_plain_resume_to_latex(
         current_time,
@@ -75,7 +75,8 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
         tailoring_options.ai_model,
         tailoring_options.resume_template
     )
-    pdf_file_path = save_pdf(pdf_path, latex_compiler_response.content)
+    username = profile.username
+    pdf_file_path = save_pdf(pdf_path, latex_compiler_response.content, username)
     
     return {
         "success": f"Generated resume saved at here: {pdf_file_path}",
