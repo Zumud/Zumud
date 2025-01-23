@@ -2,11 +2,12 @@ import os
 import requests
 import tarfile
 from backend.utils.log import logger
-from backend.config.config import APPLICANT_NAME, TEX_FILE_NAME, TAR_FOLDER_NAME
+from backend.config.config import TEX_FILE_NAME, TAR_FOLDER_NAME
 from backend.config.envs import LaTeX_COMPILER_URL_DATA
 from fpdf import FPDF
 import re
 from fpdf.enums import XPos, YPos
+import streamlit as st
 
 
 def generate_tex_and_tar(time: str, company_name: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
@@ -20,10 +21,10 @@ def generate_tex_and_tar(time: str, company_name: str, latex_content: str, file_
     """
     try:
         # Path of a folder for saving .tex files
-        resume_folder_path = f'Application/Resumes/{time}_{company_name}'
+        resume_folder_path = f'Applications/{company_name}/Resumes/{time}_{company_name}'
 
         # Path of .tar file
-        tar_path = f'Application/Resumes/{time}_{company_name}'
+        tar_path = f'Applications/{company_name}/Resumes/{time}_{company_name}'
 
         # Ensure the folder exists
         os.makedirs(resume_folder_path, exist_ok=True)
@@ -61,12 +62,12 @@ def generate_pdf_from_latex(time, company_name, latex_code, compiler):
         latex_compiler_response = requests.post(url=LaTeX_COMPILER_URL_DATA.format(tex_folder_path=f"{TAR_FOLDER_NAME}/{TEX_FILE_NAME}.tex", compiler=compiler), files= files)
     return latex_compiler_response
 
-def save_pdf(pdf_path, pdf_file):
+def save_pdf(pdf_path, pdf_file, username):
     """
     Save pdf file in pdf_path
     """
     os.makedirs(pdf_path,exist_ok=True)
-    file_name = f"{APPLICANT_NAME}_cv.pdf"
+    file_name = f"{username}_cv.pdf"
     pdf_file_path = os.path.join(pdf_path,file_name)
     with open(pdf_file_path,'wb') as f:
         f.write(pdf_file)
