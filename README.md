@@ -17,7 +17,7 @@ Follow the steps below to set up and run the project locally.
 
 Ensure you have the following installed:
 - Git
-- Python 3.8 or later
+- Python 3.9 or later
 
 ### Installation
 
