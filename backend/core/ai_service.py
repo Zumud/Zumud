@@ -173,7 +173,7 @@ def create_tailored_plain_coverletter(resume: str, job_description: str, model=A
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": "You are an expert career coach and professional writer."},
             {"role": "user", "content": prompts.create_tailored_coverletter_prompt.format(resume=resume, job_description=job_description)}
         ],
         response_format=TailoredCoverLetter
