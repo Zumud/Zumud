@@ -46,15 +46,22 @@ create_tailored_resume = """Please help me tailor my resume to match the followi
 Thank you!
 """
 
+# Using the resume and job description provided below, write a personalized cover letter. The cover letter should:
 
-create_tailored_coverletter_prompt = """You are an expert career coach and professional writer. Using the resume and job description provided below, write a personalized cover letter. The cover letter should:
+# - Highlight how my skills, experiences, and achievements fit for this position, and explains why I am an excellent fit for the position.
+# - Demonstrate my enthusiasm for the role and the company.
+# - Be professional, engaging, and tailored to maximize my chances of securing an interview.
+# - Follow standard cover letter format. Start with "Dear", there is no need for contact details, date, and so on. No place holders.
+# - Write the cover letter in 2 main paragraphs and at the end add Yours sincerely and Applicant name in different lines.
 
-- Highlight how my skills, experiences, and achievements fit for this position, and explains why I am an excellent fit for the position.
-- Emphasize the most relevant aspects of my resume that match the job description.
-- Demonstrate my enthusiasm for the role and the company.
-- Be professional, engaging, and tailored to maximize my chances of securing an interview.
-- Follow standard cover letter format. Start with "Dear", there is no need for contact details, date, and so on. No place holders.
-- Write the cover letter in 2 main paragraphs and at the end add Yours sincerely and Applicant name in different lines.
+create_tailored_coverletter_prompt = """
+Generate a concise and impactful cover letter (maximum two paragraphs) tailored specifically for the given job description. Focus on highlighting the most relevant experience and skills from the provided resume.
+- Make it direct, engaging, and results-oriented, avoiding generic statements.
+- Clearly link the candidate’s experience to the company’s needs.
+- Keep the tone professional but not overly formal—startup-friendly if relevant.
+- Do not include any contact details (email, phone number, address, etc.).
+- Do not mention where the job was advertised or use phrases like “as advertised on” or “I came across this job on.”
+- If the company name or recruiter’s name is available in the job description, use it in the greeting (e.g., “Dear [Company Name] Team” or “Dear [Recruiter’s Name]”). Otherwise, use a general term like “Dear Hiring Team.”
 
 **Resume:**
 {resume}
