@@ -46,13 +46,6 @@ create_tailored_resume = """Please help me tailor my resume to match the followi
 Thank you!
 """
 
-# Using the resume and job description provided below, write a personalized cover letter. The cover letter should:
-
-# - Highlight how my skills, experiences, and achievements fit for this position, and explains why I am an excellent fit for the position.
-# - Demonstrate my enthusiasm for the role and the company.
-# - Be professional, engaging, and tailored to maximize my chances of securing an interview.
-# - Follow standard cover letter format. Start with "Dear", there is no need for contact details, date, and so on. No place holders.
-# - Write the cover letter in 2 main paragraphs and at the end add Yours sincerely and Applicant name in different lines.
 
 create_tailored_coverletter_prompt = """
 Generate a concise and impactful cover letter (maximum two paragraphs) tailored specifically for the given job description. Focus on highlighting the most relevant experience and skills from the provided resume.

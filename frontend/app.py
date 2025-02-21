@@ -5,7 +5,7 @@ import sys
 import os
 import base64
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # This is to add the root directory to sys.path. We need to remove this in future
-from backend.config.config import API_URL
+from backend.config.config import API_URL, SAVE_FOLDER
 from backend.models.ai_models import AIModel
 from backend.models.templates import ResumeTemplate
 from datetime import datetime
@@ -173,6 +173,7 @@ def show_main_app(app:ResumeApp):
     st.header("Job Description")
     job_description = st.text_area("Enter Job Description", height=200)
     company_name = ai_service.get_company_name(job_description)
+    # I can puth path in here, but should be in the backend
     
     tab1, tab2, tab3, tab4 = st.tabs(["Generate Resume", "Generate Cover Letter", "Answer application questions", "CV Editor"])
     
@@ -212,14 +213,13 @@ def show_main_app(app:ResumeApp):
         if st.button("Generate Cover Letter"):
             cover_letter_text = app.call_api("generate-tailored-plain-coverletter", job_data)
             st.text_area("Generated Cover Letter", value=cover_letter_text, height=400)
-            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            cover_letter_folder_path = os.path.join("Application",f"{company_name}","Cover Letters",f"{current_time}-{company_name}")
+            global SAVE_FOLDER
             # Generate the PDF
             try:
                 pdf_generator = PDFGenerator()
                 output_path = pdf_generator.create_pdf_document(
                     cover_letter_text,
-                    output_folder=cover_letter_folder_path,
+                    output_folder=SAVE_FOLDER,
                 )
                 st.success(f"PDF generated successfully! Saved to: {output_path}")
                 

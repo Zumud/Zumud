@@ -4,6 +4,7 @@ import os
 from fastapi import APIRouter
 
 import backend.core.ai_service as ai_service
+from backend.config.config import SAVE_FOLDER
 from backend.models.job import Job
 from backend.models.latex import Latex
 from backend.models.profile import Profile, Resume
@@ -15,7 +16,7 @@ from backend.models.templates import (
     john_doe_preferences,
     john_doe_resume,
 )
-from backend.utils.file_ops import generate_pdf_from_latex, save_pdf
+from backend.utils.file_ops import PDFGenerator, generate_pdf_from_latex, save_pdf
 from fastapi import APIRouter
 
 func_router = APIRouter()
@@ -55,7 +56,16 @@ def generate_tailored_plain_coverletter(job: Job, profile: Profile = Profile(Res
     """
     Gets resume and job description in plain text and returns customized cover letter as a string
     """
-    return ai_service.create_tailored_plain_coverletter(profile.resume.text, job.description, tailoring_options.ai_model)
+    cover_letter_text = ai_service.create_tailored_plain_coverletter(profile.resume.text, job.description, tailoring_options.ai_model)
+    global SAVE_FOLDER
+    # Generate the PDF
+    
+    pdf_generator = PDFGenerator()
+    output_path = pdf_generator.create_pdf_document(
+        cover_letter_text,
+        output_folder=SAVE_FOLDER,
+    )
+    return cover_letter_text + f"\n\nCover letter saved at: {output_path}"
 
 @func_router.post("/generate-latex-resume-save")
 def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()):
@@ -66,8 +76,9 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
     company_name = job.company_name
     
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    pdf_path = f'Applications/{company_name}/Resumes/{current_time}_{company_name}'
-    os.makedirs(pdf_path, exist_ok=True)
+    global SAVE_FOLDER
+    SAVE_FOLDER = f'./Applications/{current_time}_{company_name}'
+    os.makedirs(SAVE_FOLDER, exist_ok=True)
     latex_compiler_response, latex_code = ai_service.covert_plain_resume_to_latex(
         current_time,
         company_name,
@@ -76,7 +87,7 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
         tailoring_options.resume_template
     )
     username = profile.username
-    pdf_file_path = save_pdf(pdf_path, latex_compiler_response.content, username)
+    pdf_file_path = save_pdf(SAVE_FOLDER, latex_compiler_response.content, username)
     
     return {
         "success": f"Generated resume saved at here: {pdf_file_path}",
