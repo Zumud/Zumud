@@ -8,7 +8,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) 
 from backend.config.config import API_URL, SAVE_FOLDER
 from backend.models.ai_models import AIModel
 from backend.models.templates import ResumeTemplate
-from datetime import datetime
 from backend.utils.file_ops import PDFGenerator
 from backend.core import ai_service
 
