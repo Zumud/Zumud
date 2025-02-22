@@ -1,4 +1,3 @@
-
 consider_eligibility = """Please help me to understand am I legally authorized for this job based on my legal authorization info or not.
 ** My legal authorization:**
 {legal_authorization}
@@ -50,11 +49,11 @@ Thank you!
 create_tailored_coverletter_prompt = """
 Generate a concise and impactful cover letter (maximum two paragraphs) tailored specifically for the given job description. Focus on highlighting the most relevant experience and skills from the provided resume.
 - Make it direct, engaging, and results-oriented, avoiding generic statements.
-- Clearly link the candidate’s experience to the company’s needs.
+- Clearly link the candidate's experience to the company's needs.
 - Keep the tone professional but not overly formal—startup-friendly if relevant.
-- Do not include any contact details (email, phone number, address, etc.).
-- Do not mention where the job was advertised or use phrases like “as advertised on” or “I came across this job on.”
-- If the company name or recruiter’s name is available in the job description, use it in the greeting (e.g., “Dear [Company Name] Team” or “Dear [Recruiter’s Name]”). Otherwise, use a general term like “Dear Hiring Team.”
+- Do not include any contact details (email, phone number, address, etc.), but ensure the letter has a proper valediction (e.g., 'Best regards' or 'Sincerely').
+- Do not mention where the job was advertised or use phrases like "as advertised on" or "I came across this job on."
+- If the company name or recruiter's name is available in the job description, use it in the greeting (e.g., "Dear [Company Name] Team" or "Dear [Recruiter's Name]"). Otherwise, use a general term like "Dear Hiring Team."
 
 **Resume:**
 {resume}
