@@ -72,16 +72,15 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
     """
     Gets resume and job description in plain text and saves tailored resume
     """
-    tailored_plain_resume = generate_tailored_plain_resume(job, profile, tailoring_options)
-    company_name = job.company_name
-    
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    company_name = job.company_name
     global SAVE_FOLDER
     SAVE_FOLDER = f'./Applications/{current_time}_{company_name}'
+    tailored_plain_resume = generate_tailored_plain_resume(job, profile, tailoring_options)
+    
     os.makedirs(SAVE_FOLDER, exist_ok=True)
     latex_compiler_response, latex_code = ai_service.covert_plain_resume_to_latex(
-        current_time,
-        company_name,
+        SAVE_FOLDER,
         tailored_plain_resume,
         tailoring_options.ai_model,
         tailoring_options.resume_template
