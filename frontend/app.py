@@ -5,20 +5,21 @@ import sys
 import os
 import base64
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # This is to add the root directory to sys.path. We need to remove this in future
-from backend.config.config import API_URL
 from backend.models.ai_models import AIModel
 from backend.models.templates import ResumeTemplate
 from backend.core import ai_service
 
+BACK_END_URL = "http://localhost:8000"
+
 class ResumeApp:
-    def __init__(self, api_url: str = API_URL):
-        self.api_url = api_url
+    def __init__(self, bak_end_url: str = BACK_END_URL):
+        self.back_end_url = bak_end_url
     
     def call_api(self, endpoint: str, data: Dict[str, Any]) -> Dict:
         headers = {}
         if 'access_token' in st.session_state:
             headers["Authorization"] = f"Bearer {st.session_state.access_token}"
-        response = requests.post(f"{self.api_url}/func/{endpoint}", json=data, headers=headers)
+        response = requests.post(f"{self.back_end_url}/func/{endpoint}", json=data, headers=headers)
         if response.status_code != 200:
             st.error(f"API Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
         return response.json()
@@ -27,7 +28,7 @@ class ResumeApp:
     def login(self, username: str, password: str) -> Dict:
         try:
             response = requests.post(
-                f"{self.api_url}/auth/login",
+                f"{self.back_end_url}/auth/login",
                 data={"username": username, "password": password} 
             )
             if response.status_code == 200:
@@ -45,15 +46,15 @@ class ResumeApp:
             st.error(f"Login error: {str(e)}")
             return None
 
-    def signup(self, username: str, password: str, email: str, initial_resume: str = "") :
+    def signup(self, username: str, password: str, email: str, initial_resume: str) :
         try:
             response = requests.post(
-                f"{self.api_url}/auth/signup",
+                f"{self.back_end_url}/auth/signup",
                 json={
                     "username": username,
                     "password": password,
                     "email": email,
-                    "initial_resume": initial_resume
+                    "initial_resume": initial_resume if not initial_resume else "Empty"
                 }
             )
             if response.status_code == 201:  # Changed to match backend status code
@@ -70,7 +71,7 @@ class ResumeApp:
             headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
             
             response = requests.put(
-                f"{self.api_url}/auth/update_resume",
+                f"{self.back_end_url}/auth/update_resume",
                 json={"resume_content": resume_content},
                 headers=headers
             )
@@ -86,7 +87,7 @@ class ResumeApp:
     def get_resume(self) :
         try:
             headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
-            response = requests.get(f"{self.api_url}/auth/get_resume", headers=headers)
+            response = requests.get(f"{self.back_end_url}/auth/get_resume", headers=headers)
             if response.status_code == 200:
                 return response.json()
             else:
