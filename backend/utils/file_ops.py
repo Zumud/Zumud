@@ -2,15 +2,14 @@ import os
 import requests
 import tarfile
 from backend.utils.log import logger
-from backend.config.config import TEX_FILE_NAME, TAR_FOLDER_NAME
+from backend.config.config import TEX_FILE_NAME, TAR_FOLDER_NAME, SAVE_FOLDER
 from backend.config.envs import LaTeX_COMPILER_URL_DATA
 from fpdf import FPDF
 import re
 from fpdf.enums import XPos, YPos
-import streamlit as st
 
 
-def generate_tex_and_tar(time: str, company_name: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
+def generate_tex_and_tar(save_folder: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
     """
     Creates a folder, generates a .tex file inside it, and compresses the folder into a .tar file.
 
@@ -20,11 +19,12 @@ def generate_tex_and_tar(time: str, company_name: str, latex_content: str, file_
         folder_name (str): The name of the folder to create.
     """
     try:
+        global SAVE_FOLDER
         # Path of a folder for saving .tex files
-        resume_folder_path = f'Applications/{company_name}/Resumes/{time}_{company_name}'
+        resume_folder_path = save_folder
 
         # Path of .tar file
-        tar_path = f'Applications/{company_name}/Resumes/{time}_{company_name}'
+        tar_path = save_folder
 
         # Ensure the folder exists
         os.makedirs(resume_folder_path, exist_ok=True)
@@ -52,11 +52,11 @@ def generate_tex_and_tar(time: str, company_name: str, latex_content: str, file_
     except Exception as e:
         logger.debug(f"An error occurred: {e}")
 
-def generate_pdf_from_latex(time, company_name, latex_code, compiler):
+def generate_pdf_from_latex(save_folder, latex_code, compiler):
     """ 
     generate pdf file from latex code
     """
-    tar_file = generate_tex_and_tar(time, company_name, latex_code, TEX_FILE_NAME, TAR_FOLDER_NAME)
+    tar_file = generate_tex_and_tar(save_folder, latex_code, TEX_FILE_NAME, TAR_FOLDER_NAME)
     with open(tar_file, 'rb') as tar_file:
         files = {'file':(os.path.basename(tar_file.name), tar_file, "application/x-tar")}
         latex_compiler_response = requests.post(url=LaTeX_COMPILER_URL_DATA.format(tex_folder_path=f"{TAR_FOLDER_NAME}/{TEX_FILE_NAME}.tex", compiler=compiler), files= files)
@@ -133,8 +133,8 @@ class PDFGenerator:
         self.pdf.add_page()
         self.pdf.set_margins(self.margin, self.margin, self.margin)
         # Add Unicode font
-        self.pdf.add_font('DejaVu', '', fname='backend/utils/DejaVuSans.ttf', uni=True)
-        self.pdf.set_font('DejaVu', size=self.font_size)
+        self.pdf.add_font('Arial', '', fname='./backend/utils/Arial.ttf', uni=True)
+        self.pdf.set_font('Arial', size=self.font_size)
         self.pdf.set_auto_page_break(auto=True, margin=self.margin)
         
         # Process text into paragraphs
