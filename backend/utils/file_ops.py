@@ -133,8 +133,8 @@ class PDFGenerator:
         self.pdf.add_page()
         self.pdf.set_margins(self.margin, self.margin, self.margin)
         # Add Unicode font
-        self.pdf.add_font('DejaVu', '', fname='backend/utils/DejaVuSans.ttf', uni=True)
-        self.pdf.set_font('DejaVu', size=self.font_size)
+        # self.pdf.add_font('DejaVu', '', fname='backend/utils/DejaVuSans.ttf', uni=True)
+        # self.pdf.set_font('DejaVu', size=self.font_size)
         self.pdf.set_auto_page_break(auto=True, margin=self.margin)
         
         # Process text into paragraphs
