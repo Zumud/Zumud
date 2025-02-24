@@ -1,13 +1,13 @@
 import os
+import re
 import requests
 import tarfile
-from backend.utils.log import logger
-from backend.config.config import TEX_FILE_NAME, TAR_FOLDER_NAME, SAVE_FOLDER
-from backend.config.envs import LaTeX_COMPILER_URL_DATA
 from fpdf import FPDF
-import re
 from fpdf.enums import XPos, YPos
 
+from backend.config.config import TEX_FILE_NAME, TAR_FOLDER_NAME
+from backend.config.envs import LaTeX_COMPILER_URL_DATA
+from backend.utils.log import logger
 
 def generate_tex_and_tar(save_folder: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
     """
@@ -19,7 +19,6 @@ def generate_tex_and_tar(save_folder: str, latex_content: str, file_name: str= "
         folder_name (str): The name of the folder to create.
     """
     try:
-        global SAVE_FOLDER
         # Path of a folder for saving .tex files
         resume_folder_path = save_folder
 
@@ -27,7 +26,7 @@ def generate_tex_and_tar(save_folder: str, latex_content: str, file_name: str= "
         tar_path = save_folder
 
         # Ensure the folder exists
-        os.makedirs(resume_folder_path, exist_ok=True)
+        os.makedirs(save_folder, exist_ok=True)
 
         # Full path for the .tex file
         tex_file_path = os.path.join(resume_folder_path, file_name)
