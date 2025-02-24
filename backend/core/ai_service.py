@@ -142,7 +142,7 @@ def create_tailored_plain_resume(resume: str, job_description: str, model=AIMode
     logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-def covert_plain_resume_to_latex(time: str, company_name: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_Resume):
+def covert_plain_resume_to_latex(save_folder: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_Resume):
 
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
@@ -159,7 +159,7 @@ def covert_plain_resume_to_latex(time: str, company_name: str, plain_resume: str
         logger.debug(f"The tailored resume Latex code in iteration {i} is: {tailored_resume}")
         trimed_tailored_resume = tailored_resume[tailored_resume.find(r"\documentclass"):tailored_resume.rfind(r"\end{document}")+len(r"\end{document}")]  # removes possible extra things that AI adds
         compiler = Template_Details[template]['compiler']
-        latex_compiler_response = generate_pdf_from_latex(time, company_name, trimed_tailored_resume, compiler)
+        latex_compiler_response = generate_pdf_from_latex(save_folder, trimed_tailored_resume, compiler)
         logger.debug(f"Request url to the LaTeX compiler is: {latex_compiler_response.url}")
         if not b"error: " in latex_compiler_response.content:  # there is no error in the compiled code
             return latex_compiler_response, trimed_tailored_resume
