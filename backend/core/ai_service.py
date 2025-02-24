@@ -133,7 +133,7 @@ def create_tailored_plain_resume(resume: str, job_description: str, model=AIMode
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": "You are an expert in resume writing."},
             {"role": "user", "content": prompts.create_tailored_resume.format(resume=resume, job_description=job_description, num_pages=Template_Details[template]['num_pages'])}
         ],
         response_format=TailoredResume
@@ -145,7 +145,7 @@ def create_tailored_plain_resume(resume: str, job_description: str, model=AIMode
 def covert_plain_resume_to_latex(save_folder: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_Resume):
 
     messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "system", "content": "You are an expert in LaTeX document processing and resume formatting."},
         {"role": "user", "content": prompts.convert_plain_resume_to_latex.format(num_pages=Template_Details[template]['num_pages'], resume=plain_resume, latex_template=Template_Details[template]['structure'])}
     ]
     i = 1
