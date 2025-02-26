@@ -7,7 +7,6 @@ from backend.utils import hash
 from backend.utils import oauth2
 from backend.models import user_models, resume_models
 from datetime import datetime, timezone
-from loguru import logger
 
 auth_router = APIRouter()
 @auth_router.post("/login")

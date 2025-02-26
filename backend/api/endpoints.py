@@ -4,7 +4,6 @@ import os
 from fastapi import APIRouter
 
 import backend.core.ai_service as ai_service
-from backend.config.config import SAVE_FOLDER
 from backend.models.job import Job
 from backend.models.latex import Latex
 from backend.models.profile import Profile, Resume
@@ -21,6 +20,7 @@ from fastapi import APIRouter
 
 func_router = APIRouter()
 
+SAVE_FOLDER = "./Applications"
 
 @func_router.post("/determine_eligibility")
 def determine_eligibility(job: Job, profile: Profile = Profile(resume=Resume(john_doe_resume),legal_authorization=john_doe_legal_authorization), tailoring_options: TailoringOptions = TailoringOptions()):
