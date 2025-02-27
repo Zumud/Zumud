@@ -48,6 +48,15 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
 
     return {"access_token": access_token, "token_type": "bearer", "username": user.username, "user_id": user.id}
 
+@auth_router.post("/logout")
+def logout():
+    # Logout is a no-op in this implementation
+    return {"message": "Logged out successfully"}
+
+@auth_router.get(f"/user")
+def get_user(current_user: dict = Depends(get_current_user)):
+    return current_user
+
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
 def signup(user: user_models.UserCreate, db: Session = Depends(get_db)):
     # Check if username already exists
@@ -78,16 +87,7 @@ def signup(user: user_models.UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
 
     return user_models.User.model_validate(db_user)
-
-@auth_router.get(f"/user")
-def get_user(current_user: dict = Depends(get_current_user)):
-    return current_user
-    # user = db.query(tables.User).filter(tables.User.id == id).first()
-    # if user:
-    #     return user
-    # else:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f'user with id {id} does not exist')
-
+ 
 @auth_router.get("/get_resume")   
 def get_user_resume(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get user's resume"""
