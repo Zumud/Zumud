@@ -4,7 +4,7 @@ from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from backend.config.envs import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-from backend.models.token import Token, TokenData
+from backend.models.token import TokenData
 from backend.database.db import get_db
 from backend.models import tables
 
