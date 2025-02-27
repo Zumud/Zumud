@@ -1,20 +1,25 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Response
+from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from passlib.context import CryptContext
+
 from backend.database.db import get_db
 from backend.models import tables
-from backend.utils import hash
 from backend.utils import oauth2
 from backend.models import user_models, resume_models
 from datetime import datetime, timezone
 
 auth_router = APIRouter()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
 @auth_router.post("/login")
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(tables.User).filter(tables.User.username==user_credentials.username).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    if not hash.verify(user_credentials.password, user.password):
+    if not pwd_context.verify(user_credentials.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
     access_token = oauth2.create_access_token(data={'user_id':user.id})
     return {"access_token": access_token, "token_type":"bearer", "username": user.username,
@@ -29,7 +34,7 @@ def signup(user: user_models.UserCreate, db: Session = Depends(get_db)):
             detail="Username already registered"
         )
    # Hash the password
-    hashed_password = hash.hashing(user.password)
+    hashed_password = pwd_context.hash(user.password)
     db_user = tables.User(
         username=user.username,
         email=user.email,
