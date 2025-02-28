@@ -108,6 +108,7 @@ def answer_application_questions(
         profile.resume.text,
         job.description,
         question.description,
+        SAVE_FOLDER,
         tailoring_options.ai_model
     )
 
