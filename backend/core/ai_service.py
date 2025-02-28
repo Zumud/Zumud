@@ -8,7 +8,9 @@ import backend.utils.prompts as prompts
 from backend.config.envs import OPEN_AI_KEY
 from backend.models.ai_models import AIModel
 from backend.models.templates import ResumeTemplate, Template_Details
-from backend.utils.file_ops import generate_pdf_from_latex
+from backend.utils.file_ops import generate_pdf_from_latex, save_application_qa
+from backend.utils.log import logger
+
 
 client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
 
@@ -187,7 +189,7 @@ def ai_messages(messages: list[tuple[str, str]], model=AIModel.gpt_4o_mini) -> s
     )
     return completion.choices[0].message.content
 
-def generate_answer_questions(resume: str, job_description: str, question: str, model=AIModel.gpt_4o_mini):
+def generate_answer_questions(resume: str, job_description: str, question: str, save_folder: str = None, model=AIModel.gpt_4o_mini):
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
@@ -196,4 +198,15 @@ def generate_answer_questions(resume: str, job_description: str, question: str, 
         ],
         response_format=TailoredAnswer
     )
-    return json.loads(completion.choices[0].message.content)["tailored_answer"]
+    
+    answer = json.loads(completion.choices[0].message.content)["tailored_answer"]
+    
+    # Save the question and answer if save_folder is provided
+    if save_folder:
+        try:
+            file_path = save_application_qa(save_folder, question, answer)
+            logger.debug(f"Application Q&A saved to {file_path}")
+        except Exception as e:
+            logger.error(f"Error saving application Q&A: {str(e)}")
+    
+    return answer

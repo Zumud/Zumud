@@ -88,7 +88,7 @@ def signup(user: user_models.UserCreate, db: Session = Depends(get_db)):
 
     return user_models.User.model_validate(db_user)
  
-@auth_router.get("/get_resume")   
+@auth_router.get("/get_resume")
 def get_user_resume(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get user's resume"""
     resume = db.query(tables.Resume)\
