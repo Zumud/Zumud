@@ -1,3 +1,4 @@
+import datetime
 import os
 import re
 import requests
@@ -188,3 +189,39 @@ class PDFGenerator:
         except Exception as e:
             raise Exception(f"Error generating PDF: {str(e)}")
 
+
+def save_application_qa(save_folder: str, question: str, answer: str) -> str:
+    """
+    Saves a single application question and answer to a text file.
+
+    Parameters:
+        save_folder (str): The folder to save the file in.
+        question (str): The application question.
+        answer (str): The answer to the question.
+        
+    Returns:
+        str: Path to the saved file.
+    """
+    try:
+        # Ensure the folder exists
+        os.makedirs(save_folder, exist_ok=True)
+        
+        # Create a filename with timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"application_question_{timestamp}.txt"
+        filepath = os.path.join(save_folder, filename)
+        
+        # Format the content
+        content = f"Question:\n{question}\n\n"
+        content += f"Answer:\n{answer}\n"
+        
+        # Write the content to the file
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(content)
+            
+        logger.debug(f"Application Q&A saved to {filepath}")
+        return filepath
+        
+    except Exception as e:
+        logger.error(f"Error saving application Q&A: {str(e)}")
+        raise e
