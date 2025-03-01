@@ -1,26 +1,19 @@
-from datetime import datetime
-import os
-
 from fastapi import APIRouter
 
 import backend.core.ai_service as ai_service
 from backend.models.job import Job
-from backend.models.latex import Latex
 from backend.models.profile import Profile, Resume
 from backend.models.question import Question
 from backend.models.tailoring_options import TailoringOptions
 from backend.models.templates import (
-    Template_Details,
     john_doe_legal_authorization,
     john_doe_preferences,
     john_doe_resume,
 )
-from backend.utils.file_ops import PDFGenerator, generate_pdf_from_latex, save_pdf
-from fastapi import APIRouter
+from backend.utils.file_ops import PDFGenerator, save_pdf
+from backend.utils.path_ops import create_new_application_path, get_current_application_path
 
 func_router = APIRouter()
-
-SAVE_FOLDER = "./Applications"
 
 @func_router.post("/determine_eligibility")
 def determine_eligibility(job: Job, profile: Profile = Profile(resume=Resume(john_doe_resume),legal_authorization=john_doe_legal_authorization), tailoring_options: TailoringOptions = TailoringOptions()):
@@ -57,13 +50,14 @@ def generate_tailored_plain_coverletter(job: Job, profile: Profile = Profile(Res
     Gets resume and job description in plain text and returns customized cover letter as a string
     """
     cover_letter_text = ai_service.create_tailored_plain_coverletter(profile.resume.text, job.description, tailoring_options.ai_model)
-    global SAVE_FOLDER
-    # Generate the PDF
+    
+    # Generate the PDF - use existing application path if available
+    save_path = get_current_application_path()
     
     pdf_generator = PDFGenerator()
     output_path = pdf_generator.create_pdf_document(
         cover_letter_text,
-        output_folder=SAVE_FOLDER,
+        output_folder=str(save_path),
     )
     return cover_letter_text + f"\n\nCover letter saved at: {output_path}"
 
@@ -72,21 +66,18 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
     """
     Gets resume and job description in plain text and saves tailored resume
     """
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    company_name = job.company_name
-    global SAVE_FOLDER
-    SAVE_FOLDER = f'./Applications/{current_time}_{company_name}'
+    # Always create a new application folder for a new resume
+    save_path = create_new_application_path(job.company_name)
     tailored_plain_resume = generate_tailored_plain_resume(job, profile, tailoring_options)
     
-    os.makedirs(SAVE_FOLDER, exist_ok=True)
     latex_compiler_response, latex_code = ai_service.covert_plain_resume_to_latex(
-        SAVE_FOLDER,
+        str(save_path),
         tailored_plain_resume,
         tailoring_options.ai_model,
         tailoring_options.resume_template
     )
     username = profile.username
-    pdf_file_path = save_pdf(SAVE_FOLDER, latex_compiler_response.content, username)
+    pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, username)
     
     return {
         "success": f"Generated resume saved at here: {pdf_file_path}",
@@ -104,31 +95,12 @@ def answer_application_questions(
     """
     Gets resume, job description, and questions in the job applicaton and answer to them based on resume and job description.
     """
+    # Use existing application path if available
+    save_path = get_current_application_path()
     return ai_service.generate_answer_questions(
         profile.resume.text,
         job.description,
         question.description,
-        SAVE_FOLDER,
+        str(save_path),
         tailoring_options.ai_model
     )
-
-@func_router.post("/save-latex-resume")
-def save_latex_resume(
-    latex: Latex,
-    tailoring_options: TailoringOptions
-):
-    """
-    Saves the edited LaTeX code as PDF
-    """
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    company_name = "edited"
-    compiler = Template_Details[tailoring_options.resume_template]['compiler']
-    latex_compiler_response = generate_pdf_from_latex(
-        current_time,
-        company_name,
-        latex.latex_code,
-        compiler
-    )
-    pdf_path = f'./Resumes/edited/{current_time}'
-    pdf_file_path = save_pdf(pdf_path, latex_compiler_response.content)
-    return {"path": pdf_file_path}
