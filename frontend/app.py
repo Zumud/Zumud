@@ -7,7 +7,6 @@ import base64
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # This is to add the root directory to sys.path. We need to remove this in future
 from backend.models.ai_models import AIModel
 from backend.models.templates import ResumeTemplate
-from backend.core import ai_service
 
 BACK_END_URL = "http://localhost:8000"
 
@@ -15,11 +14,16 @@ class ResumeApp:
     def __init__(self, bak_end_url: str = BACK_END_URL):
         self.back_end_url = bak_end_url
     
-    def call_api(self, endpoint: str, data: Dict[str, Any]) -> Dict:
+    def call_api(self, endpoint: str, data: Dict[str, Any], query_params: Dict[str, Any] = None) -> Dict:
         headers = {}
         if 'access_token' in st.session_state:
             headers["Authorization"] = f"Bearer {st.session_state.access_token}"
-        response = requests.post(f"{self.back_end_url}/func/{endpoint}", json=data, headers=headers)
+        
+        # Prepare the URL with query parameters if provided
+        url = f"{self.back_end_url}/func/{endpoint}"
+        
+        # Make the request with both query parameters and JSON body
+        response = requests.post(url, params=query_params, json=data, headers=headers)
         if response.status_code != 200:
             st.error(f"API Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
         return response.json()
@@ -171,15 +175,12 @@ def show_main_app(app:ResumeApp):
     # Middle Section: Job Description
     st.header("Job Description")
     job_description = st.text_area("Enter Job Description", height=200)
-    company_name = ai_service.get_company_name(job_description)
-    # I can puth path in here, but should be in the backend
     
     tab1, tab2, tab3, tab4 = st.tabs(["Generate Resume", "Generate Cover Letter", "Answer application questions", "CV Editor"])
     
-    
-    job_data = {
+    # Create profile data without job description
+    profile_data = {
         "profile": {"resume": {"text": current_resume}, "username": st.session_state.user_data['username']},
-        "job": {"description": job_description, "company_name":company_name},
         "tailoring_options": {
             "ai_model": ai_model,
             "resume_template": resume_template
@@ -188,40 +189,61 @@ def show_main_app(app:ResumeApp):
 
     with tab1:
         if st.button("Check Eligibility"):
-            result = app.call_api("determine_eligibility", job_data)
-            st.write("Eligibility:", result["eligibility"])
-            st.write("Reason:", result["reason"])
+            if not job_description or job_description.strip() == "":
+                st.error("Please enter a job description.")
+            else:
+                result = app.call_api("determine_eligibility", profile_data, query_params={"job_description": job_description})
+                st.write("Eligibility:", result.get("eligibility", "N/A"))
+                st.write("Reason:", result.get("reason", "No reason provided"))
         
         if st.button("Check Suitability"):
-            result = app.call_api("determine_suitability", job_data)
-            st.write("Suitability:", result["suitability"])
-            st.write("Reason:", result["reason"])
+            if not job_description or job_description.strip() == "":
+                st.error("Please enter a job description.")
+            else:
+                result = app.call_api("determine_suitability", profile_data, query_params={"job_description": job_description})
+                st.write("Suitability:", result.get("suitability", "N/A"))
+                st.write("Reason:", result.get("reason", "No reason provided"))
         
         if st.button("Generate Resume"):
-            result = app.call_api("generate-latex-resume-save", job_data)
-            # session_state shows that whether latex code is present or not, as in the cv_editor part, we want to edit the latex code
-            st.session_state['latex_code'] = result['latex_code']
-            pdf_file_path = result['pdf_file_path']
-            if os.path.exists(pdf_file_path):
-                st.success(f"PDF saved: {pdf_file_path}")
-                display_pdf(pdf_file_path)
+            if not job_description or job_description.strip() == "":
+                st.error("Please enter a job description.")
             else:
-                st.error("Pdf file is not existed. Please try again.")
+                result = app.call_api("generate-latex-resume-save", profile_data, query_params={"job_description": job_description})
+                if "latex_code" in result and "pdf_file_path" in result:
+                    # session_state shows that whether latex code is present or not, as in the cv_editor part, we want to edit the latex code
+                    st.session_state['latex_code'] = result['latex_code']
+                    pdf_file_path = result['pdf_file_path']
+                    if os.path.exists(pdf_file_path):
+                        st.success(f"PDF saved: {pdf_file_path}")
+                        display_pdf(pdf_file_path)
+                    else:
+                        st.error("PDF file does not exist. Please try again.")
+                else:
+                    st.error("Unexpected response format from the API. Please try again.")
 
     with tab2:
         if st.button("Generate Cover Letter"):
-            cover_letter_text = app.call_api("generate-tailored-plain-coverletter", job_data)
-            st.text_area("Generated Cover Letter", value=cover_letter_text, height=400)
-            # Generate the PDF
-            st.success(f"PDF generated successfully!")
+            if not job_description or job_description.strip() == "":
+                st.error("Please enter a job description.")
+            else:
+                cover_letter_text = app.call_api("generate-tailored-plain-coverletter", profile_data, query_params={"job_description": job_description})
+                st.text_area("Generated Cover Letter", value=cover_letter_text, height=400)
+                # Generate the PDF
+                st.success(f"PDF generated successfully!")
     
     with tab3:
         question_description = st.text_area("Enter Question", height=200)
-        # Adding the question description
-        job_data["question"] = {"description": question_description}
         if st.button("Generate answer"):
-            result = app.call_api("answer-application-questions", job_data)
-            st.text_area("Generated Answer", value=result, height=400)
+            if not question_description or question_description.strip() == "":
+                st.error("Please enter a question.")
+            elif not job_description or job_description.strip() == "":
+                st.error("Please enter a job description.")
+            else:
+                # Add the question to the profile data
+                question_data = profile_data.copy()
+                question_data["question"] = {"description": question_description}
+                result = app.call_api("answer-application-questions", question_data, query_params={"job_description": job_description})
+                st.text_area("Generated Answer", value=result, height=400)
     
     with tab4:
         # There should be a latex code to display, as the purpose of this section is to edit the latex code
