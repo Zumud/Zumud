@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
 import backend.core.ai_service as ai_service
-from backend.models.job import Job
 from backend.models.profile import Profile, Resume
 from backend.models.question import Question
 from backend.models.tailoring_options import TailoringOptions
@@ -16,40 +15,40 @@ from backend.utils.path_ops import create_new_application_path, get_current_appl
 func_router = APIRouter()
 
 @func_router.post("/determine_eligibility")
-def determine_eligibility(job: Job, profile: Profile = Profile(resume=Resume(john_doe_resume),legal_authorization=john_doe_legal_authorization), tailoring_options: TailoringOptions = TailoringOptions()):
+def determine_eligibility(job_description: str, profile: Profile = Profile(resume=Resume(john_doe_resume),legal_authorization=john_doe_legal_authorization), tailoring_options: TailoringOptions = TailoringOptions()):
     """
     Gets profile and job description and determines eligibility for applying to the job
     """
-    eligibility, reason = ai_service.consider_eligibility(job.description, profile.legal_authorization, tailoring_options.ai_model)
+    eligibility, reason = ai_service.consider_eligibility(job_description, profile.legal_authorization, tailoring_options.ai_model)
     return {
         "eligibility": eligibility,
         "reason": reason
     }
 
 @func_router.post("/determine_suitability")
-def determine_suitability(job: Job, profile: Profile = Profile(resume=Resume(john_doe_resume), preferences=john_doe_preferences), tailoring_options: TailoringOptions = TailoringOptions()):
+def determine_suitability(job_description: str, profile: Profile = Profile(resume=Resume(john_doe_resume), preferences=john_doe_preferences), tailoring_options: TailoringOptions = TailoringOptions()):
     """
     Gets profile and job description and determines suitability for applying to the job 
     """
-    suitability, reason = ai_service.consider_suitability(job.description, profile.preferences, tailoring_options.ai_model)
+    suitability, reason = ai_service.consider_suitability(job_description, profile.preferences, tailoring_options.ai_model)
     return {
         "suitability": suitability,
         "reason": reason
     }
 
 @func_router.post("/generate-tailored-plain-resume")
-def generate_tailored_plain_resume(job: Job, profile: Profile = Profile(resume=Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()) -> str:
+def generate_tailored_plain_resume(job_description: str, profile: Profile = Profile(resume=Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()) -> str:
     """
     Gets resume and job description in plain text and returns tailored resume as a string
     """
-    return ai_service.create_tailored_plain_resume(profile.resume.text, job.description, tailoring_options.ai_model, tailoring_options.resume_template)
+    return ai_service.create_tailored_plain_resume(profile.resume.text, job_description, tailoring_options.ai_model, tailoring_options.resume_template)
 
 @func_router.post("/generate-tailored-plain-coverletter")
-def generate_tailored_plain_coverletter(job: Job, profile: Profile = Profile(Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()) -> str:  # We should not pass tailoring options everytime, should be a config for each user. It could be kept with a session for example.
+def generate_tailored_plain_coverletter(job_description: str, profile: Profile = Profile(Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()) -> str:  # We should not pass tailoring options everytime, should be a config for each user. It could be kept with a session for example.
     """
     Gets resume and job description in plain text and returns customized cover letter as a string
     """
-    cover_letter_text = ai_service.create_tailored_plain_coverletter(profile.resume.text, job.description, tailoring_options.ai_model)
+    cover_letter_text = ai_service.create_tailored_plain_coverletter(profile.resume.text, job_description, tailoring_options.ai_model)
     
     # Generate the PDF - use existing application path if available
     save_path = get_current_application_path()
@@ -62,13 +61,16 @@ def generate_tailored_plain_coverletter(job: Job, profile: Profile = Profile(Res
     return cover_letter_text + f"\n\nCover letter saved at: {output_path}"
 
 @func_router.post("/generate-latex-resume-save")
-def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()):
+def generate_tailored_latex_resume_save(job_description: str, profile: Profile = Profile(Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions()):
     """
     Gets resume and job description in plain text and saves tailored resume
     """
+    # Extract company name from job description
+    company_name = ai_service.get_company_name(job_description)
+    
     # Always create a new application folder for a new resume
-    save_path = create_new_application_path(job.company_name)
-    tailored_plain_resume = generate_tailored_plain_resume(job, profile, tailoring_options)
+    save_path = create_new_application_path(company_name)
+    tailored_plain_resume = generate_tailored_plain_resume(job_description, profile, tailoring_options)
     
     latex_compiler_response, latex_code = ai_service.covert_plain_resume_to_latex(
         str(save_path),
@@ -87,7 +89,7 @@ def generate_tailored_latex_resume_save(job: Job, profile: Profile = Profile(Res
 
 @func_router.post("/answer-application-questions")
 def answer_application_questions(
-    job: Job,
+    job_description: str,
     question: Question,
     profile: Profile = Profile(Resume(john_doe_resume)),
     tailoring_options: TailoringOptions = TailoringOptions()
@@ -99,7 +101,7 @@ def answer_application_questions(
     save_path = get_current_application_path()
     return ai_service.generate_answer_questions(
         profile.resume.text,
-        job.description,
+        job_description,
         question.description,
         str(save_path),
         tailoring_options.ai_model
