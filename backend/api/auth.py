@@ -97,24 +97,20 @@ def get_user_resume(current_user = Depends(get_current_user), db: Session = Depe
     
     if resume:
         return resume_models.Resume.model_validate(resume)
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f'user with id {current_user.id} does not have resume')
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f'user with id {current_user.id} does not have resume')
 
 @auth_router.put("/update_resume")
-def update_resume(resume: resume_models.ResumeBase, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def update_resume(resume_content: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
         """Update or create user's resume"""
         # Check if user has a resume
         updated_resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
-        
-        
         
         if not updated_resume:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"There is no resume to become updated")
         
         # Update existing resume
-        updated_resume.resume_content = resume.resume_content
+        updated_resume.resume_content = resume_content
         updated_resume.last_updated = datetime.now(timezone.utc)
-        
         
         db.commit()
         db.refresh(updated_resume)
