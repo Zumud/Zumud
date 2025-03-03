@@ -20,7 +20,7 @@ class ResumeApp:
             headers["Authorization"] = f"Bearer {st.session_state.access_token}"
         
         # Prepare the URL with query parameters if provided
-        url = f"{self.back_end_url}/func/{endpoint}"
+        url = f"{self.back_end_url}/{endpoint}"
         
         # Make the request with both query parameters and JSON body
         response = requests.post(url, params=query_params, json=data, headers=headers)

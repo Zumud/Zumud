@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from backend.config.envs import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
 from backend.models.db import get_db
-from backend.models import resume_models, db_models, user_models
+from backend.models import db_models
 
 auth_router = APIRouter(tags=["authentication"])
 

@@ -6,7 +6,7 @@ from backend.models.db import get_db
 from backend.models import db_models, user_models, resume_models
 from backend.api.auth import pwd_context, get_current_user
 
-user_router = APIRouter(tags=["users"])
+user_router = APIRouter(tags=["user"])
 
 @user_router.get("/user")
 def get_user(current_user: dict = Depends(get_current_user)):
