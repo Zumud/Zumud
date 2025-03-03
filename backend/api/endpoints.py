@@ -12,7 +12,7 @@ from backend.models.templates import (
 from backend.utils.file_ops import PDFGenerator, save_pdf
 from backend.utils.path_ops import create_new_application_path, get_current_application_path
 
-func_router = APIRouter(prefix="/func", tags=["functions"])
+func_router = APIRouter(tags=["functions"])
 
 @func_router.post("/determine_eligibility")
 def determine_eligibility(job_description: str, profile: Profile = Profile(resume=Resume(john_doe_resume),legal_authorization=john_doe_legal_authorization), tailoring_options: TailoringOptions = TailoringOptions()):
