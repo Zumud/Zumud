@@ -20,7 +20,7 @@ class ResumeApp:
             headers["Authorization"] = f"Bearer {st.session_state.access_token}"
         
         # Prepare the URL with query parameters if provided
-        url = f"{self.back_end_url}/func/{endpoint}"
+        url = f"{self.back_end_url}/{endpoint}"
         
         # Make the request with both query parameters and JSON body
         response = requests.post(url, params=query_params, json=data, headers=headers)
@@ -32,7 +32,7 @@ class ResumeApp:
     def login(self, username: str, password: str) -> Dict:
         try:
             response = requests.post(
-                f"{self.back_end_url}/auth/login",
+                f"{self.back_end_url}/login",
                 data={"username": username, "password": password} 
             )
             if response.status_code == 200:
@@ -53,7 +53,7 @@ class ResumeApp:
     def signup(self, username: str, password: str, email: str, initial_resume: str) :
         try:
             response = requests.post(
-                f"{self.back_end_url}/auth/signup",
+                f"{self.back_end_url}/signup",
                 json={
                     "username": username,
                     "password": password,
@@ -75,8 +75,8 @@ class ResumeApp:
             headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
             
             response = requests.put(
-                f"{self.back_end_url}/auth/update_resume",
-                json={"resume_content": resume_content},
+                f"{self.back_end_url}/update_resume",
+                params={"resume_content": resume_content},
                 headers=headers
             )
             if response.status_code == 200:
@@ -91,7 +91,7 @@ class ResumeApp:
     def get_resume(self) :
         try:
             headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
-            response = requests.get(f"{self.back_end_url}/auth/get_resume", headers=headers)
+            response = requests.get(f"{self.back_end_url}/get_resume", headers=headers)
             if response.status_code == 200:
                 return response.json()
             else:
