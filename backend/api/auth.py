@@ -7,8 +7,8 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from backend.config.envs import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
-from backend.database.db import get_db
-from backend.models import resume_models, tables, user_models
+from backend.models.db import get_db
+from backend.models import resume_models, db_models, user_models
 
 auth_router = APIRouter()
 
@@ -19,7 +19,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         id : int = int(payload.get("user_id"))
-        user = db.query(tables.User).filter(tables.User.id==id).first()
+        user = db.query(db_models.User).filter(db_models.User.id==id).first()
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -37,7 +37,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 @auth_router.post("/login")
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(tables.User).filter(tables.User.username==user_credentials.username).first()
+    user = db.query(db_models.User).filter(db_models.User.username==user_credentials.username).first()
     if not user or not pwd_context.verify(user_credentials.password, user.password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credentials")  # For security reasons, don't specify the reason for failure
     
@@ -60,14 +60,14 @@ def get_user(current_user: dict = Depends(get_current_user)):
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
 def signup(user: user_models.UserCreate, db: Session = Depends(get_db)):
     # Check if username already exists
-    if db.query(tables.User).filter(tables.User.username == user.username).first():
+    if db.query(db_models.User).filter(db_models.User.username == user.username).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered"
         )
    # Hash the password
     hashed_password = pwd_context.hash(user.password)
-    db_user = tables.User(
+    db_user = db_models.User(
         username=user.username,
         email=user.email,
         password=hashed_password
@@ -77,7 +77,7 @@ def signup(user: user_models.UserCreate, db: Session = Depends(get_db)):
     
     # Create resume if provided
     if user.initial_resume:
-        db_resume = tables.Resume(
+        db_resume = db_models.Resume(
             user_id=db_user.id,
             resume_content=user.initial_resume
         )
@@ -91,8 +91,8 @@ def signup(user: user_models.UserCreate, db: Session = Depends(get_db)):
 @auth_router.get("/get_resume")
 def get_user_resume(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get user's resume"""
-    resume = db.query(tables.Resume)\
-        .filter(tables.Resume.user_id == current_user.id)\
+    resume = db.query(db_models.Resume)\
+        .filter(db_models.Resume.user_id == current_user.id)\
         .first()
     
     if resume:
@@ -104,7 +104,7 @@ def get_user_resume(current_user = Depends(get_current_user), db: Session = Depe
 def update_resume(resume: resume_models.ResumeBase, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
         """Update or create user's resume"""
         # Check if user has a resume
-        updated_resume = db.query(tables.Resume).filter(tables.Resume.user_id == current_user.id).first()
+        updated_resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
         
         
         

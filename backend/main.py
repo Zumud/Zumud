@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from backend.api.endpoints import func_router
 from backend.api.auth import auth_router
-from backend.database.db import Base, engine
+from backend.models.db import Base, engine
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
