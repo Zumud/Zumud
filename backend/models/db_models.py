@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from backend.database.db import Base
+from backend.models.db import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -24,4 +24,4 @@ class Resume(Base):
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Establish relationship with User
-    user = relationship("User", back_populates="resumes")
+    user = relationship("User", back_populates="resumes") 
