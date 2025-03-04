@@ -67,7 +67,7 @@ def save_pdf(pdf_path, pdf_file, username):
     Save pdf file in pdf_path
     """
     os.makedirs(pdf_path,exist_ok=True)
-    file_name = f"{username}_cv.pdf"
+    file_name = f"{username}_resume.pdf"
     pdf_file_path = os.path.join(pdf_path,file_name)
     with open(pdf_file_path,'wb') as f:
         f.write(pdf_file)
