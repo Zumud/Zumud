@@ -1,25 +1,36 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 import backend.core.ai_service as ai_service
 from backend.models.profile import Profile, Resume
 from backend.models.question import Question
 from backend.models.tailoring_options import TailoringOptions
 from backend.models.templates import (
-    john_doe_legal_authorization,
     john_doe_preferences,
     john_doe_resume,
 )
 from backend.utils.file_ops import PDFGenerator, save_pdf
 from backend.utils.path_ops import create_new_application_path, get_current_application_path
+from backend.models.db import get_db
+from backend.models.db_models import User
 
 func_router = APIRouter(tags=["functions"])
 
 @func_router.post("/determine_eligibility")
-def determine_eligibility(job_description: str, profile: Profile = Profile(resume=Resume(john_doe_resume),legal_authorization=john_doe_legal_authorization), tailoring_options: TailoringOptions = TailoringOptions()):
+def determine_eligibility(job_description: str, profile: Profile = Profile(resume=Resume(john_doe_resume)), tailoring_options: TailoringOptions = TailoringOptions(), db: Session = Depends(get_db)):
     """
     Gets profile and job description and determines eligibility for applying to the job
     """
-    eligibility, reason = ai_service.consider_eligibility(job_description, profile.legal_authorization, tailoring_options.ai_model)
+    # Fetch legal authorization from database
+    user = db.query(User).filter(User.username == profile.username).first()
+    if not user or not user.legal_authorization:
+        return {
+            "eligibility": False,
+            "reason": "Legal authorization information not found for user"
+        }
+    
+    legal_auth = user.legal_authorization
+    eligibility, reason = ai_service.consider_eligibility(job_description, legal_auth, tailoring_options.ai_model)
     return {
         "eligibility": eligibility,
         "reason": reason

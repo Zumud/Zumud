@@ -3,17 +3,20 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.models.db import get_db
-from backend.models import db_models, user_models, resume_models
+from backend.models.user_models import User, UserCreate
+from backend.models.resume_models import Resume
+from backend.models.legal_authorization_models import LegalAuthorization
+from backend.models import db_models
 from backend.api.auth import pwd_context, get_current_user
 
 user_router = APIRouter(tags=["user"])
 
 @user_router.get("/user")
-def get_user(current_user: dict = Depends(get_current_user)):
+def get_user(current_user = Depends(get_current_user)):
     return current_user
 
 @user_router.post("/signup", status_code=status.HTTP_201_CREATED)
-def signup(user: user_models.UserCreate, db: Session = Depends(get_db)):
+def signup(user: UserCreate, db: Session = Depends(get_db)) -> User:
     # Check if username already exists
     if db.query(db_models.User).filter(db_models.User.username == user.username).first():
         raise HTTPException(
@@ -41,21 +44,19 @@ def signup(user: user_models.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
 
-    return user_models.User.model_validate(db_user)
+    return db_user
 
 @user_router.get("/get_resume")
-def get_user_resume(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_user_resume(current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> Resume:
     """Get user's resume"""
-    resume = db.query(db_models.Resume)\
-        .filter(db_models.Resume.user_id == current_user.id)\
-        .first()
+    resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
     
     if resume:
-        return resume_models.Resume.model_validate(resume)
+        return resume
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f'user with id {current_user.id} does not have resume')
 
 @user_router.put("/update_resume")
-def update_resume(resume_content: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_resume(resume_content: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> Resume:
     """Update or create user's resume"""
     # Check if user has a resume
     updated_resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
@@ -69,4 +70,38 @@ def update_resume(resume_content: str, current_user = Depends(get_current_user),
     
     db.commit()
     db.refresh(updated_resume)
-    return updated_resume 
+    return updated_resume
+
+@user_router.get("/work_authorization")
+def get_work_authorization(current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> LegalAuthorization:
+    """Get user's work authorization information"""
+    legal_auth = db.query(db_models.LegalAuthorization).filter(db_models.LegalAuthorization.user_id == current_user.id).first()
+    
+    if legal_auth:
+        return legal_auth
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, 
+        detail=f'User with id {current_user.id} does not have work authorization information'
+    )
+
+@user_router.put("/work_authorization")
+def update_work_authorization(work_authorization: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> LegalAuthorization:
+    """Update or create user's work authorization information"""
+    # Check if user has work authorization info
+    legal_auth = db.query(db_models.LegalAuthorization).filter(db_models.LegalAuthorization.user_id == current_user.id).first()
+    
+    if legal_auth:
+        # Update existing work authorization
+        legal_auth.work_authorization = work_authorization
+        legal_auth.last_updated = datetime.now(timezone.utc)
+    else:
+        # Create new work authorization
+        legal_auth = db_models.LegalAuthorization(
+            user_id=current_user.id,
+            work_authorization=work_authorization
+        )
+        db.add(legal_auth)
+    
+    db.commit()
+    db.refresh(legal_auth)
+    return legal_auth
