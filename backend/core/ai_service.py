@@ -10,6 +10,7 @@ from backend.models.ai_models import AIModel
 from backend.models.templates import ResumeTemplate, Template_Details
 from backend.utils.file_ops import generate_pdf_from_latex, save_application_qa
 from backend.utils.log import logger
+from backend.models.legal_authorization_models import LegalAuthorization
 
 
 client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
@@ -101,28 +102,29 @@ def get_company_name(job_description):
     )  # Since this is a simple task we use the cheapest ai
     return company_name
 
-def consider_eligibility(job_description: str, legal_authorization: str, model: AIModel = AIModel.gpt_4o_mini):
+def consider_eligibility(job_description: str, legal_authorization: LegalAuthorization, model: AIModel = AIModel.gpt_4o_mini):
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompts.consider_eligibility.format(legal_authorization=legal_authorization, job_description=job_description)}
+            {"role": "user", "content": prompts.consider_eligibility.format(legal_authorization=legal_authorization.work_authorization, job_description=job_description)}
         ],
         response_format=Eligibility
     )
     eligibility = json.loads(completion.choices[0].message.content)["eligibility"]
     logger.debug(f"Is user eligible for this job: {eligibility}")
     reason = json.loads(completion.choices[0].message.content)["reason"]
-    logger.debug(f"Reason of eligibility desicion: {reason}")
+    logger.debug(f"Reason of eligibility decision: {reason}")
     return eligibility, reason
 
-def consider_suitability(job_description: str, preferences: str, model: AIModel = AIModel.gpt_4o_mini):
+def consider_suitability(job_description: str, model: AIModel = AIModel.gpt_4o_mini):
+    messages = [
+        {"role": "system", "content": prompts.consider_suitability_system},
+        {"role": "user", "content": prompts.consider_suitability.format(job_description=job_description)}
+    ]
     completion = client.beta.chat.completions.parse(
         model=model,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompts.consider_suitability.format(preferences=preferences, job_description=job_description)}
-        ],
+        messages=messages,
         response_format=Suitability
     )
     suitability = json.loads(completion.choices[0].message.content)["suitability"]

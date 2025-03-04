@@ -1,8 +1,20 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
 from .ai_models import AIModel
 from .templates import ResumeTemplate
 
-@dataclass
-class TailoringOptions:
-    ai_model: AIModel = AIModel.gpt_4o_mini  # This is the cheapest model we have whch supports structured output
-    resume_template: ResumeTemplate = ResumeTemplate.MTeck_resume  # This is the most popular template we have
+class TailoringOptionsBase(BaseModel):
+    ai_model: AIModel = AIModel.gpt_4o_mini
+    resume_template: ResumeTemplate = ResumeTemplate.MTeck_resume
+
+class TailoringOptionsCreate(TailoringOptionsBase):
+    pass
+
+class TailoringOptions(TailoringOptionsBase):
+    id: Optional[int] = None
+    user_id: Optional[int] = None
+    last_updated: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True  # Allows the Pydantic model to read data from ORM models
