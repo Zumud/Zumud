@@ -117,13 +117,14 @@ def consider_eligibility(job_description: str, legal_authorization: LegalAuthori
     logger.debug(f"Reason of eligibility decision: {reason}")
     return eligibility, reason
 
-def consider_suitability(job_description: str, preferences: str, model: AIModel = AIModel.gpt_4o_mini):
+def consider_suitability(job_description: str, model: AIModel = AIModel.gpt_4o_mini):
+    messages = [
+        {"role": "system", "content": prompts.consider_suitability_system},
+        {"role": "user", "content": prompts.consider_suitability.format(job_description=job_description)}
+    ]
     completion = client.beta.chat.completions.parse(
         model=model,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompts.consider_suitability.format(preferences=preferences, job_description=job_description)}
-        ],
+        messages=messages,
         response_format=Suitability
     )
     suitability = json.loads(completion.choices[0].message.content)["suitability"]
