@@ -14,7 +14,7 @@ class ResumeApp:
     def __init__(self, bak_end_url: str = BACK_END_URL):
         self.back_end_url = bak_end_url
     
-    def call_api(self, endpoint: str, data: Dict[str, Any], query_params: Dict[str, Any] = None) -> Dict:
+    def call_api(self, endpoint: str, data: Dict[str, Any] = None, query_params: Dict[str, Any] = None) -> Dict:
         headers = {}
         if 'access_token' in st.session_state:
             headers["Authorization"] = f"Bearer {st.session_state.access_token}"
@@ -28,6 +28,26 @@ class ResumeApp:
             st.error(f"API Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
         return response.json()
 
+    def update_tailoring_options(self, ai_model: str, resume_template: str):
+        try:
+            headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
+            data = {
+                "ai_model": ai_model,
+                "resume_template": resume_template
+            }
+            response = requests.put(
+                f"{self.back_end_url}/update_tailoring_options",
+                json=data,
+                headers=headers
+            )
+            if response.status_code == 200:
+                return response.json()
+            else:
+                st.error(f"Update tailoring options failed: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
+                return None
+        except Exception as e:
+            st.error(f"Update tailoring options error: {str(e)}")
+            return None
     
     def login(self, username: str, password: str) -> Dict:
         try:
@@ -158,6 +178,11 @@ def show_main_app(app:ResumeApp):
         ai_model = st.selectbox("Select AI Model", [model.value for model in AIModel], index=0)
         resume_template = st.selectbox("Select Resume Template", [template.value for template in ResumeTemplate], index=2)
         
+        if st.button("Update AI Settings"):
+            result = app.update_tailoring_options(ai_model, resume_template)
+            if result:
+                st.success("AI settings updated successfully!")
+        
         # Resume Management
         st.header("Your Resume")
         resume_data = app.get_resume()
@@ -178,21 +203,12 @@ def show_main_app(app:ResumeApp):
     
     tab1, tab2, tab3, tab4 = st.tabs(["Generate Resume", "Generate Cover Letter", "Answer application questions", "CV Editor"])
     
-    # Create profile data without job description
-    profile_data = {
-        "profile": {"resume": {"text": current_resume}, "username": st.session_state.user_data['username']},
-        "tailoring_options": {
-            "ai_model": ai_model,
-            "resume_template": resume_template
-        }
-    }
-
     with tab1:
         if st.button("Check Eligibility"):
             if not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                result = app.call_api("determine_eligibility", profile_data, query_params={"job_description": job_description})
+                result = app.call_api("determine_eligibility", query_params={"job_description": job_description})
                 st.write("Eligibility:", result.get("eligibility", "N/A"))
                 st.write("Reason:", result.get("reason", "No reason provided"))
         
@@ -200,7 +216,7 @@ def show_main_app(app:ResumeApp):
             if not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                result = app.call_api("determine_suitability", profile_data, query_params={"job_description": job_description})
+                result = app.call_api("determine_suitability", query_params={"job_description": job_description})
                 st.write("Suitability:", result.get("suitability", "N/A"))
                 st.write("Reason:", result.get("reason", "No reason provided"))
         
@@ -208,7 +224,7 @@ def show_main_app(app:ResumeApp):
             if not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                result = app.call_api("generate-latex-resume-save", profile_data, query_params={"job_description": job_description})
+                result = app.call_api("generate-latex-resume-save", query_params={"job_description": job_description})
                 if "latex_code" in result and "pdf_file_path" in result:
                     # session_state shows that whether latex code is present or not, as in the cv_editor part, we want to edit the latex code
                     st.session_state['latex_code'] = result['latex_code']
@@ -226,7 +242,7 @@ def show_main_app(app:ResumeApp):
             if not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                cover_letter_text = app.call_api("generate-tailored-plain-coverletter", profile_data, query_params={"job_description": job_description})
+                cover_letter_text = app.call_api("generate-tailored-plain-coverletter", query_params={"job_description": job_description})
                 st.text_area("Generated Cover Letter", value=cover_letter_text, height=400)
                 # Generate the PDF
                 st.success(f"PDF generated successfully!")
@@ -239,10 +255,8 @@ def show_main_app(app:ResumeApp):
             elif not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                # Add the question to the profile data
-                question_data = profile_data.copy()
-                question_data["question"] = {"description": question_description}
-                result = app.call_api("answer-application-questions", question_data, query_params={"job_description": job_description})
+                data = {"question": {"description": question_description}}
+                result = app.call_api("answer-application-questions", data=data, query_params={"job_description": job_description})
                 st.text_area("Generated Answer", value=result, height=400)
     
     with tab4:
@@ -255,11 +269,7 @@ def show_main_app(app:ResumeApp):
         if st.button("Save Final PDF"):
             save_data = {
                 "latex": {
-                    "latex_code":edited_latex
-                },
-                "tailoring_options": {
-                    "ai_model":ai_model,
-                    "resume_template": resume_template
+                    "latex_code": edited_latex
                 }
             }
             result = app.call_api("save-latex-resume", save_data)

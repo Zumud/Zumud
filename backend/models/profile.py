@@ -9,5 +9,4 @@ class Resume:
 class Profile:
     resume: Resume = field(default_factory=Resume)
     legal_authorization: LegalAuthorization = None
-    preferences: str = None
     username: str = None

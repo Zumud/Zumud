@@ -13,19 +13,22 @@ consider_eligibility = """Please help me to understand am I legally authorized f
 - Answer with True or False to whether I am legally eligible to work for the company in their location, providing a concise explanation for the determination.
 """
 
-consider_suitability = """Please help me understand if I am suitable for this job based on my preferences for in-person, hybrid, or fully remote work, in relation to the job description.
-** My preferences:**
-{preferences}
+consider_suitability = """Please help me understand if I am suitable for this job based on the job description.
 
-** Job description:**
+Job Description:
 {job_description}
 
-**Instructions:**
-- Identify specific rules and regulations for flexible work in the job description.
-- Match the identified flexible work regulations with my preferences provided.
-- Based on my preferences and flexible work regulations in the job description, assess whether I am suitable for this job.
-- Answer with True or False to whether I am suitable to work for the company, providing a concise explanation for the determination.
+Please analyze the job description and provide:
+1. A suitability assessment (true/false)
+2. A detailed reason for your assessment
+
+Focus on:
+- Required skills and experience
+- Work environment and culture
+- Location and work arrangement requirements
+- Any other relevant factors
 """
+
 create_tailored_resume = """Please help me tailor my resume to match the following job description, emphasizing relevant skills and experiences to maximize my chances of getting an interview.
 
 **My Current Resume:**
