@@ -7,7 +7,7 @@ from backend.models.user_models import User, UserCreate
 from backend.models.resume_models import Resume
 from backend.models.legal_authorization_models import LegalAuthorization
 from backend.models import db_models
-from backend.api.v1.auth import get_current_user, pwd_context
+from backend.api.auth import get_current_user, pwd_context
 from backend.models.tailoring_options import TailoringOptionsBase, TailoringOptions
 
 router = APIRouter(prefix="/users", tags=["users"])
