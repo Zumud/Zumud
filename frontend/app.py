@@ -14,16 +14,13 @@ class ResumeApp:
     def __init__(self, bak_end_url: str = BACK_END_URL):
         self.back_end_url = bak_end_url
     
-    def call_api(self, endpoint: str, data: Dict[str, Any] = None, query_params: Dict[str, Any] = None) -> Dict:
+    def call_api(self, endpoint: str, query_params: Dict[str, Any] = None) -> Dict:
         headers = {}
         if 'access_token' in st.session_state:
             headers["Authorization"] = f"Bearer {st.session_state.access_token}"
         
-        # Prepare the URL with query parameters if provided
-        url = f"{self.back_end_url}/{endpoint}"
-        
-        # Make the request with both query parameters and JSON body
-        response = requests.post(url, params=query_params, json=data, headers=headers)
+        url = f"{self.back_end_url}/api/v1/{endpoint}"
+        response = requests.get(url, params=query_params, headers=headers)
         if response.status_code != 200:
             st.error(f"API Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
         return response.json()
@@ -36,7 +33,7 @@ class ResumeApp:
                 "resume_template": resume_template
             }
             response = requests.put(
-                f"{self.back_end_url}/update_tailoring_options",
+                f"{self.back_end_url}/api/v1/users/me/tailoring-options",
                 json=data,
                 headers=headers
             )
@@ -52,14 +49,13 @@ class ResumeApp:
     def login(self, username: str, password: str) -> Dict:
         try:
             response = requests.post(
-                f"{self.back_end_url}/login",
+                f"{self.back_end_url}/api/v1/auth/login",
                 data={"username": username, "password": password} 
             )
             if response.status_code == 200:
-                # Store user data in session state
                 st.session_state.user_data = {
-                "username": response.json().get("username"),  # Get username from response
-                "id": response.json().get("user_id")          # Get user_id from response
+                    "username": response.json().get("username"),
+                    "id": response.json().get("user_id")
                 }
                 st.session_state.access_token = response.json().get("access_token")
                 return response.json()
@@ -70,10 +66,10 @@ class ResumeApp:
             st.error(f"Login error: {str(e)}")
             return None
 
-    def signup(self, username: str, password: str, email: str, initial_resume: str) :
+    def signup(self, username: str, password: str, email: str, initial_resume: str):
         try:
             response = requests.post(
-                f"{self.back_end_url}/signup",
+                f"{self.back_end_url}/api/v1/users/signup",
                 json={
                     "username": username,
                     "password": password,
@@ -81,7 +77,7 @@ class ResumeApp:
                     "initial_resume": initial_resume if not initial_resume else "Empty"
                 }
             )
-            if response.status_code == 201:  # Changed to match backend status code
+            if response.status_code == 201:
                 return response.json()
             else:
                 st.error(f"Signup failed: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
@@ -90,12 +86,11 @@ class ResumeApp:
             st.error(f"Signup error: {str(e)}")
             return None
     
-    def update_resume(self, resume_content: str) :
+    def update_resume(self, resume_content: str):
         try:
             headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
-            
             response = requests.put(
-                f"{self.back_end_url}/update_resume",
+                f"{self.back_end_url}/api/v1/users/me/resume",
                 params={"resume_content": resume_content},
                 headers=headers
             )
@@ -108,10 +103,10 @@ class ResumeApp:
             st.error(f"Update resume error: {str(e)}")
             return None
 
-    def get_resume(self) :
+    def get_resume(self):
         try:
             headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
-            response = requests.get(f"{self.back_end_url}/get_resume", headers=headers)
+            response = requests.get(f"{self.back_end_url}/api/v1/users/me/resume", headers=headers)
             if response.status_code == 200:
                 return response.json()
             else:
@@ -208,7 +203,7 @@ def show_main_app(app:ResumeApp):
             if not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                result = app.call_api("determine_eligibility", query_params={"job_description": job_description})
+                result = app.call_api("applications/analyze/eligibility", query_params={"job_description": job_description})
                 st.write("Eligibility:", result.get("eligibility", "N/A"))
                 st.write("Reason:", result.get("reason", "No reason provided"))
         
@@ -216,7 +211,7 @@ def show_main_app(app:ResumeApp):
             if not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                result = app.call_api("determine_suitability", query_params={"job_description": job_description})
+                result = app.call_api("applications/analyze/suitability", query_params={"job_description": job_description})
                 st.write("Suitability:", result.get("suitability", "N/A"))
                 st.write("Reason:", result.get("reason", "No reason provided"))
         
@@ -224,7 +219,7 @@ def show_main_app(app:ResumeApp):
             if not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                result = app.call_api("generate-latex-resume-save", query_params={"job_description": job_description})
+                result = app.call_api("applications/resume/pdf", query_params={"job_description": job_description})
                 if "latex_code" in result and "pdf_file_path" in result:
                     # session_state shows that whether latex code is present or not, as in the cv_editor part, we want to edit the latex code
                     st.session_state['latex_code'] = result['latex_code']
@@ -242,7 +237,7 @@ def show_main_app(app:ResumeApp):
             if not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                cover_letter_text = app.call_api("generate-tailored-plain-coverletter", query_params={"job_description": job_description})
+                cover_letter_text = app.call_api("applications/cover-letter/plain", query_params={"job_description": job_description})
                 st.text_area("Generated Cover Letter", value=cover_letter_text, height=400)
                 # Generate the PDF
                 st.success(f"PDF generated successfully!")
@@ -255,8 +250,11 @@ def show_main_app(app:ResumeApp):
             elif not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
-                data = {"question": {"description": question_description}}
-                result = app.call_api("answer-application-questions", data=data, query_params={"job_description": job_description})
+                result = app.call_api("applications/questions/answer", 
+                                    query_params={
+                                        "job_description": job_description,
+                                        "question": question_description
+                                    })
                 st.text_area("Generated Answer", value=result, height=400)
     
     with tab4:
@@ -272,11 +270,11 @@ def show_main_app(app:ResumeApp):
                     "latex_code": edited_latex
                 }
             }
-            result = app.call_api("save-latex-resume", save_data)
-            if result.get('path'):
-                st.success(f"PDF saved at: {result['path']}")
+            result = app.call_api("applications/resume/pdf", query_params={"job_description": job_description})
+            if result.get('pdf_file_path'):
+                st.success(f"PDF saved at: {result['pdf_file_path']}")
             else:
-                st.error("An error occured. Please try again.")
+                st.error("An error occurred. Please try again.")
 
 def main():
     st.set_page_config(page_title="Resume Tailorer", layout="wide")
