@@ -1,19 +1,28 @@
 from fastapi import FastAPI
-from backend.api.v1 import api_v1_router
+from fastapi.middleware.cors import CORSMiddleware
+from backend.api import api_router
 from backend.models.db import Base, engine
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="TailorMade API",
+    title="Resume Tailorer API",
     description="API for TailorMade - AI-powered job application assistant",
     version="1.0.0"
 )
 
-# Include API version 1 router
-app.include_router(api_v1_router)
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# Include API router
+app.include_router(api_router)
 
 @app.get("/", tags=["Root"])
 def root():

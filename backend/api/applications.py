@@ -6,7 +6,7 @@ import backend.core.ai_service as ai_service
 from backend.models.tailoring_options import TailoringOptionsBase
 from backend.utils.file_ops import PDFGenerator, save_pdf
 from backend.utils.path_ops import create_new_application_path, get_current_application_path
-from backend.api.v1.auth import get_current_user
+from backend.api.auth import get_current_user
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 

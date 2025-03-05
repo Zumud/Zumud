@@ -11,10 +11,10 @@ from backend.config.envs import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_K
 from backend.models.db import get_db
 from backend.models import db_models
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(tags=["authentication"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/login')
 
 class Token(BaseModel):
     access_token: str

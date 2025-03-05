@@ -19,7 +19,7 @@ class ResumeApp:
         if 'access_token' in st.session_state:
             headers["Authorization"] = f"Bearer {st.session_state.access_token}"
         
-        url = f"{self.back_end_url}/api/v1/{endpoint}"
+        url = f"{self.back_end_url}/{endpoint}"
         response = requests.get(url, params=query_params, headers=headers)
         if response.status_code != 200:
             st.error(f"API Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
@@ -33,7 +33,7 @@ class ResumeApp:
                 "resume_template": resume_template
             }
             response = requests.put(
-                f"{self.back_end_url}/api/v1/users/me/tailoring-options",
+                f"{self.back_end_url}/users/me/tailoring-options",
                 json=data,
                 headers=headers
             )
@@ -49,7 +49,7 @@ class ResumeApp:
     def login(self, username: str, password: str) -> Dict:
         try:
             response = requests.post(
-                f"{self.back_end_url}/api/v1/auth/login",
+                f"{self.back_end_url}/login",
                 data={"username": username, "password": password} 
             )
             if response.status_code == 200:
@@ -69,7 +69,7 @@ class ResumeApp:
     def signup(self, username: str, password: str, email: str, initial_resume: str):
         try:
             response = requests.post(
-                f"{self.back_end_url}/api/v1/users/signup",
+                f"{self.back_end_url}/users/signup",
                 json={
                     "username": username,
                     "password": password,
@@ -90,7 +90,7 @@ class ResumeApp:
         try:
             headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
             response = requests.put(
-                f"{self.back_end_url}/api/v1/users/me/resume",
+                f"{self.back_end_url}/users/me/resume",
                 params={"resume_content": resume_content},
                 headers=headers
             )
@@ -106,7 +106,7 @@ class ResumeApp:
     def get_resume(self):
         try:
             headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
-            response = requests.get(f"{self.back_end_url}/api/v1/users/me/resume", headers=headers)
+            response = requests.get(f"{self.back_end_url}/users/me/resume", headers=headers)
             if response.status_code == 200:
                 return response.json()
             else:
