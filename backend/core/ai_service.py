@@ -13,7 +13,7 @@ from backend.utils.log import logger
 from backend.models.legal_authorization_models import LegalAuthorization
 
 
-client = OpenAI(api_key=OPEN_AI_KEY)  # we recommend using python-dotenv to add OPENAI_API_KEY="My API Key" to your .env file so that your API Key is not stored in source control.
+client = OpenAI(api_key=OPEN_AI_KEY)
 
 class Eligibility(BaseModel):
     eligibility: bool = Field(..., description="Indicates eligibility: 'True' or 'False'.")
