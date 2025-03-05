@@ -8,6 +8,7 @@ from backend.models.resume_models import Resume
 from backend.models.legal_authorization_models import LegalAuthorization
 from backend.models import db_models
 from backend.api.auth import pwd_context, get_current_user
+from backend.models.tailoring_options import TailoringOptionsBase, TailoringOptions
 
 user_router = APIRouter(tags=["user"])
 
@@ -105,3 +106,34 @@ def update_work_authorization(work_authorization: str, current_user = Depends(ge
     db.commit()
     db.refresh(legal_auth)
     return legal_auth
+
+@user_router.get("/tailoring_options")
+def get_tailoring_options(current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> TailoringOptionsBase:
+    """Get user's tailoring options from database or return defaults"""
+    if not current_user.tailoring_options:
+        return TailoringOptionsBase()
+    return current_user.tailoring_options
+
+@user_router.put("/tailoring_options")
+def update_tailoring_options(tailoring_options: TailoringOptionsBase, current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> TailoringOptions:
+    """Update or create user's tailoring options"""
+    # Check if user has tailoring options
+    db_tailoring_options = db.query(db_models.TailoringOptions).filter(db_models.TailoringOptions.user_id == current_user.id).first()
+    
+    if db_tailoring_options:
+        # Update existing tailoring options
+        db_tailoring_options.ai_model = tailoring_options.ai_model
+        db_tailoring_options.resume_template = tailoring_options.resume_template
+        db_tailoring_options.last_updated = datetime.now(timezone.utc)
+    else:
+        # Create new tailoring options
+        db_tailoring_options = db_models.TailoringOptions(
+            user_id=current_user.id,
+            ai_model=tailoring_options.ai_model,
+            resume_template=tailoring_options.resume_template
+        )
+        db.add(db_tailoring_options)
+    
+    db.commit()
+    db.refresh(db_tailoring_options)
+    return db_tailoring_options
