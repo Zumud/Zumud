@@ -7,23 +7,25 @@ from backend.models.user_models import User, UserCreate
 from backend.models.resume_models import Resume
 from backend.models.legal_authorization_models import LegalAuthorization
 from backend.models import db_models
-from backend.api.auth import pwd_context, get_current_user
+from backend.api.auth import get_current_user, pwd_context
+from backend.models.tailoring_options import TailoringOptionsBase, TailoringOptions
 
-user_router = APIRouter(tags=["user"])
+router = APIRouter(prefix="/users", tags=["users"])
 
-@user_router.get("/user")
-def get_user(current_user = Depends(get_current_user)):
+@router.get("/me", response_model=User)
+def get_current_user_info(current_user = Depends(get_current_user)):
+    """Get current user information"""
     return current_user
 
-@user_router.post("/signup", status_code=status.HTTP_201_CREATED)
-def signup(user: UserCreate, db: Session = Depends(get_db)) -> User:
-    # Check if username already exists
+@router.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
+def signup(user: UserCreate, db: Session = Depends(get_db)):
+    """Create a new user account"""
     if db.query(db_models.User).filter(db_models.User.username == user.username).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered"
         )
-    # Hash the password
+    
     hashed_password = pwd_context.hash(user.password)
     db_user = db_models.User(
         username=user.username,
@@ -31,9 +33,8 @@ def signup(user: UserCreate, db: Session = Depends(get_db)) -> User:
         password=hashed_password
     )
     db.add(db_user)
-    db.flush()  # This gets the user.id without committing
+    db.flush()
     
-    # Create resume if provided
     if user.initial_resume:
         db_resume = db_models.Resume(
             user_id=db_user.id,
@@ -43,59 +44,56 @@ def signup(user: UserCreate, db: Session = Depends(get_db)) -> User:
     
     db.commit()
     db.refresh(db_user)
-
     return db_user
 
-@user_router.get("/get_resume")
-def get_user_resume(current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> Resume:
-    """Get user's resume"""
+@router.get("/me/resume", response_model=Resume)
+def get_user_resume(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get current user's resume"""
     resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
-    
-    if resume:
-        return resume
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = f'user with id {current_user.id} does not have resume')
+    if not resume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {current_user.id} does not have a resume"
+        )
+    return resume
 
-@user_router.put("/update_resume")
-def update_resume(resume_content: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> Resume:
-    """Update or create user's resume"""
-    # Check if user has a resume
-    updated_resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
+@router.put("/me/resume", response_model=Resume)
+def update_resume(resume_content: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update current user's resume"""
+    resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
+    if not resume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No resume found to update"
+        )
     
-    if not updated_resume:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"There is no resume to become updated")
-    
-    # Update existing resume
-    updated_resume.resume_content = resume_content
-    updated_resume.last_updated = datetime.now(timezone.utc)
+    resume.resume_content = resume_content
+    resume.last_updated = datetime.now(timezone.utc)
     
     db.commit()
-    db.refresh(updated_resume)
-    return updated_resume
+    db.refresh(resume)
+    return resume
 
-@user_router.get("/work_authorization")
-def get_work_authorization(current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> LegalAuthorization:
-    """Get user's work authorization information"""
+@router.get("/me/work-authorization", response_model=LegalAuthorization)
+def get_work_authorization(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get current user's work authorization information"""
+    legal_auth = db.query(db_models.LegalAuthorization).filter(db_models.LegalAuthorization.user_id == current_user.id).first()
+    if not legal_auth:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {current_user.id} does not have work authorization information"
+        )
+    return legal_auth
+
+@router.put("/me/work-authorization", response_model=LegalAuthorization)
+def update_work_authorization(work_authorization: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update current user's work authorization information"""
     legal_auth = db.query(db_models.LegalAuthorization).filter(db_models.LegalAuthorization.user_id == current_user.id).first()
     
     if legal_auth:
-        return legal_auth
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, 
-        detail=f'User with id {current_user.id} does not have work authorization information'
-    )
-
-@user_router.put("/work_authorization")
-def update_work_authorization(work_authorization: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)) -> LegalAuthorization:
-    """Update or create user's work authorization information"""
-    # Check if user has work authorization info
-    legal_auth = db.query(db_models.LegalAuthorization).filter(db_models.LegalAuthorization.user_id == current_user.id).first()
-    
-    if legal_auth:
-        # Update existing work authorization
         legal_auth.work_authorization = work_authorization
         legal_auth.last_updated = datetime.now(timezone.utc)
     else:
-        # Create new work authorization
         legal_auth = db_models.LegalAuthorization(
             user_id=current_user.id,
             work_authorization=work_authorization
@@ -105,3 +103,31 @@ def update_work_authorization(work_authorization: str, current_user = Depends(ge
     db.commit()
     db.refresh(legal_auth)
     return legal_auth
+
+@router.get("/me/tailoring-options", response_model=TailoringOptionsBase)
+def get_tailoring_options(current_user = Depends(get_current_user)):
+    """Get current user's tailoring options"""
+    if not current_user.tailoring_options:
+        return TailoringOptionsBase()
+    return current_user.tailoring_options
+
+@router.put("/me/tailoring-options", response_model=TailoringOptions)
+def update_tailoring_options(tailoring_options: TailoringOptionsBase, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update current user's tailoring options"""
+    db_tailoring_options = db.query(db_models.TailoringOptions).filter(db_models.TailoringOptions.user_id == current_user.id).first()
+    
+    if db_tailoring_options:
+        db_tailoring_options.ai_model = tailoring_options.ai_model
+        db_tailoring_options.resume_template = tailoring_options.resume_template
+        db_tailoring_options.last_updated = datetime.now(timezone.utc)
+    else:
+        db_tailoring_options = db_models.TailoringOptions(
+            user_id=current_user.id,
+            ai_model=tailoring_options.ai_model,
+            resume_template=tailoring_options.resume_template
+        )
+        db.add(db_tailoring_options)
+    
+    db.commit()
+    db.refresh(db_tailoring_options)
+    return db_tailoring_options 
