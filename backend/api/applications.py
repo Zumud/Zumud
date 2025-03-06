@@ -113,10 +113,10 @@ def generate_and_save_pdf_resume(
     save_path = create_new_application_path(company_name)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     
-    tailored_plain_resume = generate_tailored_plain_resume(job_description, current_user)
     latex_compiler_response, latex_code = ai_service.covert_plain_resume_to_latex(
         str(save_path),
-        tailored_plain_resume,
+        current_user.resumes.resume_content,
+        job_description,
         tailoring_options.ai_model,
         tailoring_options.resume_template
     )
