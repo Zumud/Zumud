@@ -2,7 +2,9 @@ import json
 
 from loguru import logger
 from openai import OpenAI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
+from jinja2 import Template
+from typing import List, Optional
 
 import backend.utils.prompts as prompts
 from backend.config.envs import OPEN_AI_KEY
@@ -39,6 +41,50 @@ class CompanyName(BaseModel):
 
 class TailoredAnswer(BaseModel):
     tailored_answer: str
+
+class ResumeSection(BaseModel):
+    category: str
+    items: List[str]
+
+class Experience(BaseModel):
+    company: str
+    role: str
+    location: str
+    date_range: str
+    achievements: List[str]
+
+class Education(BaseModel):
+    institution: str
+    degree: str
+    location: str
+    date_range: str
+    minors: Optional[List[str]] = None
+
+class Certification(BaseModel):
+    name: str
+    issuer: str
+
+class Project(BaseModel):
+    name: str
+    date_range: str
+    achievements: List[str]
+
+class PersonalInfo(BaseModel):
+    name: str
+    email: str
+    phone: str
+    location: str
+    linkedin: str
+    github: str
+
+class StructuredResume(BaseModel):
+    personal_info: PersonalInfo
+    summary: str
+    skills: List[ResumeSection]
+    experience: List[Experience]
+    education: List[Education]
+    certifications: Optional[List[Certification]] = None
+    projects: Optional[List[Project]] = None
 
 def create_customized_cl(resume_text: str, job_description_text: str, model=AIModel.gpt_4o_mini):
     completion = client.beta.chat.completions.parse(
@@ -122,106 +168,102 @@ def create_tailored_plain_resume(resume: str, job_description: str, model=AIMode
     logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-def covert_plain_resume_to_latex(save_folder: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.MTeck_resume):
-    # Store the original content sections
-    original_sections = {}
-    current_section = None
-    section_content = []
+def escape_latex(data):
+    """
+    Recursively escape LaTeX special characters in a data structure (string, list, or dict).
     
-    for line in plain_resume.split('\n'):
-        if line.strip().startswith('\\section{') or line.strip().startswith('\\subsection{'):
-            if current_section:
-                original_sections[current_section] = '\n'.join(section_content)
-            current_section = line.strip()
-            section_content = []
-        elif current_section:
-            section_content.append(line)
-    
-    if current_section:
-        original_sections[current_section] = '\n'.join(section_content)
+    Args:
+        data: The data to escape (string, list, or dict)
+        
+    Returns:
+        The input data with all LaTeX special characters escaped
+    """
+    if isinstance(data, str):
+        # Handle backslash first to avoid affecting other replacements
+        text = data.replace('\\', r'\textbackslash{}')
+        
+        # Then handle other special characters
+        text = text.replace('&', r'\&')
+        text = text.replace('%', r'\%')
+        text = text.replace('$', r'\$')
+        text = text.replace('#', r'\#')
+        text = text.replace('_', r'\_')
+        text = text.replace('{', r'\{')
+        text = text.replace('}', r'\}')
+        text = text.replace('~', r'\textasciitilde{}')
+        text = text.replace('^', r'\textasciicircum{}')
+        text = text.replace('<', r'\textless{}')
+        text = text.replace('>', r'\textgreater{}')
+        
+        return text
+    elif isinstance(data, list):
+        return [escape_latex(item) for item in data]
+    elif isinstance(data, dict):
+        return {k: escape_latex(v) for k, v in data.items()}
+    else:
+        return data
 
-    messages = [
-        {"role": "system", "content": """You are an expert in LaTeX document processing and resume formatting.
-        Your task is to format the resume content while:
-        1. Preserving ALL content from the original resume
-        2. Only fixing LaTeX syntax issues
-        3. Maintaining the document structure
-        4. Not removing or modifying any sections
-        5. If you encounter LaTeX errors, fix the syntax while keeping the content intact"""},
-        {"role": "user", "content": prompts.convert_plain_resume_to_latex.format(
-            num_pages=Template_Details[template]['num_pages'],
-            resume=plain_resume,
-            latex_template=Template_Details[template]['structure']
-        )}
-    ]
-
-    max_attempts = 5
-    attempt = 1
-    last_error = None
+def covert_plain_resume_to_latex(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.MTeck_resume):
+    """
+    Convert a plain resume to LaTeX using structured output and Jinja2 templating.
+    """
+    # First, get structured resume data from GPT
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": """You are an expert resume parser and formatter.
+            Your task is to analyze the resume and job description, and output a structured JSON object
+            that follows the exact schema provided. The output should be tailored to the job description
+            while preserving all relevant information from the resume."""},
+            {"role": "user", "content": f"""Resume:
+            {resume}
+            
+            Job Description:
+            {job_description}
+            
+            Please analyze this resume and job description, and output a structured JSON object
+            that follows this exact schema:
+            {json.dumps(StructuredResume.model_json_schema(), indent=2)}
+            
+            Important:
+            1. Tailor the content to the job description while preserving factual information
+            2. Ensure all dates are in a consistent format (e.g., "Jan 2020 -- Present")
+            3. Keep achievements concise and impactful
+            4. Include only relevant skills and experiences
+            5. Format all text properly for LaTeX (escape special characters)"""}
+        ],
+        response_format=StructuredResume
+    )
     
-    while attempt <= max_attempts:
-        try:
-            completion = client.beta.chat.completions.parse(
-                model=model,
-                messages=messages,
-                response_format=TailoredResume
-            )
-            
-            tailored_resume = json.loads(completion.choices[0].message.content)["tailored_resume"]
-            logger.debug(f"Attempt {attempt}: Generated LaTeX code")
-            
-            # Extract the document content between \begin{document} and \end{document}
-            doc_start = tailored_resume.find(r"\begin{document}")
-            doc_end = tailored_resume.rfind(r"\end{document}")
-            if doc_start == -1 or doc_end == -1:
-                raise ValueError("Missing document environment markers")
-                
-            document_content = tailored_resume[doc_start:doc_end + len(r"\end{document}")]
-            
-            # Verify all original sections are present
-            for section in original_sections:
-                if section not in document_content:
-                    raise ValueError(f"Missing section: {section}")
-            
-            # Try to compile
-            compiler = Template_Details[template]['compiler']
-            latex_compiler_response = generate_pdf_from_latex(save_folder, tailored_resume, compiler)
-            
-            if not b"error: " in latex_compiler_response.content:
-                logger.debug("Successfully compiled LaTeX document")
-                return latex_compiler_response, tailored_resume
-                
-            error_msg = latex_compiler_response.content.decode('utf-8')
-            logger.debug(f"LaTeX compilation error: {error_msg}")
-            
-            # Add error context to messages
-            messages.extend([
-                {"role": "assistant", "content": tailored_resume},
-                {"role": "user", "content": f"""Fix the following LaTeX error while preserving ALL content:
-                Error: {error_msg}
-                
-                Important:
-                1. Do not remove or modify any sections
-                2. Only fix the LaTeX syntax issues
-                3. Keep all content intact
-                4. If the error is about missing packages, add them to the preamble
-                5. If the error is about syntax, fix only the problematic part
-                
-                Current document structure:
-                {list(original_sections.keys())}"""}
-            ])
-            
-            last_error = error_msg
-            attempt += 1
-            
-        except Exception as e:
-            logger.error(f"Error in attempt {attempt}: {str(e)}")
-            attempt += 1
+    structured_resume = json.loads(completion.choices[0].message.content)
     
-    # If we get here, we failed to generate a valid document
-    error_summary = f"Failed to generate valid LaTeX after {max_attempts} attempts. Last error: {last_error}"
-    logger.error(error_summary)
-    raise ValueError(error_summary)
+    logger.debug(f"Structured resume: {structured_resume}")
+    
+    # Escape LaTeX special characters in the resume data
+    escaped_resume = escape_latex(structured_resume)
+    logger.debug(f"Escaped resume: {escaped_resume}")
+    
+    # Get the LaTeX template
+    latex_template = Template_Details[template]['structure']
+    logger.debug(f"LaTeX template: {latex_template}")
+    
+    # Create Jinja2 template and render
+    jinjatex_template = Template(latex_template)
+    logger.debug(f"Jinjatex Template: {jinjatex_template}")
+    rendered_latex = jinjatex_template.render(escaped_resume)
+    logger.debug(f"Rendered LaTeX: {rendered_latex}")
+    
+    # Try to compile
+    compiler = Template_Details[template]['compiler']
+    latex_compiler_response = generate_pdf_from_latex(save_folder, rendered_latex, compiler)
+    
+    if b"error: " in latex_compiler_response.content:
+        error_msg = latex_compiler_response.content.decode('utf-8')
+        logger.error(f"LaTeX compilation error: {error_msg}")
+        raise ValueError(f"Failed to compile LaTeX document: {error_msg}")
+    
+    logger.debug("Successfully compiled LaTeX document")
+    return latex_compiler_response, rendered_latex
 
 def create_tailored_plain_coverletter(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
     completion = client.beta.chat.completions.parse(
