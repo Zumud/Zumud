@@ -40,30 +40,6 @@ class CompanyName(BaseModel):
 class TailoredAnswer(BaseModel):
     tailored_answer: str
 
-def create_customized_resume(resume_text: str, job_description_text: str, model=AIModel.gpt_4o_mini):
-    completion = client.beta.chat.completions.parse(
-        model=model,
-        messages=[
-            {"role": "system", "content": """You will be given a job description. Create a customized resume in LaTeX.
-             Follow these instructions:
-             - change the title in a way that matches the job title
-             - Just focus on the contents. Do not change any settings, such as paper size, style, packages, and so on.
-             - For each past job in the experience section do not change the company name. Keep a 1-2 sentence about that company description. This should be concise but specific enough to give a good understanding of the past company.
-             - Make sure the skills in the job description are included in the resume.
-             - For items (bullet points) of each job rephrase them in a way that matches the language of the job description.
-             - Make technologies keywords bold. Bold syntax is \\textbf{text}.
-             - Run through all LaTeX after creation and make sure you're following LaTeX syntax.
-             - Make sure that each LaTeX instruction is in a single line. Don't put all the code in one line.
-             Resume LaTeX:""" + resume_text},
-            {"role": "user", "content": "Job description: "+job_description_text}
-        ],
-        response_format=CustomizedResume  # ensures the out put is a json with the given format. For unsupported models, we can use JSON mode. read here: https://platform.openai.com/docs/guides/structured-outputs/json-mode
-    )
-
-    ai_tailored_resume_response, = json.loads(completion.choices[0].message.content).values()  # create the json object and unpack
-    return ai_tailored_resume_response
-
-
 def create_customized_cl(resume_text: str, job_description_text: str, model=AIModel.gpt_4o_mini):
     completion = client.beta.chat.completions.parse(
         model=model,
@@ -133,7 +109,7 @@ def consider_suitability(job_description: str, model: AIModel = AIModel.gpt_4o_m
     logger.debug(f"Reason of eligibility desicion: {reason}")
     return suitability, reason
 
-def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_Resume) -> str:
+def create_tailored_plain_resume(resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.MTeck_resume) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
@@ -146,32 +122,106 @@ def create_tailored_plain_resume(resume: str, job_description: str, model=AIMode
     logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-def covert_plain_resume_to_latex(save_folder: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.Blue_Modern_Resume):
+def covert_plain_resume_to_latex(save_folder: str, plain_resume: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.MTeck_resume):
+    # Store the original content sections
+    original_sections = {}
+    current_section = None
+    section_content = []
+    
+    for line in plain_resume.split('\n'):
+        if line.strip().startswith('\\section{') or line.strip().startswith('\\subsection{'):
+            if current_section:
+                original_sections[current_section] = '\n'.join(section_content)
+            current_section = line.strip()
+            section_content = []
+        elif current_section:
+            section_content.append(line)
+    
+    if current_section:
+        original_sections[current_section] = '\n'.join(section_content)
 
-    messages=[
-        {"role": "system", "content": "You are an expert in LaTeX document processing and resume formatting."},
-        {"role": "user", "content": prompts.convert_plain_resume_to_latex.format(num_pages=Template_Details[template]['num_pages'], resume=plain_resume, latex_template=Template_Details[template]['structure'])}
+    messages = [
+        {"role": "system", "content": """You are an expert in LaTeX document processing and resume formatting.
+        Your task is to format the resume content while:
+        1. Preserving ALL content from the original resume
+        2. Only fixing LaTeX syntax issues
+        3. Maintaining the document structure
+        4. Not removing or modifying any sections
+        5. If you encounter LaTeX errors, fix the syntax while keeping the content intact"""},
+        {"role": "user", "content": prompts.convert_plain_resume_to_latex.format(
+            num_pages=Template_Details[template]['num_pages'],
+            resume=plain_resume,
+            latex_template=Template_Details[template]['structure']
+        )}
     ]
-    i = 1
-    while i < 5: # and error in the code 
-        completion = client.beta.chat.completions.parse(
-            model=model,
-            messages=messages,
-            response_format=TailoredResume
-        )
-        tailored_resume = json.loads(completion.choices[0].message.content)["tailored_resume"]
-        logger.debug(f"The tailored resume Latex code in iteration {i} is: {tailored_resume}")
-        trimed_tailored_resume = tailored_resume[tailored_resume.find(r"\documentclass"):tailored_resume.rfind(r"\end{document}")+len(r"\end{document}")]  # removes possible extra things that AI adds
-        compiler = Template_Details[template]['compiler']
-        latex_compiler_response = generate_pdf_from_latex(save_folder, trimed_tailored_resume, compiler)
-        logger.debug(f"Request url to the LaTeX compiler is: {latex_compiler_response.url}")
-        if not b"error: " in latex_compiler_response.content:  # there is no error in the compiled code
-            return latex_compiler_response, trimed_tailored_resume
-        logger.debug(f"There is an error in the latex code: {latex_compiler_response.content}")
-        messages.extend([{"role": "assistant", "content": tailored_resume},
-                         {"role": "user", "content": prompts.fix_latex_error.format(error=latex_compiler_response.content)}])
-        i += 1
-    return latex_compiler_response, trimed_tailored_resume
+
+    max_attempts = 5
+    attempt = 1
+    last_error = None
+    
+    while attempt <= max_attempts:
+        try:
+            completion = client.beta.chat.completions.parse(
+                model=model,
+                messages=messages,
+                response_format=TailoredResume
+            )
+            
+            tailored_resume = json.loads(completion.choices[0].message.content)["tailored_resume"]
+            logger.debug(f"Attempt {attempt}: Generated LaTeX code")
+            
+            # Extract the document content between \begin{document} and \end{document}
+            doc_start = tailored_resume.find(r"\begin{document}")
+            doc_end = tailored_resume.rfind(r"\end{document}")
+            if doc_start == -1 or doc_end == -1:
+                raise ValueError("Missing document environment markers")
+                
+            document_content = tailored_resume[doc_start:doc_end + len(r"\end{document}")]
+            
+            # Verify all original sections are present
+            for section in original_sections:
+                if section not in document_content:
+                    raise ValueError(f"Missing section: {section}")
+            
+            # Try to compile
+            compiler = Template_Details[template]['compiler']
+            latex_compiler_response = generate_pdf_from_latex(save_folder, tailored_resume, compiler)
+            
+            if not b"error: " in latex_compiler_response.content:
+                logger.debug("Successfully compiled LaTeX document")
+                return latex_compiler_response, tailored_resume
+                
+            error_msg = latex_compiler_response.content.decode('utf-8')
+            logger.debug(f"LaTeX compilation error: {error_msg}")
+            
+            # Add error context to messages
+            messages.extend([
+                {"role": "assistant", "content": tailored_resume},
+                {"role": "user", "content": f"""Fix the following LaTeX error while preserving ALL content:
+                Error: {error_msg}
+                
+                Important:
+                1. Do not remove or modify any sections
+                2. Only fix the LaTeX syntax issues
+                3. Keep all content intact
+                4. If the error is about missing packages, add them to the preamble
+                5. If the error is about syntax, fix only the problematic part
+                
+                Current document structure:
+                {list(original_sections.keys())}"""}
+            ])
+            
+            last_error = error_msg
+            attempt += 1
+            
+        except Exception as e:
+            logger.error(f"Error in attempt {attempt}: {str(e)}")
+            attempt += 1
+    
+    # If we get here, we failed to generate a valid document
+    error_summary = f"Failed to generate valid LaTeX after {max_attempts} attempts. Last error: {last_error}"
+    logger.error(error_summary)
+    raise ValueError(error_summary)
 
 def create_tailored_plain_coverletter(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
     completion = client.beta.chat.completions.parse(
