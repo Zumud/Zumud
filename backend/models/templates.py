@@ -508,8 +508,7 @@ mteck_resume = r"""
     \vspace{10pt}
     {\color{accentLine} \hrule}
     \vspace{2pt}
-    %{\footnotesize\color{accentTitle} #2}
-    \footnotesize{#2}
+    \footnotesize{{ '{#' }}2}
     \vspace{2pt}
     {\color{accentLine} \hrule}
   \end{center}
@@ -541,7 +540,7 @@ mteck_resume = r"""
 % Usage: \tinysection{Title}
 \newcommand{\tinysection}[1]{
   \phantomsection
-  \addcontentsline{toc}{section}{#1}
+  \addcontentsline{toc}{section}{{ '{#' }}1}
   {\large{\bfseries\color{accentText}#1} {\color{accentLine} |}}
 }
 
@@ -553,12 +552,12 @@ mteck_resume = r"""
 
 % Adds \textbf to \heading
 \newcommand{\headingBf}[2]{
-  \heading{\textbf{#1}}{\textbf{#2}}
+  \heading{\textbf{{ '{#' }}1}}{\textbf{{ '{#' }}2}}
 }
 
 % Adds \textit to \heading
 \newcommand{\headingIt}[2]{
-  \heading{\textit{#1}}{\textit{#2}}
+  \heading{\textit{{ '{#' }}1}}{\textit{{ '{#' }}2}}
 }
 
 % Template for itemized lists
@@ -568,13 +567,12 @@ mteck_resume = r"""
   \begin{itemize}[itemsep=-2px, parsep=1pt, leftmargin=30pt]
 }{
   \end{itemize}
-  %\vspace{-2pt}
 }
 
 % Formats an item to use as an itemized title
 % Usage: \itemTitle{Title}
 \newcommand{\itemTitle}[1]{
-  \item[] \underline{#1}\vspace{4pt}
+  \item[] \underline{{ '{#' }}1}\vspace{4pt}
 }
 
 % Bullets used in itemized lists
@@ -583,33 +581,18 @@ mteck_resume = r"""
 %% END_FILE: mteck.sty
 %%%%%%%%%%%%%%%%%%%%%%
 
-
-%===================%
-% John Doe's Resume %
-%===================%
-
-%\numberedPages % NOTE: lastpage requires a second build
-%\documentFooter{\thepage of 2} % Does similar without using lastpage
 \begin{document}
 
   %---------%
   % Heading %
   %---------%
 
-  \documentTitle{John Doe}{
-    % Web Version
-    %\raisebox{-0.05\height} \faPhone\ [redacted - web copy] ~
-    %\raisebox{-0.15\height} \faEnvelope\ [redacted - web copy] ~
-    %%
-    \href{tel:1234567890}{
-      \raisebox{-0.05\height} \faPhone\ 123-456-7890} ~ | ~
-    \href{mailto:user@domain.tld}{
-      \raisebox{-0.15\height} \faEnvelope\ USER@domain.tld} ~ | ~
-    \raisebox{-0.05\height}{\faMapMarker\ Tallinn, Estonia} ~ | ~
-    \href{https://linkedin.com/in/USER/}{
-      \raisebox{-0.15\height} \faLinkedin\ linkedin.com/in/USER} ~ | ~
-    \href{https://github.com/USER}{
-      \raisebox{-0.15\height} \faGithub\ github.com/USER}
+  \documentTitle{ {{ personal_info.name }} }{
+    \href{tel:{{ personal_info.phone }}}{\raisebox{-0.05\height} \faPhone\ {{ personal_info.phone }} } ~ | ~
+    \href{mailto:{{ personal_info.email }}}{\raisebox{-0.15\height} \faEnvelope\ {{ personal_info.email }} } ~ | ~
+    \raisebox{-0.05\height}{\faMapMarker\ {{ personal_info.location }} } ~ | ~
+    \href{ {{ personal_info.linkedin }} }{\raisebox{-0.15\height} \faLinkedin\ {{ personal_info.linkedin }} } ~ | ~
+    \href{ {{ personal_info.github }} }{\raisebox{-0.15\height} \faGithub\ {{ personal_info.github }}}
   }
 
   %---------%
@@ -617,7 +600,7 @@ mteck_resume = r"""
   %---------%
 
   \tinysection{Summary}
-  Simplified version of a monstrosity that I built back in college using current best practices.
+  {{ summary }}
 
   %--------%
   % Skills %
@@ -627,11 +610,9 @@ mteck_resume = r"""
 	
   \begin{multicols}{2}
 	  \begin{itemize}[itemsep=-2px, parsep=1pt, leftmargin=10pt, label={}]
-		  \item \textbf{Programming Languages:}  Python, JavaScript, Go, Java, C++
-		  \item \textbf{Frameworks \& Libraries:} Django, React.js, Node.js, Spring Boot
-		  \item \textbf{Databases:} MySQL, PostgreSQL, MongoDB
-		  \item \textbf{Cloud \& DevOps:} AWS, Terraform, Docker, Kubernetes, CI/CD pipelines
-		  \item \textbf{Tools:} Git, JIRA, Jenkins, Elasticsearch, Redis
+      {% for skill in skills %}
+		  \item \textbf{ {{ skill.category }}: } {{ skill['items'] | join(', ') }}
+      {% endfor %}
 		\end{itemize}
 	\end{multicols}
   
@@ -641,19 +622,15 @@ mteck_resume = r"""
 
   \section{Experience}
 
-  \headingBf{[Company name]}{[Date range]}
-  \headingIt{[Role]}{[Location]}
+  {% for exp in experience %}
+  \headingBf{ {{ exp.company }} }{ {{ exp.date_range }} }
+  \headingIt{ {{ exp.role }} }{ {{ exp.location }} }
   \begin{resume_list}
-    \item Managed virtualized server environment spanning multiple data centers
-    \item Oversaw migration of critical business applications to cloud-based platforms
-    \item Configured and monitored network security measures, including firewalls and intrusion detection systems
-    \item Implemented multi-factor authentication for remote access to company systems
-    \item Streamlined patch management process, reducing vulnerabilities and downtime
-    \item Conducted regular vulnerability assessments and penetration testing
-    \item Automated server provisioning and configuration management tasks
-    \item Maintained documentation for IT policies and procedures
-    \item Coordinated responses to cybersecurity incidents with internal teams and external vendors
+    {% for achievement in exp.achievements %}
+    \item {{ achievement }}
+    {% endfor %}
   \end{resume_list}
+  {% endfor %}
 
   %-----------%
   % Education %
@@ -661,40 +638,43 @@ mteck_resume = r"""
 
   \section{Education}
 
-  \headingBf{State University}{}
-  \headingIt{Bachelor of Science in Computer Information Systems}{}
-  \headingIt{Minors: Networking ; Network Security}{}
+  {% for edu in education %}
+  \headingBf{ {{ edu.institution }} }{ {{ edu.date_range }} }
+  \headingIt{ {{ edu.degree }} }{ {{ edu.location }} }
+  {% if edu.minors and edu.minors is iterable %}
+  \headingIt{Minors: {{ edu['minors'] | join(' ; ') }}}{}
+  {% endif %}
+  {% endfor %}
 
+  {% if certifications %}
   \vspace{5pt}
   \headingBf{Certifications}{}
   \begin{resume_list}
-    \item Salt \hspace{2pt}- SaltStack Certified Engineer
-    \item GCP - Professional Cloud Architect
+    {% for cert in certifications %}
+    \item {{ cert.name }} \hspace{2pt}- {{ cert.issuer }}
+    {% endfor %}
   \end{resume_list}
+  {% endif %}
 
+  {% if projects %}
   %----------------------------%
-  % Extracurricular Activities %
+  % Projects %
   %----------------------------%
 
   \section{Projects}
 
-  \headingBf{Hospital / Health Science IRB}{Mar 2015 -- Present}
+  {% for project in projects %}
+  \headingBf{ {{ project.name }} }{ {{ project.date_range }} }
   \begin{resume_list}
-    \item Served as non-scientific/unaffiliated patient-representative
-    \item Reviewed patient consent forms for completeness, accuracy, and clarity
-    \item Became familiar with industry standards and regulations (OHRP, HIPAA)
+    {% for achievement in project.achievements %}
+    \item {{ achievement }}
+    {% endfor %}
   \end{resume_list}
-
-  \headingBf{Debian Linux}{Jan 2001 -- Present}
-  \begin{resume_list}
-    \item Maintained packages in Debian repositories
-    \item Reviewed and sponsored packages on behalf of prospective Developers
-    \item Resolved bugs reported in bug tracking system
-  \end{resume_list}
+  {% endfor %}
+  {% endif %}
 
 \end{document}
 """
-
 
 
 # Define name of classes
