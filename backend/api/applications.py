@@ -1,27 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel
-from typing import Optional
 
 import backend.core.ai_service as ai_service
 from backend.models.tailoring_options import TailoringOptionsBase
+from backend.models.application_responses import EligibilityResponse, SuitabilityResponse, ApplicationResponse
 from backend.utils.file_ops import PDFGenerator, save_pdf
 from backend.utils.path_ops import create_new_application_path, get_current_application_path
 from backend.api.auth import get_current_user
 
 router = APIRouter(prefix="/applications", tags=["applications"])
-
-class EligibilityResponse(BaseModel):
-    eligibility: bool
-    reason: str
-
-class SuitabilityResponse(BaseModel):
-    suitability: bool
-    reason: str
-
-class ApplicationResponse(BaseModel):
-    success: str
-    pdf_file_path: Optional[str] = None
-    latex_code: Optional[str] = None
 
 @router.get("/analyze/eligibility", response_model=EligibilityResponse)
 def determine_eligibility(
@@ -63,7 +49,7 @@ def generate_tailored_plain_resume(
         )
     
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
-    return ai_service.create_tailored_plain_resume(
+    return ai_service.generate_tailored_resume_text(
         current_user.resumes.resume_content,
         job_description,
         tailoring_options.ai_model,
@@ -83,7 +69,7 @@ def generate_tailored_plain_coverletter(
         )
     
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
-    cover_letter_text = ai_service.create_tailored_plain_coverletter(
+    cover_letter_text = ai_service.generate_tailored_coverletter_text(
         current_user.resumes.resume_content,
         job_description,
         tailoring_options.ai_model
