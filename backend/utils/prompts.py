@@ -110,3 +110,20 @@ Make sure to:
 - The answer aligns with both resume and the requirements and expectations outlined in the job description.
 - The answer should be professional, concise, and highlight my most relevant skills and experiences.
 """
+
+structured_resume_prompt = """Resume:
+{resume}
+
+Job Description:
+{job_description}
+
+Please analyze this resume and job description, and output a structured JSON object
+that follows this exact schema:
+{schema}
+
+Important:
+1. Tailor the content to the job description while preserving factual information
+2. Ensure all dates are in a consistent format (e.g., "Jan 2020 -- Present")
+3. Keep achievements concise and impactful
+4. Include only relevant skills and experiences
+5. Format all text properly for LaTeX (escape special characters)"""
