@@ -10,6 +10,41 @@ from backend.config.config import TEX_FILE_NAME, TAR_FOLDER_NAME
 from backend.config.envs import LaTeX_COMPILER_URL_DATA
 from backend.utils.log import logger
 
+def escape_latex(data):
+    """
+    Recursively escape LaTeX special characters in a data structure (string, list, or dict).
+    
+    Args:
+        data: The data to escape (string, list, or dict)
+        
+    Returns:
+        The input data with all LaTeX special characters escaped
+    """
+    if isinstance(data, str):
+        # Handle backslash first to avoid affecting other replacements
+        text = data.replace('\\', r'\textbackslash{}')
+        
+        # Then handle other special characters
+        text = text.replace('&', r'\&')
+        text = text.replace('%', r'\%')
+        text = text.replace('$', r'\$')
+        text = text.replace('#', r'\#')
+        text = text.replace('_', r'\_')
+        text = text.replace('{', r'\{')
+        text = text.replace('}', r'\}')
+        text = text.replace('~', r'\textasciitilde{}')
+        text = text.replace('^', r'\textasciicircum{}')
+        text = text.replace('<', r'\textless{}')
+        text = text.replace('>', r'\textgreater{}')
+        
+        return text
+    elif isinstance(data, list):
+        return [escape_latex(item) for item in data]
+    elif isinstance(data, dict):
+        return {k: escape_latex(v) for k, v in data.items()}
+    else:
+        return data
+
 def generate_tex_and_tar(save_folder: str, latex_content: str, file_name: str= "resume", folder_name: str="resume"):
     """
     Creates a folder, generates a .tex file inside it, and compresses the folder into a .tar file.
