@@ -126,4 +126,6 @@ Important:
 2. Ensure all dates are in a consistent format (e.g., "Jan 2020 -- Present")
 3. Keep achievements concise and impactful
 4. Include only relevant skills and experiences
-5. Format all text properly for LaTeX (escape special characters)"""
+5. For each company in the experience section, add a brief description that highlights the company's relevance to the target position
+6. If there are honors, awards, or recognitions in the resume, include them in the awards section
+7. Format all text properly for LaTeX (escape special characters)"""
