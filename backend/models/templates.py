@@ -196,12 +196,6 @@ template_2 = r"""\documentclass[letterpaper,10pt]{article}
   \item [List additional accomplishments or contributions.]
 \end{resume_list}
 
-\headingBf{[Company Name]}{[Start Date] -- [End Date]}
-\headingIt{[Job Title]}{}
-\begin{resume_list}
-  \item [Highlight a significant task or result from this position.]
-\end{resume_list}
-
 \section{Skills}
 \begin{multicols}{2}
 \begin{itemize}[itemsep=0px, parsep=1pt, left=10pt, labelsep=10pt, align=left]
@@ -569,6 +563,16 @@ mteck_resume = r"""
   \end{itemize}
 }
 
+% Template for description text with same indentation as resume_list
+% Usage: \companyDescription{Text}
+\newcommand{\companyDescription}[1]{
+  \vspace{-7pt}
+  \begin{itemize}[itemsep=-2px, parsep=1pt, leftmargin=12pt]
+    \item[] #1
+  \end{itemize}
+  \vspace{-9pt}
+}
+
 % Formats an item to use as an itemized title
 % Usage: \itemTitle{Title}
 \newcommand{\itemTitle}[1]{
@@ -591,8 +595,8 @@ mteck_resume = r"""
     \href{tel:{{ personal_info.phone }}}{\raisebox{-0.05\height} \faPhone\ {{ personal_info.phone }} } ~ | ~
     \href{mailto:{{ personal_info.email }}}{\raisebox{-0.15\height} \faEnvelope\ {{ personal_info.email }} } ~ | ~
     \raisebox{-0.05\height}{\faMapMarker\ {{ personal_info.location }} } ~ | ~
-    \href{ {{ personal_info.linkedin }} }{\raisebox{-0.15\height} \faLinkedin\ {{ personal_info.linkedin }} } ~ | ~
-    \href{ {{ personal_info.github }} }{\raisebox{-0.15\height} \faGithub\ {{ personal_info.github }}}
+    \href{https://www.linkedin.com/in/{{ personal_info.linkedin }} }{\raisebox{-0.15\height} \faLinkedin\ {{ personal_info.linkedin }} } ~ | ~
+    \href{https://github.com/{{ personal_info.github }} }{\raisebox{-0.15\height} \faGithub\ {{ personal_info.github }} }
   }
 
   %---------%
@@ -625,6 +629,9 @@ mteck_resume = r"""
   {% for exp in experience %}
   \headingBf{ {{ exp.company }} }{ {{ exp.date_range }} }
   \headingIt{ {{ exp.role }} }{ {{ exp.location }} }
+  {% if exp.description %}
+  \companyDescription{ {{ exp.description }} }
+  {% endif %}
   \begin{resume_list}
     {% for achievement in exp.achievements %}
     \item {{ achievement }}
@@ -671,6 +678,19 @@ mteck_resume = r"""
     {% endfor %}
   \end{resume_list}
   {% endfor %}
+
+  {% if awards %}
+  %----------------------------%
+  % Honors & Awards %
+  %----------------------------%
+
+  \section{Honors \& Awards}
+
+  {% for award in awards %}
+  \headingBf{ {{ award.title }} }{ {{ award.date }} }
+  \headingIt{ {{ award.description}} }{ {{ award.issuer }} }
+  {% endfor %}
+  {% endif %}
   {% endif %}
 
 \end{document}

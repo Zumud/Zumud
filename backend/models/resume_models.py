@@ -48,6 +48,7 @@ class Experience(BaseModel):
     role: str
     location: str
     date_range: str
+    description: Optional[str] = None
     achievements: List[str]
 
 class Education(BaseModel):
@@ -74,6 +75,12 @@ class PersonalInfo(BaseModel):
     linkedin: str
     github: str
 
+class Award(BaseModel):
+    title: str
+    issuer: str
+    date: str
+    description: Optional[str] = None
+
 class StructuredResume(BaseModel):
     personal_info: PersonalInfo
     summary: str
@@ -82,3 +89,4 @@ class StructuredResume(BaseModel):
     education: List[Education]
     certifications: Optional[List[Certification]] = None
     projects: Optional[List[Project]] = None
+    awards: Optional[List[Award]] = None

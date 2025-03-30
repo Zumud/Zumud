@@ -1,5 +1,4 @@
 # In this file, you can set the configurations of the app.
-import streamlit as st
 import os
 from pathlib import Path
 
