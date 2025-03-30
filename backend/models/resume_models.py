@@ -48,6 +48,7 @@ class Experience(BaseModel):
     role: str
     location: str
     date_range: str
+    description: Optional[str] = None
     achievements: List[str]
 
 class Education(BaseModel):
