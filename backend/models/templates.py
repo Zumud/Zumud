@@ -678,6 +678,19 @@ mteck_resume = r"""
     {% endfor %}
   \end{resume_list}
   {% endfor %}
+
+  {% if awards %}
+  %----------------------------%
+  % Honors & Awards %
+  %----------------------------%
+
+  \section{Honors \& Awards}
+
+  {% for award in awards %}
+  \headingBf{ {{ award.title }} }{ {{ award.date }} }
+  \headingIt{ {{ award.description}} }{ {{ award.issuer }} }
+  {% endfor %}
+  {% endif %}
   {% endif %}
 
 \end{document}
