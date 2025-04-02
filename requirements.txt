@@ -1,51 +1,35 @@
-annotated-types>=0.7.0
-anyio>=4.6.0
-certifi>=2024.8.30
-chardet>=5.2.0
-charset-normalizer>=3.3.2
-click>=8.1.7
-distro>=1.9.0
-dnspython>=2.6.1
-email_validator>=2.2.0
+# Core dependencies
 fastapi>=0.115.0
-fastapi-cli>=0.0.5
-fpdf>=1.7.2
-h11>=0.14.0
-httpcore>=1.0.5
-httptools>=0.6.1
-httpx>=0.27.2
-idna>=3.10
-Jinja2>=3.1.4
-jiter>=0.5.0
-loguru>=0.7.2
-markdown-it-py>=3.0.0
-MarkupSafe>=2.1.5
-mdurl>=0.1.2
-openai>=1.50.2
-orjson>=3.10.7
-pillow>=10.4.0
-pydantic>=2.9.2
-pydantic_core>=2.23.4
-Pygments>=2.18.0
-python-dotenv>=1.0.1
-python-multipart>=0.0.12
-PyYAML>=6.0.2
-reportlab>=4.2.4
-requests>=2.32.3
-rich>=13.8.1
-shellingham>=1.5.4
-sniffio>=1.3.1
-starlette>=0.38.6
-tqdm>=4.66.5
-typer>=0.12.5
-typing_extensions>=4.12.2
-ujson>=5.10.0
-urllib3>=2.2.3
 uvicorn>=0.31.0
-uvloop>=0.20.0
-watchfiles>=0.24.0
-websockets>=13.1
-pytest
-streamlit
-passlib
-python-jose[cryptography]
+streamlit>=1.31.0
+openai>=1.50.0
+python-dotenv>=1.0.0
+pydantic>=2.9.0
+
+# API utilities
+python-multipart>=0.0.12  # For file uploads
+requests>=2.32.0
+
+# Templating
+jinja2>=3.1.0  # For templating
+
+# Authentication
+passlib>=1.7.4
+python-jose[cryptography]>=3.3.0
+
+# PDF generation
+reportlab>=4.0.0
+fpdf>=1.7.2
+pillow>=10.0.0  # Required for ReportLab and PDF font handling
+
+# Database
+sqlalchemy>=2.0.0  # For database ORM
+
+# Logging & development utilities
+rich>=13.0.0
+loguru>=0.7.0
+
+# Testing
+pytest>=7.0.0
+
+# Optional dependencies - uncomment if needed
