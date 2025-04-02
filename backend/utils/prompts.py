@@ -1,34 +1,3 @@
-consider_eligibility = """Please help me to understand am I legally authorized for this job based on my legal authorization info or not.
-** My legal authorization:**
-{legal_authorization}
-
-** Job description:**
-{job_description}
-
-**Instructions:**
-- Identify specific legal authorization and work eligibility requirements in the job description.
-- Search for specific legal requiremnets for working in the job's location.
-- Match the identified legal requirements with the my legal authorization details provided.
-- Based on the legal authorization details and the requirements in the job description, assess whether I am legally authorized to work for the company in the specified location.
-- Answer with True or False to whether I am legally eligible to work for the company in their location, providing a concise explanation for the determination.
-"""
-
-consider_suitability = """Please help me understand if I am suitable for this job based on the job description.
-
-Job Description:
-{job_description}
-
-Please analyze the job description and provide:
-1. A suitability assessment (true/false)
-2. A detailed reason for your assessment
-
-Focus on:
-- Required skills and experience
-- Work environment and culture
-- Location and work arrangement requirements
-- Any other relevant factors
-"""
-
 create_tailored_resume = """Please help me tailor my resume to match the following job description, emphasizing relevant skills and experiences to maximize my chances of getting an interview.
 
 **My Current Resume:**
