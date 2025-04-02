@@ -199,31 +199,15 @@ def show_main_app(app:ResumeApp):
     tab1, tab2, tab3, tab4 = st.tabs(["Generate Resume", "Generate Cover Letter", "Answer application questions", "CV Editor"])
     
     with tab1:
-        if st.button("Check Eligibility"):
-            if not job_description or job_description.strip() == "":
-                st.error("Please enter a job description.")
-            else:
-                result = app.call_api("applications/analyze/eligibility", query_params={"job_description": job_description})
-                st.write("Eligibility:", result.get("eligibility", "N/A"))
-                st.write("Reason:", result.get("reason", "No reason provided"))
-        
-        if st.button("Check Suitability"):
-            if not job_description or job_description.strip() == "":
-                st.error("Please enter a job description.")
-            else:
-                result = app.call_api("applications/analyze/suitability", query_params={"job_description": job_description})
-                st.write("Suitability:", result.get("suitability", "N/A"))
-                st.write("Reason:", result.get("reason", "No reason provided"))
-        
         if st.button("Generate Resume"):
             if not job_description or job_description.strip() == "":
                 st.error("Please enter a job description.")
             else:
                 result = app.call_api("applications/resume/pdf", query_params={"job_description": job_description})
-                if "latex_code" in result and "pdf_file_path" in result:
-                    # session_state shows that whether latex code is present or not, as in the cv_editor part, we want to edit the latex code
-                    st.session_state['latex_code'] = result['latex_code']
-                    pdf_file_path = result['pdf_file_path']
+                if result.get("status") == "success" and "source" in result and "access" in result:
+                    # Store the LaTeX code for the editor tab
+                    st.session_state['latex_code'] = result["source"]["latex_code"]
+                    pdf_file_path = result["access"]["local_path"]
                     if os.path.exists(pdf_file_path):
                         st.success(f"PDF saved: {pdf_file_path}")
                         display_pdf(pdf_file_path)
@@ -271,8 +255,8 @@ def show_main_app(app:ResumeApp):
                 }
             }
             result = app.call_api("applications/resume/pdf", query_params={"job_description": job_description})
-            if result.get('pdf_file_path'):
-                st.success(f"PDF saved at: {result['pdf_file_path']}")
+            if result.get("status") == "success" and "access" in result:
+                st.success(f"PDF saved at: {result['access']['local_path']}")
             else:
                 st.error("An error occurred. Please try again.")
 
