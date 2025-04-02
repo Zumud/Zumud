@@ -12,14 +12,6 @@ class Resume(ResumeBase):
         from_attributes = True  # Allows the Pydantic model to read data from ORM models
 
 # AI Response Models
-class Eligibility(BaseModel):
-    eligibility: bool = Field(..., description="Indicates eligibility: 'True' or 'False'.")
-    reason: str = Field(..., description="Explanation of eligibility")
-
-class Suitability(BaseModel):
-    suitability: bool = Field(..., description="Indicates suitability: 'True' or 'False'.")
-    reason: str = Field(..., description="Explanation of suitability")
-
 class TailoredResume(BaseModel):
     tailored_resume: str
 

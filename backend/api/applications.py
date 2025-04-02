@@ -1,40 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+import os
+from datetime import datetime
+from fastapi.responses import FileResponse
+import pathlib
 
-import backend.core.ai_service as ai_service
+from backend.api.auth import get_current_user
+from backend.core import ai_service
 from backend.models.tailoring_options import TailoringOptionsBase
-from backend.models.application_responses import EligibilityResponse, SuitabilityResponse, ApplicationResponse
 from backend.utils.file_ops import PDFGenerator, save_pdf
 from backend.utils.path_ops import create_new_application_path, get_current_application_path
-from backend.api.auth import get_current_user
 
 router = APIRouter(prefix="/applications", tags=["applications"])
-
-@router.get("/analyze/eligibility", response_model=EligibilityResponse)
-def determine_eligibility(
-    job_description: str = Query(..., description="The job description to analyze"),
-    current_user = Depends(get_current_user)
-):
-    """Analyze job eligibility based on user profile and job description"""
-    if not current_user.legal_authorization:
-        return EligibilityResponse(
-            eligibility=False,
-            reason="Legal authorization information not found for user"
-        )
-    
-    legal_auth = current_user.legal_authorization
-    tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
-    eligibility, reason = ai_service.consider_eligibility(job_description, legal_auth, tailoring_options.ai_model)
-    return EligibilityResponse(eligibility=eligibility, reason=reason)
-
-@router.get("/analyze/suitability", response_model=SuitabilityResponse)
-def determine_suitability(
-    job_description: str = Query(..., description="The job description to analyze"),
-    current_user = Depends(get_current_user)
-):
-    """Analyze job suitability based on user profile and job description"""
-    tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
-    suitability, reason = ai_service.consider_suitability(job_description, tailoring_options.ai_model)
-    return SuitabilityResponse(suitability=suitability, reason=reason)
 
 @router.get("/resume/plain")
 def generate_tailored_plain_resume(
@@ -83,7 +59,7 @@ def generate_tailored_plain_coverletter(
     )
     return cover_letter_text + f"\n\nCover letter saved at: {output_path}"
 
-@router.get("/resume/pdf", response_model=ApplicationResponse)
+@router.get("/resume/pdf")
 def generate_and_save_pdf_resume(
     job_description: str = Query(..., description="The job description to tailor the resume for"),
     current_user = Depends(get_current_user)
@@ -108,12 +84,84 @@ def generate_and_save_pdf_resume(
     )
     
     pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, current_user.username)
+    document_id = f"res_{current_user.username}_{pathlib.Path(pdf_file_path).stem}"
     
-    return ApplicationResponse(
-        success=f"Generated resume saved at: {pdf_file_path}",
-        pdf_file_path=pdf_file_path,
-        latex_code=latex_code
-    )
+    return {
+        "status": "success",
+        "document": {
+            "id": document_id,
+            "type": "resume",
+            "format": "pdf",
+            "created_at": datetime.now().isoformat(),
+            "size_bytes": os.path.getsize(pdf_file_path)
+        },
+        "company": {
+            "name": company_name,
+            "job_description": job_description
+        },
+        "access": {
+            "local_path": pdf_file_path,
+            "download_url": f"/api/applications/documents/{document_id}/download"
+        },
+        "source": {
+            "latex_code": latex_code,
+            "template_used": tailoring_options.resume_template
+        },
+        "processing": {
+            "ai_model": tailoring_options.ai_model,
+            "customizations_applied": len(tailoring_options.dict(exclude_unset=True))
+        }
+    }
+
+@router.get("/documents/{document_id}/download")
+def download_document(
+    document_id: str, 
+    current_user = Depends(get_current_user)
+):
+    """Download a document by its ID"""
+    # Extract username and filename from document_id
+    try:
+        # Format: res_username_filename
+        parts = document_id.split('_', 2)
+        if len(parts) < 3 or parts[0] != "res":
+            raise ValueError("Invalid document ID format")
+            
+        doc_username = parts[1]
+        filename = parts[2]
+        
+        # Security check - users can only access their own documents
+        if doc_username != current_user.username:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to access this document"
+            )
+        
+        # Construct path to the file
+        # Note: This assumes files are stored in a predictable location
+        user_docs_path = pathlib.Path(get_current_application_path())
+        
+        # Search for files matching the pattern
+        matching_files = list(user_docs_path.glob(f"**/{filename}*.pdf"))
+        
+        if not matching_files:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Document not found"
+            )
+        
+        file_path = str(matching_files[0])
+        
+        return FileResponse(
+            path=file_path,
+            filename=os.path.basename(file_path),
+            media_type="application/pdf"
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.get("/questions/answer")
 def answer_application_questions(
