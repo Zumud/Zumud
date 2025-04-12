@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 import os
 from datetime import datetime
 from fastapi.responses import FileResponse
 import pathlib
+import io
+import PyPDF2
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
@@ -184,4 +186,53 @@ def answer_application_questions(
         question,
         str(save_path),
         tailoring_options.ai_model
+    ) 
+
+@router.post("/resume/improve")
+async def improve_resume_pdf(
+    file: UploadFile = File(...)
+):
+    """Improve an uploaded resume PDF and return a professional version"""
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF files are supported"
+        )
+    
+    # Read the uploaded PDF
+    contents = await file.read()
+    pdf_reader = PyPDF2.PdfReader(io.BytesIO(contents))
+    
+    # Extract text from all pages
+    resume_text = ""
+    for page in pdf_reader.pages:
+        resume_text += page.extract_text()
+    
+    if not resume_text.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not extract text from the PDF"
+        )
+    
+    # Create a save path
+    save_path = create_new_application_path("improved_resume")
+
+    tailoring_options = TailoringOptionsBase()
+    
+    # Generate improved resume using AI with default options
+    latex_compiler_response, latex_code = ai_service.generate_structured_latex_resume(
+        str(save_path),
+        resume_text,
+        "There is no specific job description for general improvement",  # No specific job description for general improvement
+        tailoring_options.ai_model,  # Default AI model
+        tailoring_options.resume_template  # Default template
+    )
+    
+    # Save the improved PDF
+    pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, "anonymous")
+    
+    return FileResponse(
+        path=pdf_file_path,
+        filename="improved_resume.pdf",
+        media_type="application/pdf"
     ) 

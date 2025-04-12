@@ -1,35 +1,88 @@
-# Core dependencies
-fastapi>=0.115.0
-uvicorn>=0.31.0
-streamlit>=1.31.0
-openai>=1.50.0
-python-dotenv>=1.0.0
-pydantic>=2.9.0
-
-# API utilities
-python-multipart>=0.0.12  # For file uploads
-requests>=2.32.0
-
-# Templating
-jinja2>=3.1.0  # For templating
-
-# Authentication
-passlib>=1.7.4
-python-jose[cryptography]>=3.3.0
-
-# PDF generation
-reportlab>=4.0.0
-fpdf>=1.7.2
-pillow>=10.0.0  # Required for ReportLab and PDF font handling
-
-# Database
-sqlalchemy>=2.0.0  # For database ORM
-
-# Logging & development utilities
-rich>=13.0.0
-loguru>=0.7.0
-
-# Testing
-pytest>=7.0.0
-
-# Optional dependencies - uncomment if needed
+altair==5.5.0
+annotated-types==0.7.0
+anyio==4.7.0
+attrs==24.3.0
+bcrypt==4.2.1
+blinker==1.9.0
+cachetools==5.5.0
+certifi==2024.8.30
+chardet==5.2.0
+charset-normalizer==3.4.0
+click==8.1.7
+defusedxml==0.7.1
+distro==1.9.0
+dnspython==2.7.0
+ecdsa==0.19.0
+email_validator==2.2.0
+fastapi==0.115.6
+fastapi-cli==0.0.6
+fonttools==4.55.3
+fpdf2==2.8.2
+gitdb==4.0.11
+GitPython==3.1.43
+h11==0.14.0
+httpcore==1.0.7
+httptools==0.6.4
+httpx==0.28.1
+idna==3.10
+iniconfig==2.0.0
+Jinja2==3.1.4
+jiter==0.8.0
+jose==1.0.0
+jsonschema==4.23.0
+jsonschema-specifications==2024.10.1
+loguru==0.7.3
+markdown-it-py==3.0.0
+MarkupSafe==3.0.2
+mdurl==0.1.2
+narwhals==1.19.1
+numpy==2.2.1
+openai==1.57.1
+orjson==3.10.12
+packaging==24.2
+pandas==2.2.3
+passlib==1.7.4
+pillow==11.0.0
+pluggy==1.5.0
+protobuf==5.29.2
+pyarrow==18.1.0
+pyasn1==0.6.1
+pydantic==2.10.3
+pydantic_core==2.27.1
+pydeck==0.9.1
+Pygments==2.18.0
+PyPDF2==3.0.1
+pytest==8.3.4
+python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
+python-jose==3.3.0
+python-multipart==0.0.19
+pytz==2024.2
+PyYAML==6.0.2
+referencing==0.35.1
+reportlab==4.2.5
+requests==2.32.3
+rich==13.9.4
+rich-toolkit==0.12.0
+rpds-py==0.22.3
+rsa==4.9
+shellingham==1.5.4
+six==1.17.0
+smmap==5.0.1
+sniffio==1.3.1
+SQLAlchemy==2.0.37
+starlette==0.41.3
+streamlit==1.41.1
+tenacity==9.0.0
+toml==0.10.2
+tornado==6.4.2
+tqdm==4.67.1
+typer==0.15.1
+typing_extensions==4.12.2
+tzdata==2024.2
+ujson==5.10.0
+urllib3==2.2.3
+uvicorn==0.32.1
+uvloop==0.21.0
+watchfiles==1.0.0
+websockets==14.1
