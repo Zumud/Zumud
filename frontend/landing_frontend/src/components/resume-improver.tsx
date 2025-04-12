@@ -38,7 +38,7 @@ export default function ResumeImprover() {
 
     try {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', 'http://127.0.0.1:8000/applications/resume/improve', true);
+      xhr.open('POST', 'http://gettailoredresume.com:8000/applications/resume/improve', true);
       xhr.responseType = 'blob';
       
       xhr.onload = function() {
