@@ -1,53 +1,49 @@
 import os
 import sys
 import logging
+import datetime
 from loguru import logger
 
-from backend.config.config import LOG_LEVEL, LOG_TO_CONSOLE, LOG_TO_FILE, LOG_FILE, LOG_FORMAT
-
-log_file = LOG_FILE
+from backend.config.config import LOG_LEVEL, LOG_TO_CONSOLE, LOG_TO_FOLDER, LOG_FOLDER, LOG_FORMAT
 
 def remove_default_loggers():
-    """Remove all handlers from the root logger and delete the log file if it exists."""
+    """Remove all handlers from the root logger."""
     root_logger = logging.getLogger()
     root_logger.handlers.clear()     # Clear all handlers from the root logger
-
-    # Remove the log file if it exists
-    try:
-        os.remove(log_file)
-    except FileNotFoundError:
-        pass  # File does not exist, no action needed
 
 def init_loguru_logger():
     """
     Configure the Loguru logger for file and console logging.
 
-    - Creates the directory for log files if needed.
+    - Creates the log directory if needed.
     - Removes existing Loguru handlers.
-    - Adds a file logger if `LOG_TO_FILE` is enabled.
+    - Adds a file logger with timestamped filename if `LOG_TO_FOLDER` is enabled.
     - Adds a console logger for real-time output if `LOG_TO_CONSOLE` is enabled.
     
     Global Variables:
-    - `log_file`: Path to the log file.
-    - `LOG_TO_FILE`: Enable/disable file logging.
+    - `LOG_FOLDER`: Path to the folder where logs will be stored.
+    - `LOG_TO_FOLDER`: Enable/disable file logging.
     - `LOG_TO_CONSOLE`: Enable/disable console logging.
     - `LOG_LEVEL`: Logging verbosity level.
     """
+    # Ensure log directory exists
+    os.makedirs(LOG_FOLDER, exist_ok=True)
 
-    # Make a log file in the LOG_FILE path
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    # Create a timestamp for the log file
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = os.path.join(LOG_FOLDER, f"app_{timestamp}.log")
 
     logger.remove()
 
-    # Add file logger if LOG_TO_FILE is True
-    if LOG_TO_FILE:
+    # Add file logger if LOG_TO_FOLDER is True
+    if LOG_TO_FOLDER:
         logger.add(
             log_file,
             level=LOG_LEVEL,
             rotation="10 MB",
             retention="1 week",
             compression="zip",
-            format= LOG_FORMAT,
+            format=LOG_FORMAT,
             backtrace=True,
             diagnose=True,
         )
@@ -57,7 +53,7 @@ def init_loguru_logger():
         logger.add(
             sys.stderr,
             level=LOG_LEVEL,
-            format= LOG_FORMAT,
+            format=LOG_FORMAT,
             backtrace=True,
             diagnose=True,
         )
