@@ -2,9 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.api import api_router
 from backend.models.db import Base, engine
+from backend.utils.log import logger
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+logger.info("Starting FastAPI application")
 
 app = FastAPI(
     title="Resume Tailorer API",
@@ -26,6 +29,7 @@ app.include_router(api_router)
 
 @app.get("/", tags=["Root"])
 def root():
+    logger.info("Root endpoint accessed")
     return {
         "message": "Welcome to the TailorMade API!",
         "version": "1.0.0",
