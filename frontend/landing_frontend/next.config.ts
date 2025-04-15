@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/applications/:path*',
-        destination: 'https://zumud.com:8000/applications/:path*',
+        destination: 'http://localhost:8000/applications/:path*',
       },
     ];
   },
