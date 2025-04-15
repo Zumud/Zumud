@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/applications/:path*',
-        destination: 'http://gettailoredresume.com:8000/applications/:path*',
+        destination: 'http://localhost:8000/applications/:path*',
       },
     ];
   },
