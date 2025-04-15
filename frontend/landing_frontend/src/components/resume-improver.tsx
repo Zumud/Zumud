@@ -40,6 +40,7 @@ export default function ResumeImprover() {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/applications/resume/improve', true);
       xhr.responseType = 'blob';
+      xhr.timeout = 300000; // Set timeout to 5 minutes (300000ms)
       
       xhr.onload = function() {
         if (xhr.status === 200) {
@@ -57,6 +58,12 @@ export default function ResumeImprover() {
       xhr.onerror = function() {
         console.error('XHR network error');
         setError("Network error. Please try again.");
+        setIsUploading(false);
+      };
+      
+      xhr.ontimeout = function() {
+        console.error('XHR request timed out');
+        setError("Request timed out. The server is taking too long to respond. Please try again later.");
         setIsUploading(false);
       };
       
