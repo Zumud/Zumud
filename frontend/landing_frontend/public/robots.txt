@@ -1,0 +1,6 @@
+# TailorMade Resume Improver - robots.txt
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://zumud.com/sitemap.xml 
