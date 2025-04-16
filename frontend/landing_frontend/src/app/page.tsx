@@ -1,7 +1,5 @@
 import type { Metadata } from "next"
 import ResumeImprover from "@/components/resume-improver"
-import { jsonLdScriptProps } from "react-schemaorg"
-import { WebSite, SoftwareApplication, Organization } from "schema-dts"
 
 export const metadata: Metadata = {
   title: "Resume Improver | Instantly Enhance Your Resume - TailorMade",
@@ -9,47 +7,57 @@ export const metadata: Metadata = {
 }
 
 export default function Home() {
+  // We define the structured data directly without schema-dts to avoid type issues
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "TailorMade Resume Improver",
+    "url": "https://zumud.com",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://zumud.com/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+
+  const applicationSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "TailorMade Resume Improver",
+    "applicationCategory": "BusinessApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "operatingSystem": "Web Browser"
+  };
+
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "TailorMade",
+    "url": "https://zumud.com",
+    "logo": "https://zumud.com/logo.png",
+    "sameAs": [
+      "https://twitter.com/tailormadeapp",
+      "https://linkedin.com/company/tailormade"
+    ]
+  };
+
   return (
     <>
       <script
-        {...jsonLdScriptProps<WebSite>({
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          name: "TailorMade Resume Improver",
-          url: "https://zumud.com",
-          potentialAction: {
-            "@type": "SearchAction",
-            target: "https://zumud.com/search?q={search_term_string}",
-            "query-input": "required name=search_term_string" as any
-          }
-        })}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
       />
       <script
-        {...jsonLdScriptProps<SoftwareApplication>({
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          name: "TailorMade Resume Improver",
-          applicationCategory: "BusinessApplication",
-          offers: {
-            "@type": "Offer",
-            price: "0",
-            priceCurrency: "USD"
-          },
-          operatingSystem: "Web Browser"
-        })}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(applicationSchema) }}
       />
       <script
-        {...jsonLdScriptProps<Organization>({
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "TailorMade",
-          url: "https://zumud.com",
-          logo: "https://zumud.com/logo.png",
-          sameAs: [
-            "https://twitter.com/tailormadeapp",
-            "https://linkedin.com/company/tailormade"
-          ]
-        })}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
       />
       <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
         <ResumeImprover />

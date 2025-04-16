@@ -12,13 +12,10 @@ const nextConfig = {
     ];
   },
   
-  // Configuration to resolve cross-origin warning
+  // Configuration to allow cross-origin requests in both dev and production
   experimental: {
     allowedDevOrigins: ['zumud.com'],
   },
-
-  // Enable static site generation for improved SEO
-  output: 'export',
   
   // Optimize images for better performance
   images: {
@@ -26,7 +23,7 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
 
-  // Add security headers
+  // Add security and CORS headers
   async headers() {
     return [
       {
@@ -58,6 +55,15 @@ const nextConfig = {
           },
         ],
       },
+      // Add CORS headers for production
+      {
+        source: '/_next/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: 'https://zumud.com' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'X-Requested-With, Content-Type, Accept' }
+        ]
+      }
     ];
   },
 } as NextConfig;
