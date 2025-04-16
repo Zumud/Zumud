@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
+// Using type assertion to avoid TypeScript errors with new config options
+const nextConfig = {
   /* config options here */
   async rewrites() {
     return [
@@ -10,6 +11,11 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-};
+  
+  // Configuration to resolve cross-origin warning
+  experimental: {
+    allowedDevOrigins: ['zumud.com'],
+  },
+} as NextConfig;
 
 export default nextConfig;
