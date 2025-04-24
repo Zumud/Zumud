@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,7 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://zumud.com"),
   title: "Resume Improver | Instantly Enhance Your Resume - TailorMade",
   description: "Transform your resume instantly with our AI-powered resume improver. Get a professional, ATS-friendly resume that stands out to recruiters and hiring managers.",
   keywords: "resume improver, resume enhancement, professional resume, ATS-friendly resume, resume builder, career tools",
@@ -60,11 +67,6 @@ export const metadata: Metadata = {
     description: "Transform your resume instantly with our AI-powered resume improver. Get a professional, ATS-friendly resume that stands out.",
     images: ["/images/twitter-image.jpg"],
     creator: "@tailormadeapp",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
   },
   alternates: {
     canonical: "https://zumud.com",
