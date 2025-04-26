@@ -144,7 +144,8 @@ async def improve_resume_pdf(
         )
     
     # Generate a random username for anonymous users
-    anonymous_username = f"anonymous_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    anonymous_username = f"anonymous_{timestamp}_{uuid.uuid4().hex[:8]}"
     
     # Create a save path
     save_path = create_new_application_path(anonymous_username, "improved_resume")
@@ -152,7 +153,7 @@ async def improve_resume_pdf(
     tailoring_options = TailoringOptionsBase()
     
     # Generate improved resume using AI with default options
-    latex_compiler_response, latex_code = ai_service.generate_structured_latex_resume(
+    latex_compiler_response, _ = ai_service.generate_structured_latex_resume(
         str(save_path),
         resume_text,
         "There is no specific job description for general improvement",  # No specific job description for general improvement
@@ -165,6 +166,6 @@ async def improve_resume_pdf(
     
     return FileResponse(
         path=pdf_file_path,
-        filename="improved_resume.pdf",
+        filename=f"{timestamp}_improved_resume.pdf",
         media_type="application/pdf"
     ) 

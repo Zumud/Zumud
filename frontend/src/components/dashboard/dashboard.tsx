@@ -6,8 +6,7 @@ import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
 import { resume, applications } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Check, Download, Loader2 } from "lucide-react"
+import { Download, Loader2 } from "lucide-react"
 import ProfileSettings from "./profile-settings"
 
 export default function Dashboard() {
@@ -21,7 +20,6 @@ export default function Dashboard() {
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false)
   const [isGeneratingAnswer, setIsGeneratingAnswer] = useState(false)
   const [generatedResumePdf, setGeneratedResumePdf] = useState<string | null>(null)
-  const [latexCode, setLatexCode] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
 
@@ -70,18 +68,12 @@ export default function Dashboard() {
     setError(null)
 
     try {
+      // The API now directly returns a PDF blob
       const result = await applications.generateResume(jobDescription)
       
-      if (result && result.source && result.source.latex_code) {
-        setLatexCode(result.source.latex_code)
-      }
-      
-      if (result && result.access && result.access.local_path) {
-        // Convert the blob to a data URL for the PDF viewer
-        const pdfBlob = new Blob([result], { type: 'application/pdf' })
-        const pdfUrl = URL.createObjectURL(pdfBlob)
-        setGeneratedResumePdf(pdfUrl)
-      }
+      // Create a URL for the PDF blob
+      const pdfUrl = URL.createObjectURL(result)
+      setGeneratedResumePdf(pdfUrl)
     } catch (err: any) {
       setError(err.message || 'Failed to generate resume')
     } finally {
@@ -131,7 +123,9 @@ export default function Dashboard() {
     if (generatedResumePdf) {
       const link = document.createElement("a")
       link.href = generatedResumePdf
-      link.download = "tailored-resume.pdf"
+      // Use a more descriptive filename that includes timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      link.download = `tailored_resume_${timestamp}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
