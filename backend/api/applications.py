@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 import pathlib
 import io
 import PyPDF2
+import uuid
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
@@ -53,7 +54,7 @@ def generate_tailored_plain_coverletter(
         tailoring_options.ai_model
     )
     
-    save_path = get_current_application_path()
+    save_path = get_current_application_path(current_user.username)
     pdf_generator = PDFGenerator()
     output_path = pdf_generator.create_pdf_document(
         cover_letter_text,
@@ -74,7 +75,7 @@ def generate_and_save_pdf_resume(
         )
     
     company_name = ai_service.get_company_name(job_description)
-    save_path = create_new_application_path(company_name)
+    save_path = create_new_application_path(current_user.username, company_name)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     
     latex_compiler_response, latex_code = ai_service.generate_structured_latex_resume(
@@ -140,7 +141,7 @@ def download_document(
         
         # Construct path to the file
         # Note: This assumes files are stored in a predictable location
-        user_docs_path = pathlib.Path(get_current_application_path())
+        user_docs_path = pathlib.Path(get_current_application_path(current_user.username))
         
         # Search for files matching the pattern
         matching_files = list(user_docs_path.glob(f"**/{filename}*.pdf"))
@@ -178,7 +179,7 @@ def answer_application_questions(
             detail="User does not have a resume"
         )
     
-    save_path = get_current_application_path()
+    save_path = get_current_application_path(current_user.username)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     return ai_service.generate_answer_questions(
         current_user.resumes.resume_content,
@@ -214,8 +215,11 @@ async def improve_resume_pdf(
             detail="Could not extract text from the PDF"
         )
     
+    # Generate a random username for anonymous users
+    anonymous_username = f"anonymous_{uuid.uuid4().hex[:8]}"
+    
     # Create a save path
-    save_path = create_new_application_path("improved_resume")
+    save_path = create_new_application_path(anonymous_username, "improved_resume")
 
     tailoring_options = TailoringOptionsBase()
     
@@ -229,7 +233,7 @@ async def improve_resume_pdf(
     )
     
     # Save the improved PDF
-    pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, "anonymous")
+    pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, anonymous_username)
     
     return FileResponse(
         path=pdf_file_path,
