@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
-import os
 from datetime import datetime
 from fastapi.responses import FileResponse
-import pathlib
 import io
 import PyPDF2
 import uuid
@@ -62,12 +60,12 @@ def generate_tailored_plain_coverletter(
     )
     return cover_letter_text + f"\n\nCover letter saved at: {output_path}"
 
-@router.get("/resume/pdf")
+@router.get("/resume/pdf", response_class=FileResponse)
 def generate_and_save_pdf_resume(
     job_description: str = Query(..., description="The job description to tailor the resume for"),
     current_user = Depends(get_current_user)
 ):
-    """Generate a tailored resume and save it as a PDF file"""
+    """Generate a tailored resume and return it as a PDF file"""
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -75,10 +73,11 @@ def generate_and_save_pdf_resume(
         )
     
     company_name = ai_service.get_company_name(job_description)
-    save_path = create_new_application_path(current_user.username, company_name)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    save_path = create_new_application_path(current_user.username, company_name, timestamp)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     
-    latex_compiler_response, latex_code = ai_service.generate_structured_latex_resume(
+    latex_compiler_response, _ = ai_service.generate_structured_latex_resume(
         str(save_path),
         current_user.resumes.resume_content,
         job_description,
@@ -87,84 +86,13 @@ def generate_and_save_pdf_resume(
     )
     
     pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, current_user.username)
-    document_id = f"res_{current_user.username}_{pathlib.Path(pdf_file_path).stem}"
     
-    return {
-        "status": "success",
-        "document": {
-            "id": document_id,
-            "type": "resume",
-            "format": "pdf",
-            "created_at": datetime.now().isoformat(),
-            "size_bytes": os.path.getsize(pdf_file_path)
-        },
-        "company": {
-            "name": company_name,
-            "job_description": job_description
-        },
-        "access": {
-            "local_path": pdf_file_path,
-            "download_url": f"/api/applications/documents/{document_id}/download"
-        },
-        "source": {
-            "latex_code": latex_code,
-            "template_used": tailoring_options.resume_template
-        },
-        "processing": {
-            "ai_model": tailoring_options.ai_model,
-            "customizations_applied": len(tailoring_options.dict(exclude_unset=True))
-        }
-    }
-
-@router.get("/documents/{document_id}/download")
-def download_document(
-    document_id: str, 
-    current_user = Depends(get_current_user)
-):
-    """Download a document by its ID"""
-    # Extract username and filename from document_id
-    try:
-        # Format: res_username_filename
-        parts = document_id.split('_', 2)
-        if len(parts) < 3 or parts[0] != "res":
-            raise ValueError("Invalid document ID format")
-            
-        doc_username = parts[1]
-        filename = parts[2]
-        
-        # Security check - users can only access their own documents
-        if doc_username != current_user.username:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission to access this document"
-            )
-        
-        # Construct path to the file
-        # Note: This assumes files are stored in a predictable location
-        user_docs_path = pathlib.Path(get_current_application_path(current_user.username))
-        
-        # Search for files matching the pattern
-        matching_files = list(user_docs_path.glob(f"**/{filename}*.pdf"))
-        
-        if not matching_files:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Document not found"
-            )
-        
-        file_path = str(matching_files[0])
-        
-        return FileResponse(
-            path=file_path,
-            filename=os.path.basename(file_path),
-            media_type="application/pdf"
-        )
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+    # Return the PDF file directly
+    return FileResponse(
+        path=pdf_file_path,
+        filename=f"{current_user.username}_{timestamp}_{company_name}_tailored_resume.pdf",
+        media_type="application/pdf"
+    )
 
 @router.get("/questions/answer")
 def answer_application_questions(
@@ -216,7 +144,7 @@ async def improve_resume_pdf(
         )
     
     # Generate a random username for anonymous users
-    anonymous_username = f"anonymous_{uuid.uuid4().hex[:8]}"
+    anonymous_username = f"anonymous_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
     
     # Create a save path
     save_path = create_new_application_path(anonymous_username, "improved_resume")
