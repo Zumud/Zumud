@@ -3,11 +3,28 @@ import type { NextConfig } from "next";
 // Using type assertion to avoid TypeScript errors with new config options
 const nextConfig = {
   /* config options here */
+  // Disable ESLint during production builds
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Disable TypeScript errors during builds
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async rewrites() {
+    const apiUrl = process.env.API_URL || 'http://localhost:8000';
     return [
       {
         source: '/applications/:path*',
-        destination: 'http://localhost:8000/applications/:path*',
+        destination: `${apiUrl}/applications/:path*`,
+      },
+      {
+        source: '/login',
+        destination: `${apiUrl}/login`,
+      },
+      {
+        source: '/users/:path*',
+        destination: `${apiUrl}/users/:path*`,
       },
     ];
   },

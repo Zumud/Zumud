@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.api import api_router
 from backend.models.db import Base, engine
 from backend.utils.log import logger
+import os
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -15,10 +16,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Get allowed origins from environment or use wildcard for development
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+if ENVIRONMENT == "production":
+    # In production, allow the frontend domain on the same machine
+    allowed_origins = [
+        "http://localhost:3000",  # For local testing
+        "http://localhost",       # Base URL without port
+        "https://localhost",      # Secure version
+        "*"                       # Allow all origins temporarily while debugging
+    ]
+else:
+    # In development, allow all origins
+    allowed_origins = ["*"]
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
