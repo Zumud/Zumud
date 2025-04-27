@@ -80,12 +80,18 @@ async function apiCall(
     
     // Try to parse as JSON
     const contentType = response.headers.get('content-type');
+    console.log(`Response content type: ${contentType}`);
+    
     if (contentType && contentType.includes('application/json')) {
       return await response.json();
     }
     
-    // Handle binary responses (like PDFs)
-    if (contentType && contentType.includes('application/pdf')) {
+    // Handle binary responses (like PDFs or .tex files)
+    if (contentType && (
+      contentType.includes('application/pdf') || 
+      contentType.includes('application/x-tex') ||
+      contentType.includes('application/octet-stream')
+    )) {
       return await response.blob();
     }
     
@@ -136,6 +142,9 @@ export const resume = {
 export const applications = {
   generateResume: (jobDescription: string) => 
     apiCall('applications/resume/pdf', 'GET', { job_description: jobDescription }),
+  
+  getResumeTeX: () => 
+    apiCall('applications/resume/tex', 'GET'),
   
   generateCoverLetter: (jobDescription: string) => 
     apiCall('applications/cover-letter/plain', 'GET', { job_description: jobDescription }),

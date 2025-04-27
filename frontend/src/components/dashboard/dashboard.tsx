@@ -6,7 +6,7 @@ import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
 import { resume, applications } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2 } from "lucide-react"
+import { Download, Loader2, FileCode } from "lucide-react"
 import ProfileSettings from "./profile-settings"
 
 export default function Dashboard() {
@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false)
   const [isGeneratingAnswer, setIsGeneratingAnswer] = useState(false)
   const [generatedResumePdf, setGeneratedResumePdf] = useState<string | null>(null)
+  const [isDownloadingTeX, setIsDownloadingTeX] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
 
@@ -132,6 +133,46 @@ export default function Dashboard() {
     }
   }
 
+  const handleDownloadTeX = async () => {
+    setIsDownloadingTeX(true)
+    setError(null)
+
+    try {
+      console.log("Requesting .tex file from API")
+      const result = await applications.getResumeTeX()
+      console.log("Received response:", result)
+      
+      // Check if we got a valid result
+      if (!result) {
+        throw new Error("Received empty response from server")
+      }
+      
+      // Create a URL for the tex file blob
+      const texUrl = URL.createObjectURL(result)
+      console.log("Created blob URL:", texUrl)
+      
+      const link = document.createElement("a")
+      link.href = texUrl
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      link.download = `tailored_resume_${timestamp}.tex`
+      document.body.appendChild(link)
+      console.log("Starting download")
+      link.click()
+      document.body.removeChild(link)
+      
+      // Release the blob URL
+      setTimeout(() => {
+        URL.revokeObjectURL(texUrl)
+        console.log("Revoked blob URL")
+      }, 1000)
+    } catch (err: any) {
+      console.error("Download .tex file error:", err)
+      setError(err.message || 'Failed to download .tex file. Make sure you have generated a resume first.')
+    } finally {
+      setIsDownloadingTeX(false)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="flex justify-between items-center mb-8">
@@ -200,13 +241,32 @@ export default function Dashboard() {
               {generatedResumePdf && (
                 <div className="mt-4">
                   <PdfViewer pdfUrl={generatedResumePdf} />
-                  <Button
-                    onClick={handleDownloadResume}
-                    className="mt-4 bg-emerald-600 hover:bg-emerald-700"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Resume
-                  </Button>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <Button
+                      onClick={handleDownloadResume}
+                      className="bg-emerald-600 hover:bg-emerald-700"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Resume
+                    </Button>
+                    <Button
+                      onClick={handleDownloadTeX}
+                      className="bg-blue-600 hover:bg-blue-700"
+                      disabled={isDownloadingTeX}
+                    >
+                      {isDownloadingTeX ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <FileCode className="mr-2 h-4 w-4" />
+                          Download .tex File
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               )}
             </TabsContent>
