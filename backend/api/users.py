@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.models.db import get_db
 from backend.models.user_models import User, UserCreate
-from backend.models.resume_models import Resume
+from backend.models.resume_models import Resume, ResumeBase
 from backend.models.legal_authorization_models import LegalAuthorization
 from backend.models import db_models
 from backend.api.auth import get_current_user, pwd_context
@@ -58,7 +58,7 @@ def get_user_resume(current_user = Depends(get_current_user), db: Session = Depe
     return resume
 
 @router.put("/me/resume", response_model=Resume)
-def update_resume(resume_content: str, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_resume(resume_data: ResumeBase, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
     """Update current user's resume"""
     resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
     if not resume:
@@ -67,7 +67,7 @@ def update_resume(resume_content: str, current_user = Depends(get_current_user),
             detail="No resume found to update"
         )
     
-    resume.resume_content = resume_content
+    resume.resume_content = resume_data.resume_content
     resume.last_updated = datetime.now(timezone.utc)
     
     db.commit()
