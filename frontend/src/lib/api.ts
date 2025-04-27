@@ -152,6 +152,9 @@ export const applications = {
   generateCoverLetter: (jobDescription: string) => 
     apiCall('applications/cover-letter/plain', 'GET', { job_description: jobDescription }),
   
+  getCoverLetterPDF: () => 
+    apiCall('applications/cover-letter/pdf', 'GET'),
+  
   answerQuestion: (jobDescription: string, question: string) => 
     apiCall('applications/questions/answer', 'GET', { 
       job_description: jobDescription, 
