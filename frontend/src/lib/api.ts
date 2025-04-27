@@ -1,7 +1,14 @@
 import { getAccessToken } from './utils';
 
 // Base API URL - adjust as needed for your environment
-const API_BASE_URL = 'http://localhost:8000';
+let API_BASE_URL = typeof window !== 'undefined' 
+  ? window.location.origin.replace(/:\d+$/, ':8000')  // In production, use same origin but port 8000
+  : 'http://localhost:8000';  // Fallback for SSR
+
+// For development fallback
+if (process.env.NODE_ENV === 'development') {
+  API_BASE_URL = 'http://localhost:8000';
+}
 
 // Generic API call function
 async function apiCall(
