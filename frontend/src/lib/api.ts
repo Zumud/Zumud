@@ -146,6 +146,9 @@ export const applications = {
   getResumeTeX: () => 
     apiCall('applications/resume/tex', 'GET'),
   
+  getResumeTeXContent: () => 
+    apiCall('applications/resume/tex/content', 'GET'),
+  
   generateCoverLetter: (jobDescription: string) => 
     apiCall('applications/cover-letter/plain', 'GET', { job_description: jobDescription }),
   
