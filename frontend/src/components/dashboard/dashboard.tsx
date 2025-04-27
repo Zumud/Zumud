@@ -6,7 +6,7 @@ import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
 import { resume, applications } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2, FileCode } from "lucide-react"
+import { Download, Loader2, FileCode, ExternalLink } from "lucide-react"
 import ProfileSettings from "./profile-settings"
 
 export default function Dashboard() {
@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [isDownloadingTeX, setIsDownloadingTeX] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
+  const [isPreparingOverleaf, setIsPreparingOverleaf] = useState(false)
 
   // Load user data on mount
   useEffect(() => {
@@ -173,6 +174,43 @@ export default function Dashboard() {
     }
   }
 
+  const handleOpenInOverleaf = async () => {
+    setIsPreparingOverleaf(true)
+    setError(null)
+
+    try {
+      console.log("Requesting .tex content for Overleaf")
+      const texContent = await applications.getResumeTeXContent()
+      console.log("Received .tex content")
+
+      // Create a form to POST to Overleaf
+      const form = document.createElement('form')
+      form.method = 'post'
+      form.action = 'https://www.overleaf.com/docs'
+      form.target = '_blank'
+      form.style.display = 'none'
+
+      // Create an input field with the content
+      const input = document.createElement('input')
+      input.type = 'hidden'
+      input.name = 'snip'
+      input.value = texContent
+
+      // Add input to form and submit
+      form.appendChild(input)
+      document.body.appendChild(form)
+      console.log("Submitting to Overleaf")
+      form.submit()
+      document.body.removeChild(form)
+
+    } catch (err: any) {
+      console.error("Open in Overleaf error:", err)
+      setError(err.message || 'Failed to open in Overleaf. Make sure you have generated a resume first.')
+    } finally {
+      setIsPreparingOverleaf(false)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="flex justify-between items-center mb-8">
@@ -263,6 +301,23 @@ export default function Dashboard() {
                         <>
                           <FileCode className="mr-2 h-4 w-4" />
                           Download .tex File
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={handleOpenInOverleaf}
+                      className="bg-orange-600 hover:bg-orange-700"
+                      disabled={isPreparingOverleaf}
+                    >
+                      {isPreparingOverleaf ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Preparing...
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Edit in Overleaf
                         </>
                       )}
                     </Button>

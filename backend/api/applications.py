@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from datetime import datetime
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 import io
 import PyPDF2
 import uuid
@@ -128,6 +128,36 @@ def get_resume_tex_file(
         filename=f"{current_user.username}_{timestamp}_{company_name}_resume.tex",
         media_type="application/x-tex"
     )
+
+@router.get("/resume/tex/content", response_class=PlainTextResponse)
+def get_resume_tex_content(
+    current_user = Depends(get_current_user)
+):
+    """Get the raw content of the .tex file for integration with services like Overleaf"""
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume"
+        )
+    
+    # Get the current application path for this user
+    save_path = get_current_application_path(current_user.username)
+    
+    # Check if the tex file exists
+    tex_file_path = os.path.join(save_path, "resume.tex")
+    
+    if not os.path.exists(tex_file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No .tex file found. Please generate a resume first."
+        )
+    
+    # Read the content of the file
+    with open(tex_file_path, 'r') as f:
+        tex_content = f.read()
+    
+    # Return the raw content
+    return tex_content
 
 @router.get("/questions/answer")
 def answer_application_questions(
