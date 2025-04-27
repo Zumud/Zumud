@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 import io
 import PyPDF2
 import uuid
+import os
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
@@ -92,6 +93,40 @@ def generate_and_save_pdf_resume(
         path=pdf_file_path,
         filename=f"{current_user.username}_{timestamp}_{company_name}_tailored_resume.pdf",
         media_type="application/pdf"
+    )
+
+@router.get("/resume/tex", response_class=FileResponse)
+def get_resume_tex_file(
+    current_user = Depends(get_current_user)
+):
+    """Get the .tex file of a tailored resume based on job description"""
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume"
+        )
+    
+    # Get the current application path for this user
+    save_path = get_current_application_path(current_user.username)
+    
+    # Generate company name for the filename
+    company_name = os.path.basename(save_path).split('_')[-1]
+    
+    # Check if the tex file exists
+    tex_file_path = os.path.join(save_path, "resume.tex")
+    
+    if not os.path.exists(tex_file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No .tex file found. Please generate a resume first."
+        )
+    
+    # Return the .tex file
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    return FileResponse(
+        path=tex_file_path,
+        filename=f"{current_user.username}_{timestamp}_{company_name}_resume.tex",
+        media_type="application/x-tex"
     )
 
 @router.get("/questions/answer")
