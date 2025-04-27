@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [isGeneratingAnswer, setIsGeneratingAnswer] = useState(false)
   const [generatedResumePdf, setGeneratedResumePdf] = useState<string | null>(null)
   const [isDownloadingTeX, setIsDownloadingTeX] = useState(false)
+  const [isDownloadingCoverLetter, setIsDownloadingCoverLetter] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [isPreparingOverleaf, setIsPreparingOverleaf] = useState(false)
@@ -211,6 +212,43 @@ export default function Dashboard() {
     }
   }
 
+  const handleDownloadCoverLetter = async () => {
+    if (!coverLetter) {
+      setError("Please generate a cover letter first")
+      return
+    }
+    
+    setIsDownloadingCoverLetter(true)
+    setError(null)
+
+    try {
+      const result = await applications.getCoverLetterPDF()
+      
+      if (!result) {
+        throw new Error("Received empty response from server")
+      }
+      
+      const pdfUrl = URL.createObjectURL(result)
+      
+      const link = document.createElement("a")
+      link.href = pdfUrl
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      link.download = `cover_letter_${timestamp}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfUrl)
+      }, 1000)
+    } catch (err: any) {
+      console.error("Download cover letter error:", err)
+      setError(err.message || 'Failed to download cover letter PDF. Make sure you have generated a cover letter first.')
+    } finally {
+      setIsDownloadingCoverLetter(false)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="flex justify-between items-center mb-8">
@@ -344,14 +382,35 @@ export default function Dashboard() {
               </Button>
 
               {coverLetter && (
-                <div className="mt-4 border border-gray-200 rounded-md p-4 bg-gray-50">
-                  <textarea
-                    value={coverLetter}
-                    onChange={(e) => setCoverLetter(e.target.value)}
-                    className="w-full h-80 p-3 border border-gray-300 rounded-md"
-                    readOnly={false}
-                  />
-                </div>
+                <>
+                  <div className="mt-4 border border-gray-200 rounded-md p-4 bg-gray-50">
+                    <textarea
+                      value={coverLetter}
+                      onChange={(e) => setCoverLetter(e.target.value)}
+                      className="w-full h-80 p-3 border border-gray-300 rounded-md"
+                      readOnly={false}
+                    />
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      onClick={handleDownloadCoverLetter}
+                      disabled={isDownloadingCoverLetter}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isDownloadingCoverLetter ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" />
+                          Download PDF
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </>
               )}
             </TabsContent>
 

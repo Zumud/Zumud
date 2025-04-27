@@ -55,11 +55,45 @@ def generate_tailored_plain_coverletter(
     
     save_path = get_current_application_path(current_user.username)
     pdf_generator = PDFGenerator()
-    output_path = pdf_generator.create_pdf_document(
+    pdf_generator.create_pdf_document(
         cover_letter_text,
         output_folder=str(save_path),
     )
-    return cover_letter_text + f"\n\nCover letter saved at: {output_path}"
+    return cover_letter_text
+
+@router.get("/cover-letter/pdf", response_class=FileResponse)
+def download_cover_letter_pdf(
+    current_user = Depends(get_current_user)
+):
+    """Download the generated cover letter as a PDF file"""
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume"
+        )
+    
+    # Get the current application path for this user
+    save_path = get_current_application_path(current_user.username)
+    
+    # Generate company name for the filename
+    company_name = os.path.basename(save_path).split('_')[-1]
+    
+    # Check if the PDF file exists
+    pdf_file_path = os.path.join(save_path, "CoverLetter.pdf")
+    
+    if not os.path.exists(pdf_file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No cover letter PDF found. Please generate a cover letter first."
+        )
+    
+    # Return the PDF file
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    return FileResponse(
+        path=pdf_file_path,
+        filename=f"{current_user.username}_{timestamp}_{company_name}_cover_letter.pdf",
+        media_type="application/pdf"
+    )
 
 @router.get("/resume/pdf", response_class=FileResponse)
 def generate_and_save_pdf_resume(
