@@ -3,14 +3,14 @@
 <div align="center">
 
 ![Zumud Logo](https://img.shields.io/badge/Zumud-blue?style=for-the-badge)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/agpl-3.0)
+![Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg?style=for-the-badge)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg?style=for-the-badge)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-14.0.0+-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 
 </div>
 
-**Zumud** is an open-source platform that helps job seekers automatically generate customized resumes and cover letters tailored to specific job descriptions using AI.
+**Zumud** is a proprietary platform that helps job seekers automatically generate customized resumes and cover letters tailored to specific job descriptions using AI.
 
 ## 🌟 Features
 
@@ -161,7 +161,7 @@ Join our community to get help, share ideas, and collaborate:
 
 ## 📄 License
 
-This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+This project is proprietary software with all rights reserved. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
 
 ---
 
