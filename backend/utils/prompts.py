@@ -97,4 +97,6 @@ Important:
 4. Include only relevant skills and experiences
 5. For each company in the experience section, add a brief description that highlights the company's relevance to the target position
 6. If there are honors, awards, or recognitions in the resume, include them in the awards section
-7. Format all text properly for LaTeX (escape special characters)"""
+7. Format all text properly for LaTeX (escape special characters)
+8. Never use 'None' as a value - leave optional fields as empty strings or omit them entirely if the information is not available
+9. Do not include placeholder values like "N/A" or "None" in the data - use empty strings instead"""

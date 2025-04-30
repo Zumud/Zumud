@@ -591,25 +591,58 @@ mteck_resume = r"""
   % Heading %
   %---------%
 
-  \documentTitle{ {{ personal_info.name }} }{
-    \href{tel:{{ personal_info.phone }}}{\raisebox{-0.05\height} \faPhone\ {{ personal_info.phone }} } ~ | ~
-    \href{mailto:{{ personal_info.email }}}{\raisebox{-0.15\height} \faEnvelope\ {{ personal_info.email }} } ~ | ~
-    \raisebox{-0.05\height}{\faMapMarker\ {{ personal_info.location }} } ~ | ~
-    \href{https://www.linkedin.com/in/{{ personal_info.linkedin }} }{\raisebox{-0.15\height} \faLinkedin\ {{ personal_info.linkedin }} } ~ | ~
-    \href{https://github.com/{{ personal_info.github }} }{\raisebox{-0.15\height} \faGithub\ {{ personal_info.github }} }
+  \documentTitle{ {{ personal_info.name|default('Your Name') }} }{
+    {% if personal_info %}
+    {% set contact_parts = [] %}
+    
+    {% if personal_info.phone %}
+      {% set contact_parts = contact_parts + [
+        '\\href{tel:' ~ personal_info.phone ~ '}{\\raisebox{-0.05\\height}{\\faPhone}~' ~ personal_info.phone ~ '}'
+      ] %}
+    {% endif %}
+    
+    {% if personal_info.email %}
+      {% set contact_parts = contact_parts + [
+        '\\href{mailto:' ~ personal_info.email ~ '}{\\raisebox{-0.15\\height}{\\faEnvelope}~' ~ personal_info.email ~ '}'
+      ] %}
+    {% endif %}
+    
+    {% if personal_info.location %}
+      {% set contact_parts = contact_parts + [
+        '\\raisebox{-0.05\\height}{\\faMapMarker}~' ~ personal_info.location
+      ] %}
+    {% endif %}
+    
+    {% if personal_info.linkedin %}
+      {% set contact_parts = contact_parts + [
+        '\\href{https://www.linkedin.com/in/' ~ personal_info.linkedin ~ '}{\\raisebox{-0.15\\height}{\\faLinkedin}~' ~ personal_info.linkedin ~ '}'
+      ] %}
+    {% endif %}
+    
+    {% if personal_info.github %}
+      {% set contact_parts = contact_parts + [
+        '\\href{https://github.com/' ~ personal_info.github ~ '}{\\raisebox{-0.15\\height}{\\faGithub}~' ~ personal_info.github ~ '}'
+      ] %}
+    {% endif %}
+    
+    {{ contact_parts|join(' \\quad$|$\\quad ') }}
+    {% endif %}
   }
 
   %---------%
   % Summary %
   %---------%
 
+  {% if summary %}
   \tinysection{Summary}
   {{ summary }}
+  {% endif %}
 
   %--------%
   % Skills %
   %--------%
 
+  {% if skills and skills|length > 0 %}
   \section{Skills}
 	
   \begin{multicols}{2}
@@ -619,51 +652,58 @@ mteck_resume = r"""
       {% endfor %}
 		\end{itemize}
 	\end{multicols}
+  {% endif %}
   
   %------------%
   % Experience %
   %------------%
 
+  {% if experience and experience|length > 0 %}
   \section{Experience}
 
   {% for exp in experience %}
-  \headingBf{ {{ exp.company }} }{ {{ exp.date_range }} }
-  \headingIt{ {{ exp.role }} }{ {{ exp.location }} }
+  \headingBf{ {{ exp.company }} }{ {{ exp.date_range|default('') }} }
+  \headingIt{ {{ exp.role|default('') }} }{ {{ exp.location|default('') }} }
   {% if exp.description %}
   \companyDescription{ {{ exp.description }} }
   {% endif %}
+  {% if exp.achievements and exp.achievements|length > 0 %}
   \begin{resume_list}
     {% for achievement in exp.achievements %}
     \item {{ achievement }}
     {% endfor %}
   \end{resume_list}
+  {% endif %}
   {% endfor %}
+  {% endif %}
 
   %-----------%
   % Education %
   %-----------%
 
+  {% if education and education|length > 0 %}
   \section{Education}
 
   {% for edu in education %}
-  \headingBf{ {{ edu.institution }} }{ {{ edu.date_range }} }
-  \headingIt{ {{ edu.degree }} }{ {{ edu.location }} }
-  {% if edu.minors and edu.minors is iterable %}
+  \headingBf{ {{ edu.institution }} }{ {{ edu.date_range|default('') }} }
+  \headingIt{ {{ edu.degree|default('') }} }{ {{ edu.location|default('') }} }
+  {% if edu.minors and edu.minors is iterable and edu.minors|length > 0 %}
   \headingIt{Minors: {{ edu['minors'] | join(' ; ') }}}{}
   {% endif %}
   {% endfor %}
 
-  {% if certifications %}
+  {% if certifications and certifications|length > 0 %}
   \vspace{5pt}
   \headingBf{Certifications}{}
   \begin{resume_list}
     {% for cert in certifications %}
-    \item {{ cert.name }} \hspace{2pt}- {{ cert.issuer }}
+    \item {{ cert.name }} {% if cert.issuer and cert.issuer != 'None' %}\hspace{2pt}- {{ cert.issuer }}{% endif %}
     {% endfor %}
   \end{resume_list}
   {% endif %}
+  {% endif %}
 
-  {% if projects %}
+  {% if projects and projects|length > 0 %}
   %----------------------------%
   % Projects %
   %----------------------------%
@@ -671,15 +711,17 @@ mteck_resume = r"""
   \section{Projects}
 
   {% for project in projects %}
-  \headingBf{ {{ project.name }} }{ {{ project.date_range }} }
+  \headingBf{ {{ project.name }} }{ {{ project.date_range|default('') }} }
+  {% if project.achievements and project.achievements|length > 0 %}
   \begin{resume_list}
     {% for achievement in project.achievements %}
     \item {{ achievement }}
     {% endfor %}
   \end{resume_list}
+  {% endif %}
   {% endfor %}
 
-  {% if awards %}
+  {% if awards and awards|length > 0 %}
   %----------------------------%
   % Honors & Awards %
   %----------------------------%
@@ -687,8 +729,10 @@ mteck_resume = r"""
   \section{Honors \& Awards}
 
   {% for award in awards %}
-  \headingBf{ {{ award.title }} }{ {{ award.date }} }
-  \headingIt{ {{ award.description}} }{ {{ award.issuer }} }
+  \headingBf{ {{ award.title }} }{ {{ award.date|default('') if award.date and award.date != 'None' else '' }} }
+  {% if (award.description and award.description != 'None') or (award.issuer and award.issuer != 'None') %}
+  \headingIt{ {{ award.description|default('') if award.description and award.description != 'None' else '' }} }{ {{ award.issuer|default('') if award.issuer and award.issuer != 'None' else '' }} }
+  {% endif %}
   {% endfor %}
   {% endif %}
   {% endif %}
