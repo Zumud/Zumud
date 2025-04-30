@@ -1,23 +1,23 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Resume Improver | Instantly Enhance Your Resume - TailorMade",
-  description: "Transform your resume instantly with our AI-powered resume improver. Get a professional, ATS-friendly resume that stands out to recruiters and hiring managers.",
-  keywords: ["resume improver", "AI resume", "resume builder", "job application", "ATS-friendly resume"],
-  authors: [{ name: "TailorMade Team" }],
-  creator: "TailorMade",
-  publisher: "TailorMade",
+  title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
+  description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application with our AI-powered resume tool.",
+  keywords: ["AI resume", "tailored resume", "more interviews", "custom cover letter", "ATS-optimized resume", "job application", "resume builder"],
+  authors: [{ name: "Zumud Team" }],
+  creator: "Zumud",
+  publisher: "Zumud",
   openGraph: {
-    title: "Resume Improver | Instantly Enhance Your Resume - TailorMade",
-    description: "Transform your resume instantly with our AI-powered resume improver. Get a professional, ATS-friendly resume that stands out to recruiters and hiring managers.",
+    title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
+    description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application with our AI-powered resume tool.",
     url: "https://zumud.com",
-    siteName: "TailorMade",
+    siteName: "Zumud",
     images: [
       {
         url: "https://zumud.com/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "TailorMade Resume Improver",
+        alt: "Zumud AI Resume Builder - Get 3× More Interviews",
       },
     ],
     locale: "en_US",
@@ -25,9 +25,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Resume Improver | Instantly Enhance Your Resume - TailorMade",
-    description: "Transform your resume instantly with our AI-powered resume improver. Get a professional, ATS-friendly resume that stands out to recruiters and hiring managers.",
-    creator: "@tailormadeapp",
+    title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
+    description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application with our AI-powered resume tool.",
+    creator: "@zumudapp",
     images: ["https://zumud.com/twitter-image.jpg"],
   },
   robots: {

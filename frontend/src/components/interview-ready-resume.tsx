@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import PdfViewer from "./pdf-viewer"
 
-export default function ResumeImprover() {
+export default function InterviewReadyResume() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [improvedResumePdf, setImprovedResumePdf] = useState<string | null>(null)
+  const [tailoredResumePdf, setTailoredResumePdf] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,11 +46,11 @@ export default function ResumeImprover() {
         if (xhr.status === 200) {
           const blob = xhr.response;
           const pdfUrl = URL.createObjectURL(blob);
-          setImprovedResumePdf(pdfUrl);
+          setTailoredResumePdf(pdfUrl);
           setIsModalOpen(false);
         } else {
           console.error('XHR error:', xhr.status);
-          setError("Failed to improve resume. Please try again.");
+          setError("Failed to create your tailored resume. Please try again.");
         }
         setIsUploading(false);
       };
@@ -76,10 +76,10 @@ export default function ResumeImprover() {
   }
 
   const handleDownload = () => {
-    if (improvedResumePdf) {
+    if (tailoredResumePdf) {
       const link = document.createElement("a")
-      link.href = improvedResumePdf
-      link.download = "improved-resume.pdf"
+      link.href = tailoredResumePdf
+      link.download = "interview-ready-resume.pdf"
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -91,10 +91,10 @@ export default function ResumeImprover() {
       {/* Hero Section */}
       <header className="max-w-4xl mx-auto text-center">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
-          Turn Your Good Resume Into a Great One — Instantly.
+          3× More Interviews with AI-Tailored Resumes — Instantly.
         </h1>
         <p className="text-xl md:text-2xl text-gray-600 mb-10">
-          First impressions matter — we make sure yours is unforgettable.
+          Create a custom resume and cover letter for any job in seconds. Our users report 3× more callbacks — and save 15+ minutes per application.
         </p>
 
         {/* Trust Bullets */}
@@ -102,11 +102,11 @@ export default function ResumeImprover() {
           <h2 id="benefits" className="sr-only">Benefits</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12 max-w-2xl mx-auto text-left">
             {[
-              "Instant resume makeover",
-              "Clear, modern formatting that recruiters love",
-              "Highlight your strengths automatically",
-              "ATS-friendly (passes resume scanning software)",
-              "100% secure — your info stays private",
+              "Tailored to each job description you provide",
+              "Cover letters recruiters actually respond to",
+              "100% ATS-optimized",
+              "Instant results powered by AI",
+              "Your data stays private and secure",
             ].map((bullet, index) => (
               <div key={index} className="flex items-start space-x-2">
                 <Check className="h-5 w-5 text-emerald-500 mt-0.5 flex-shrink-0" aria-hidden="true" />
@@ -119,26 +119,26 @@ export default function ResumeImprover() {
         {/* CTA Button */}
         <section aria-labelledby="cta-section" className="mb-12">
           <h2 id="cta-section" className="sr-only">Get Started</h2>
-          {!improvedResumePdf ? (
+          {!tailoredResumePdf ? (
             <Button
               size="lg"
               className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
               onClick={() => setIsModalOpen(true)}
-              aria-label="Upload and improve your resume"
+              aria-label="Create an AI-tailored resume for more interviews"
             >
-              Make My Resume Shine
+              Get My AI Resume Now
             </Button>
           ) : (
             <div className="space-y-4">
-              <PdfViewer pdfUrl={improvedResumePdf} />
+              <PdfViewer pdfUrl={tailoredResumePdf} />
               <Button
                 size="lg"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
                 onClick={handleDownload}
-                aria-label="Download your improved resume"
+                aria-label="Download your interview-ready resume"
               >
                 <Download className="mr-2 h-5 w-5" aria-hidden="true" />
-                Download Improved Resume
+                Download Your Interview-Ready Resume
               </Button>
             </div>
           )}
@@ -149,7 +149,7 @@ export default function ResumeImprover() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Upload your current resume</DialogTitle>
+            <DialogTitle>Upload your resume to get 3× more interviews</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center cursor-pointer hover:bg-gray-50 transition-colors">
@@ -175,7 +175,7 @@ export default function ResumeImprover() {
                 type="submit" 
                 disabled={!file || isUploading} 
                 className="bg-emerald-600 hover:bg-emerald-700"
-                aria-label={isUploading ? "Uploading resume..." : "Improve my resume"}
+                aria-label={isUploading ? "Uploading resume..." : "Create my interview-ready resume"}
                 aria-busy={isUploading}
               >
                 {isUploading ? (
@@ -184,7 +184,7 @@ export default function ResumeImprover() {
                     Uploading...
                   </>
                 ) : (
-                  "Improve My Resume"
+                  "Create My AI-Tailored Resume"
                 )}
               </Button>
             </div>
@@ -193,4 +193,4 @@ export default function ResumeImprover() {
       </Dialog>
     </div>
   )
-}
+} 

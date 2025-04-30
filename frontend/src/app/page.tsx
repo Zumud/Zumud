@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import ResumeImprover from "@/components/resume-improver"
+import InterviewReadyResume from "@/components/interview-ready-resume"
 import AuthModal from "@/components/auth/auth-modal"
 import { isAuthenticated } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -26,8 +26,9 @@ export default function Home() {
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "Zumud Resume Improver",
+    "name": "Zumud - AI-Tailored Resumes & Cover Letters",
     "url": "https://zumud.com",
+    "description": "Create custom resumes and cover letters that get 3× more interviews. Save 15+ minutes per application.",
     "potentialAction": {
       "@type": "SearchAction",
       "target": "https://zumud.com/search?q={search_term_string}",
@@ -38,7 +39,8 @@ export default function Home() {
   const applicationSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "Zumud Resume Improver",
+    "name": "Zumud AI Resume Builder",
+    "description": "AI-powered tool that creates tailored resumes and cover letters that get 3× more interviews",
     "applicationCategory": "BusinessApplication",
     "offers": {
       "@type": "Offer",
@@ -52,6 +54,7 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "Zumud",
+    "description": "We help job seekers get more interviews with AI-tailored resumes and cover letters",
     "url": "https://zumud.com",
     "logo": "https://zumud.com/logo.png",
     "sameAs": [
@@ -87,7 +90,7 @@ export default function Home() {
           </div>
         </header>
         
-        <ResumeImprover />
+        <InterviewReadyResume />
         
         <AuthModal 
           isOpen={showAuthModal} 

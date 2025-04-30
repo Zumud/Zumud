@@ -1,4 +1,4 @@
-# Zumud Resume Improver - robots.txt
+# Zumud AI Resume Builder - robots.txt
 User-agent: *
 Allow: /
 
