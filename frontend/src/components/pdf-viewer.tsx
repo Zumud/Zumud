@@ -27,13 +27,13 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
 
   return (
     <section aria-labelledby="pdf-viewer-title" className="w-full">
-      <h2 id="pdf-viewer-title" className="sr-only">Improved Resume Preview</h2>
+      <h2 id="pdf-viewer-title" className="sr-only">Your Interview-Ready Resume</h2>
       <div className="w-full h-[600px] border border-gray-200 rounded-lg overflow-hidden shadow-md">
         <iframe 
           src={`${pdfUrl}#toolbar=0`} 
           className="w-full h-full" 
-          title="Improved Resume Preview" 
-          aria-label="PDF preview of your improved resume"
+          title="Your Interview-Ready Resume" 
+          aria-label="PDF preview of your interview-ready resume"
           loading="lazy"
         />
       </div>
