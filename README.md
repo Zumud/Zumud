@@ -1,24 +1,27 @@
-# TailorMade AI
+# Zumud
 
 <div align="center">
 
-![TailorMade Logo](https://img.shields.io/badge/TailorMade-AI-blue?style=for-the-badge)
+![Zumud Logo](https://img.shields.io/badge/Zumud-blue?style=for-the-badge)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg?style=for-the-badge)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)](https://streamlit.io/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.0.0+-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 
 </div>
 
-**TailorMade AI** is an open-source platform that helps job seekers automatically generate customized resumes and cover letters tailored to specific job descriptions using AI.
+**Zumud** is an open-source platform that helps job seekers automatically generate customized resumes and cover letters tailored to specific job descriptions using AI.
 
 ## 🌟 Features
 
-- 🧠 **AI-Powered Customization**: Tailors your resume and cover letter to match job descriptions
-- 📝 **Document Generation**: Creates professional-looking PDFs with various templates
-- 🔄 **Application Question Answering**: Helps craft responses to common application questions
-- 🛠️ **Resume Editor**: Built-in tools for quick edits and updates
-- 🔒 **User Account System**: Save your resume and settings for future use
+- 🧠 **AI-Powered Resume Improvement**: Upload your existing resume and get AI-powered suggestions for improvement
+- 📝 **Custom Resume Generation**: Generate tailored resumes based on job descriptions
+- 📄 **Cover Letter Creation**: Automatically generate personalized cover letters
+- ❓ **Application Question Answering**: Get AI-generated responses to common job application questions
+- 📊 **Dashboard**: Manage your resume, applications, and profile settings in one place
+- 🔒 **User Authentication**: Secure login and signup system with JWT authentication
+- 📧 **Email Integration**: Send generated documents directly via email
+- ☁️ **Cloud Storage**: Automatic backup of your documents to Google Drive
 
 ## 📋 Table of Contents
 
@@ -39,16 +42,26 @@
 
 ## 🏗 Architecture
 
-TailorMade consists of two main components:
+Zumud consists of two main components:
 
-1. **Backend**: A FastAPI application that handles data processing, AI integration, and document generation
-2. **Frontend**: A Streamlit interface for user interaction
+1. **Backend**: A FastAPI application that handles:
+   - AI integration and document generation
+   - User authentication and data management
+   - Email and cloud storage integration
+   - PDF generation and processing
+
+2. **Frontend**: A Next.js application that provides:
+   - Modern, responsive user interface
+   - Real-time document preview
+   - Interactive dashboard
+   - Secure authentication flow
 
 ## 💻 Prerequisites
 
 Before you begin, ensure you have the following installed:
 
 - Python 3.9 or later
+- Node.js 18.0.0 or later
 - Git
 - Virtual environment tool (`venv`, `virtualenv`, etc.)
 
@@ -57,40 +70,38 @@ Before you begin, ensure you have the following installed:
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/Form-pilot/TailorMade.git
-cd TailorMade
+git clone https://github.com/Form-pilot/Zumud.git
+cd Zumud
 ```
 
-2. **Create and activate a virtual environment**
+2. **Set up the backend**
 
 ```bash
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Activate on Windows
-.venv\Scripts\activate
-
-# Activate on macOS/Linux
-source .venv/bin/activate
+# Install Python dependencies
+pip install -r requirements.txt
 ```
 
-3. **Install dependencies**
+3. **Set up the frontend**
 
 ```bash
-pip install -r requirements.txt
+cd frontend
+npm install
 ```
 
 ## 🔑 Environment Variables
 
-Create a `.env` file in the root directory with the following required variable:
+Create a `.env` file in the root directory with the following required variables:
 
 ```
+# Required
 OPEN_AI_KEY=your_openai_api_key
-```
+GMAIL_APP_PASSWORD=your_gmail_app_password
+ADD_GDRIVE_ZAP_URL=your_zapier_webhook_url
 
-The following variables are optional and will use sensible defaults if not specified:
-
-```
 # Optional - only required for production environments
 SECRET_KEY=your_secret_key_for_jwt  # Auto-generated if not set
 ALGORITHM=HS256  # Default value
@@ -115,11 +126,12 @@ The API will be available at [http://localhost:8000](http://localhost:8000)
 ### Frontend
 
 ```bash
-# Start the Streamlit frontend
-streamlit run frontend/app.py
+# Start the Next.js frontend
+cd frontend
+npm run dev
 ```
 
-The web application will be available at [http://localhost:8501](http://localhost:8501)
+The web application will be available at [http://localhost:3000](http://localhost:3000)
 
 ## 📚 API Documentation
 
@@ -130,7 +142,7 @@ Once your backend is running, you can access:
 
 ## 🤝 Contributing
 
-We welcome contributions to TailorMade AI! To contribute:
+We welcome contributions to Zumud! To contribute:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -154,5 +166,5 @@ This project is licensed under the GNU Affero General Public License v3.0 - see 
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by the TailorMade AI Team</sub>
+  <sub>Built with ❤️ by the Zumud Team</sub>
 </div>
