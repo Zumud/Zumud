@@ -1,4 +1,4 @@
-# TailorMade Resume Improver - robots.txt
+# Zumud Resume Improver - robots.txt
 User-agent: *
 Allow: /
 

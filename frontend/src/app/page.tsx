@@ -26,7 +26,7 @@ export default function Home() {
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "TailorMade Resume Improver",
+    "name": "Zumud Resume Improver",
     "url": "https://zumud.com",
     "potentialAction": {
       "@type": "SearchAction",
@@ -38,7 +38,7 @@ export default function Home() {
   const applicationSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "TailorMade Resume Improver",
+    "name": "Zumud Resume Improver",
     "applicationCategory": "BusinessApplication",
     "offers": {
       "@type": "Offer",
@@ -51,12 +51,12 @@ export default function Home() {
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "TailorMade",
+    "name": "Zumud",
     "url": "https://zumud.com",
     "logo": "https://zumud.com/logo.png",
     "sameAs": [
-      "https://twitter.com/tailormadeapp",
-      "https://linkedin.com/company/tailormade"
+      "https://twitter.com/zumudapp",
+      "https://linkedin.com/company/zumud"
     ]
   };
 
@@ -76,7 +76,7 @@ export default function Home() {
       />
       <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
         <header className="container mx-auto py-4 px-4 flex justify-between items-center">
-          <div className="text-2xl font-bold text-emerald-600">TailorMade</div>
+          <div className="text-2xl font-bold text-emerald-600">Zumud</div>
           <div className="space-x-2">
             <Button 
               variant="outline"
