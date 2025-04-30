@@ -12,7 +12,7 @@ logger.info("Starting FastAPI application")
 
 app = FastAPI(
     title="Resume Tailorer API",
-    description="API for TailorMade - AI-powered job application assistant",
+    description="API for Zumud - AI-powered job application assistant",
     version="1.0.0"
 )
 
@@ -46,7 +46,7 @@ app.include_router(api_router)
 def root():
     logger.info("Root endpoint accessed")
     return {
-        "message": "Welcome to the TailorMade API!",
+        "message": "Welcome to the Zumud API!",
         "version": "1.0.0",
         "docs_url": "/docs",
         "redoc_url": "/redoc"
