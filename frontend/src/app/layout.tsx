@@ -20,12 +20,12 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://zumud.com"),
-  title: "Resume Improver | Instantly Enhance Your Resume - Zumud",
-  description: "Transform your resume instantly with our AI-powered resume improver. Get a professional, ATS-friendly resume that stands out to recruiters and hiring managers.",
-  keywords: "resume improver, resume enhancement, professional resume, ATS-friendly resume, resume builder, career tools",
+  title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
+  description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application with our AI-powered resume tool.",
+  keywords: "tailored resume, AI resume builder, more interviews, custom cover letter, ATS-optimized resume, job application, time-saving",
   authors: [{ name: "Zumud" }],
   generator: "Next.js",
-  applicationName: "Zumud Resume Improver",
+  applicationName: "Zumud AI Resume Builder",
   referrer: "origin-when-cross-origin",
   creator: "Zumud Team",
   publisher: "Zumud",
@@ -46,8 +46,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Resume Improver | Instantly Enhance Your Resume - Zumud",
-    description: "Transform your resume instantly with our AI-powered resume improver. Get a professional, ATS-friendly resume that stands out to recruiters and hiring managers.",
+    title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
+    description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application with our AI-powered resume tool.",
     url: "https://zumud.com",
     siteName: "Zumud",
     locale: "en_US",
@@ -57,14 +57,14 @@ export const metadata: Metadata = {
         url: "/images/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Zumud Resume Improver"
+        alt: "Zumud AI Resume Builder - Get 3× More Interviews"
       }
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Resume Improver | Instantly Enhance Your Resume - Zumud",
-    description: "Transform your resume instantly with our AI-powered resume improver. Get a professional, ATS-friendly resume that stands out.",
+    title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
+    description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application.",
     images: ["/images/twitter-image.jpg"],
     creator: "@zumudapp",
   },
