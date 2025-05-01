@@ -14,7 +14,7 @@ from backend.models.resume_models import TailoredResume, TailoredCoverLetter, Ta
 
 client = OpenAI(api_key=OPEN_AI_KEY)
 
-def ai_prompt(prompt: str, model=AIModel.gpt_4o_mini) -> str:
+def ai_prompt(prompt: str, model=AIModel.gpt_4_1_nano) -> str:
     completion = client.chat.completions.create(
         model=model,
         messages=[
@@ -33,7 +33,7 @@ def get_company_name(job_description):
     )  # Since this is a simple task we use the cheapest ai
     return company_name
 
-def generate_tailored_resume_text(resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.MTeck_resume) -> str:
+def generate_tailored_resume_text(resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
@@ -46,7 +46,7 @@ def generate_tailored_resume_text(resume: str, job_description: str, model=AIMod
     logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-def generate_structured_latex_resume(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4o_mini, template=ResumeTemplate.MTeck_resume):
+def generate_structured_latex_resume(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume):
     """
     Convert a plain resume to LaTeX using structured output and Jinja2 templating.
     """
@@ -54,7 +54,7 @@ def generate_structured_latex_resume(save_folder: str, resume: str, job_descript
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": """You are a world-class resume writer, career strategist, and ATS optimization expert. You specialize in transforming general resumes into sharply focused, high-impact documents tailored for specific job applications — increasing interview rates significantly. Your sole goal is to maximize the candidate’s chances of getting an interview by rewriting their resume content to match a specific job description. Your output will be structured as JSON for formatting later, but you should focus purely on crafting the best possible content."""},
+            {"role": "system", "content": """You are a world-class resume writer, career strategist, and ATS optimization expert. You specialize in transforming general resumes into sharply focused, high-impact documents tailored for specific job applications — increasing interview rates significantly. Your sole goal is to maximize the candidate's chances of getting an interview by rewriting their resume content to match a specific job description. Your output will be structured as JSON for formatting later, but you should focus purely on crafting the best possible content."""},
             {"role": "user", "content": prompts.structured_resume_prompt.format(
                 resume=resume,
                 job_description=job_description,
@@ -94,7 +94,7 @@ def generate_structured_latex_resume(save_folder: str, resume: str, job_descript
     logger.debug("Successfully compiled LaTeX document")
     return latex_compiler_response, rendered_latex
 
-def generate_tailored_coverletter_text(resume: str, job_description: str, model=AIModel.gpt_4o_mini) -> str:
+def generate_tailored_coverletter_text(resume: str, job_description: str, model=AIModel.gpt_4_1_nano) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
@@ -105,14 +105,14 @@ def generate_tailored_coverletter_text(resume: str, job_description: str, model=
     )
     return json.loads(completion.choices[0].message.content)["tailored_coverletter"]
 
-def ai_messages(messages: list[tuple[str, str]], model=AIModel.gpt_4o_mini) -> str:
+def ai_messages(messages: list[tuple[str, str]], model=AIModel.gpt_4_1_nano) -> str:
     completion = client.chat.completions.create(
         model=model,
         messages=messages
     )
     return completion.choices[0].message.content
 
-def generate_answer_questions(resume: str, job_description: str, question: str, save_folder: str = None, model=AIModel.gpt_4o_mini):
+def generate_answer_questions(resume: str, job_description: str, question: str, save_folder: str = None, model=AIModel.gpt_4_1_nano):
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[

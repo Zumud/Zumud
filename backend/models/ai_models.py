@@ -4,6 +4,9 @@ class AIModel(str, Enum):
     """
     Enum for current OpenAI models
     """
+    # GPT-4.1 models
+    gpt_4_1_nano = "gpt-4.1-nano"
+    
     # GPT-4o models
     gpt_4o = "gpt-4o"
     gpt_4o_mini = "gpt-4o-mini"
