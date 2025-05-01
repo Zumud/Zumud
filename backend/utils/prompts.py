@@ -101,7 +101,7 @@ Use both inputs to write a tailored resume that:
 ✅ Adds a brief description for each company in the experience section that highlights its relevance to the target position.  
 ✅ Ensures all honors, awards, or recognitions mentioned anywhere in the resume are properly included under the awards section.  
 ✅ Keeps the final resume to a maximum of 2 pages, prioritizing the most relevant information.
-✅ Proactively fills in missing information where it can be reasonably inferred rather than leaving fields blank or using placeholders.
+✅ ONLY fills in missing information where it can be DIRECTLY inferred from the original resume. NEVER invent or fabricate information that isn't clearly indicated.
 
 ✍️ Content Expectations (per section)
 
@@ -138,11 +138,12 @@ Use both inputs to write a tailored resume that:
 • If the original project listing is missing key details like location or technologies used, research or infer this information where reasonable.
 
 🔹 Education  
-• Always include all education credentials from the original resume.
+• ONLY include education credentials that are explicitly mentioned in the original resume.
+• If no education is listed in the original resume, DO NOT create an education section or invent any educational background.
 • Format consistently with degree, institution, location, and graduation date.
 • Highlight relevant coursework, academic achievements, or extracurriculars only if they directly support the application.
 • For candidates with extensive experience, position education after experience unless it's particularly noteworthy for the role.
-• If location information is missing, research or infer the city/country of the educational institution.
+• If location information for a mentioned institution is missing, you may infer the city/country.
 • Never use "None" as a location placeholder - either provide the actual location or leave it blank if uncertain.
 
 🧠 Keep in mind:
@@ -155,10 +156,11 @@ Use both inputs to write a tailored resume that:
 • While generally preserving all key credentials, you should exclude content that is entirely unrelated to the target role and would not contribute to the candidate's narrative.
 • If the original resume contains specialized sections (e.g., publications, patents), maintain these if relevant to the target position.
 • Balance completeness with focus – include all important credentials and achievements while emphasizing those most relevant to the target role.
-• NEVER use placeholder values like "None" or "N/A" in the final resume. Instead, either:
-  1. Research and include the accurate information
-  2. Make reasonable inferences based on context (e.g., inferring a university's location)
-  3. Omit the field entirely if the information is missing and cannot be reasonably inferred
+• NEVER invent information that wasn't in the original resume. If information is missing:
+  1. Only include information that can be directly inferred from the original resume
+  2. For missing minor details (like a university location), make reasonable inferences
+  3. NEVER create entire sections (like education or work experience) if they don't exist in the original resume
+  4. Omit fields entirely if information is missing and cannot be reasonably inferred
 
 ---
 
