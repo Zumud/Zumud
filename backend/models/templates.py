@@ -570,7 +570,7 @@ mteck_resume = r"""
   \begin{itemize}[itemsep=-2px, parsep=1pt, leftmargin=12pt]
     \item[] #1
   \end{itemize}
-  \vspace{-9pt}
+  \vspace{-3pt}
 }
 
 % Formats an item to use as an itemized title
