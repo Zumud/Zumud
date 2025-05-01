@@ -80,23 +80,91 @@ Make sure to:
 - The answer should be professional, concise, and highlight my most relevant skills and experiences.
 """
 
-structured_resume_prompt = """Resume:
+structured_resume_prompt = """
+You will receive:
+1. Original Resume Content — the candidate's current experience, skills, and achievements, in raw form.
+2. Target Job Description — the exact role the candidate is applying for.
+
+Use both inputs to write a tailored resume that:
+
+✅ Emphasizes the most relevant accomplishments, experiences, and skills from the original resume that directly support the job description.  
+✅ Mirrors the language, tone, and key terms used in the job description to improve compatibility with ATS filters and appeal to human reviewers.  
+✅ Strategically prioritizes content based on relevance to this specific job. Exclude completely unrelated experiences or content that adds no value to this application.  
+✅ Uses active voice, clear metrics, and concise, bullet-based storytelling to convey impact and value.  
+✅ Quantifies impact wherever possible (e.g., "Increased efficiency by 30%")  
+✅ Stays truthful — never fabricates or exaggerates experience or skills.  
+✅ Reflects the candidate's seniority level and strategic positioning (e.g., team lead vs. IC).  
+✅ Avoids filler, redundancy, or passive descriptions. Every bullet point should earn its place.  
+✅ Completes all relevant sections fully — such as title, description, dates, links, or outcomes.  
+✅ Uses a consistent date format throughout (e.g., "Jan 2020 -- Present").  
+✅ Includes skills that are inferable but not explicitly stated (e.g., Python if FastAPI is present).  
+✅ Adds a brief description for each company in the experience section that highlights its relevance to the target position.  
+✅ Ensures all honors, awards, or recognitions mentioned anywhere in the resume are properly included under the awards section.  
+✅ Keeps the final resume to a maximum of 2 pages, prioritizing the most relevant information.
+✅ Proactively fills in missing information where it can be reasonably inferred rather than leaving fields blank or using placeholders.
+
+✍️ Content Expectations (per section)
+
+🔹 Summary (Professional Profile)  
+• A 2–3 sentence pitch aligned with the job's core priorities.  
+• Communicate the candidate's key strengths and relevance to the role.  
+• Mirror tone and phrasing from the job description where appropriate.
+
+🔹 Experience
+• Use job-title-level formatting (Title, Company, Dates).  
+• Always include a brief 1-2 line company description for each employer that highlights the company's industry, size, and relevance to the target role.
+• 2–5 bullet points per job — each bullet should demonstrate:  
+    • A problem, responsibility, or challenge.  
+    • An action the candidate took.  
+    • A measurable or qualitative outcome.  
+• Prioritize results over responsibilities (impact over tasks).  
+• Use strong verbs (e.g., led, delivered, optimized, scaled, reduced).
+• For older or less relevant roles, use fewer bullet points.
+• Completely unrelated jobs or internships can be excluded if they don't contribute to the candidate's narrative for this role.
+
+🔹 Skills  
+• Focus on skills relevant to the job (both hard and soft).  
+• Prefer keywords from the job description to maximize ATS matching.  
+• Organize logically (e.g., technical skills first).  
+• Include skills that are clearly inferable from experience or tools used.
+• Exclude skills that are entirely unrelated to the job or industry.
+
+🔹 Projects / Certifications / Awards
+• Include all relevant projects, certifications, and awards from the original resume.
+• Highlight outcomes and relevance — not just participation.  
+• Prioritize those most aligned with the target job.
+• For projects, include title, technologies used, brief description, and measurable outcomes.
+• You may exclude projects that have no connection to the target role.
+• If the original project listing is missing key details like location or technologies used, research or infer this information where reasonable.
+
+🔹 Education  
+• Always include all education credentials from the original resume.
+• Format consistently with degree, institution, location, and graduation date.
+• Highlight relevant coursework, academic achievements, or extracurriculars only if they directly support the application.
+• For candidates with extensive experience, position education after experience unless it's particularly noteworthy for the role.
+• If location information is missing, research or infer the city/country of the educational institution.
+• Never use "None" as a location placeholder - either provide the actual location or leave it blank if uncertain.
+
+🧠 Keep in mind:
+
+• Always consider the level of the role (e.g., senior, junior, IC, lead).
+• Use the vocabulary and priorities from the job description to craft a resume that sounds like it was written for this exact role.
+• Integrate themes from the job description naturally into the resume without repeating verbatim.
+• Do not mention the company name or write sentences that imply the candidate already has the job.
+• Preserve all sections from the original resume (experience, education, skills, projects, certifications, awards) but optimize their content and ordering based on relevance.
+• While generally preserving all key credentials, you should exclude content that is entirely unrelated to the target role and would not contribute to the candidate's narrative.
+• If the original resume contains specialized sections (e.g., publications, patents), maintain these if relevant to the target position.
+• Balance completeness with focus – include all important credentials and achievements while emphasizing those most relevant to the target role.
+• NEVER use placeholder values like "None" or "N/A" in the final resume. Instead, either:
+  1. Research and include the accurate information
+  2. Make reasonable inferences based on context (e.g., inferring a university's location)
+  3. Omit the field entirely if the information is missing and cannot be reasonably inferred
+
+---
+
+**Original Resume:**
 {resume}
 
-Job Description:
+**Target Job Description:**
 {job_description}
-
-Please analyze this resume and job description, and output a structured JSON object
-that follows this exact schema:
-{schema}
-
-Important:
-1. Tailor the content to the job description while preserving factual information
-2. Ensure all dates are in a consistent format (e.g., "Jan 2020 -- Present")
-3. Keep achievements concise and impactful
-4. Include only relevant skills and experiences
-5. For each company in the experience section, add a brief description that highlights the company's relevance to the target position
-6. If there are honors, awards, or recognitions in the resume, include them in the awards section
-7. Format all text properly for LaTeX (escape special characters)
-8. Never use 'None' as a value - leave optional fields as empty strings or omit them entirely if the information is not available
-9. Do not include placeholder values like "N/A" or "None" in the data - use empty strings instead"""
+"""

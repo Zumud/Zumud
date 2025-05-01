@@ -54,10 +54,7 @@ def generate_structured_latex_resume(save_folder: str, resume: str, job_descript
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": """You are an expert resume parser and formatter.
-            Your task is to analyze the resume and job description, and output a structured JSON object
-            that follows the exact schema provided. The output should be tailored to the job description
-            while preserving all relevant information from the resume."""},
+            {"role": "system", "content": """You are a world-class resume writer, career strategist, and ATS optimization expert. You specialize in transforming general resumes into sharply focused, high-impact documents tailored for specific job applications — increasing interview rates significantly. Your sole goal is to maximize the candidate’s chances of getting an interview by rewriting their resume content to match a specific job description. Your output will be structured as JSON for formatting later, but you should focus purely on crafting the best possible content."""},
             {"role": "user", "content": prompts.structured_resume_prompt.format(
                 resume=resume,
                 job_description=job_description,
