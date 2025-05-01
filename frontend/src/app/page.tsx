@@ -26,9 +26,9 @@ export default function Home() {
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "Zumud - AI-Tailored Resumes & Cover Letters",
+    "name": "Zumud - Instant job-specific resumes",
     "url": "https://zumud.com",
-    "description": "Create custom resumes and cover letters that get 3× more interviews. Save 15+ minutes per application.",
+    "description": "Tailored resume and cover letter for any job in seconds. Our users report 3× more interviews — and save 15+ minutes per application.",
     "potentialAction": {
       "@type": "SearchAction",
       "target": "https://zumud.com/search?q={search_term_string}",
@@ -40,7 +40,7 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "Zumud AI Resume Builder",
-    "description": "AI-powered tool that creates tailored resumes and cover letters that get 3× more interviews",
+    "description": "Get job-specific resumes instantly. Tailored resume and cover letter that get 3× more interviews",
     "applicationCategory": "BusinessApplication",
     "offers": {
       "@type": "Offer",
@@ -54,7 +54,7 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "Zumud",
-    "description": "We help job seekers get more interviews with AI-tailored resumes and cover letters",
+    "description": "We help job seekers get more interviews with instant job-specific resumes and cover letters",
     "url": "https://zumud.com",
     "logo": "https://zumud.com/logo.png",
     "sameAs": [
