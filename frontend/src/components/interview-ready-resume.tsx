@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Check, Upload, Download, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -14,6 +14,32 @@ export default function InterviewReadyResume() {
   const [isUploading, setIsUploading] = useState(false)
   const [tailoredResumePdf, setTailoredResumePdf] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [processingStep, setProcessingStep] = useState<number>(0)
+  const processingSteps = [
+    "Uploading your resume...",
+    "Analyzing content...",
+    "Enhancing format...",
+    "Optimizing for ATS...",
+    "Finalizing your professional resume..."
+  ]
+
+  // Progress through processing steps
+  useEffect(() => {
+    if (isUploading && processingStep < processingSteps.length - 1) {
+      const interval = setInterval(() => {
+        setProcessingStep(prev => prev + 1);
+      }, 3000); // Change step every 3 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [isUploading, processingStep, processingSteps.length]);
+
+  // Reset step when upload finishes
+  useEffect(() => {
+    if (!isUploading) {
+      setProcessingStep(0);
+    }
+  }, [isUploading]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -32,6 +58,7 @@ export default function InterviewReadyResume() {
 
     setIsUploading(true)
     setError(null)
+    setProcessingStep(0)
 
     const formData = new FormData()
     formData.append("file", file)
@@ -79,7 +106,7 @@ export default function InterviewReadyResume() {
     if (tailoredResumePdf) {
       const link = document.createElement("a")
       link.href = tailoredResumePdf
-      link.download = "interview-ready-resume.pdf"
+      link.download = "enhanced-resume.pdf"
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -91,10 +118,10 @@ export default function InterviewReadyResume() {
       {/* Hero Section */}
       <header className="max-w-4xl mx-auto text-center">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
-          3× More Interviews with AI-Tailored Resumes — Instantly.
+          Instant job-specific resumes
         </h1>
         <p className="text-xl md:text-2xl text-gray-600 mb-10">
-          Create a custom resume and cover letter for any job in seconds. Our users report 3× more callbacks — and save 15+ minutes per application.
+          Get tailored resumes and cover letters for each job application in seconds. Our users report 3× more interviews — and save 15+ minutes per application.
         </p>
 
         {/* Trust Bullets */}
@@ -124,9 +151,9 @@ export default function InterviewReadyResume() {
               size="lg"
               className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
               onClick={() => setIsModalOpen(true)}
-              aria-label="Create an AI-tailored resume for more interviews"
+              aria-label="Get a free resume enhancement"
             >
-              Get My AI Resume Now
+              Free Resume Enhancement
             </Button>
           ) : (
             <div className="space-y-4">
@@ -135,10 +162,10 @@ export default function InterviewReadyResume() {
                 size="lg"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full px-8 py-6 text-lg font-medium shadow-lg hover:shadow-xl transition-all"
                 onClick={handleDownload}
-                aria-label="Download your interview-ready resume"
+                aria-label="Download your enhanced resume"
               >
                 <Download className="mr-2 h-5 w-5" aria-hidden="true" />
-                Download Your Interview-Ready Resume
+                Download Your Enhanced Resume
               </Button>
             </div>
           )}
@@ -149,7 +176,7 @@ export default function InterviewReadyResume() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Upload your resume to get 3× more interviews</DialogTitle>
+            <DialogTitle>Upload your resume for a free professional enhancement</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center cursor-pointer hover:bg-gray-50 transition-colors">
@@ -170,23 +197,39 @@ export default function InterviewReadyResume() {
 
             {error && <p className="text-red-500 text-sm" role="alert">{error}</p>}
 
-            <div className="flex justify-end">
-              <Button 
-                type="submit" 
-                disabled={!file || isUploading} 
-                className="bg-emerald-600 hover:bg-emerald-700"
-                aria-label={isUploading ? "Uploading resume..." : "Create my interview-ready resume"}
-                aria-busy={isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                    Uploading...
-                  </>
-                ) : (
-                  "Create My AI-Tailored Resume"
-                )}
-              </Button>
+            <div className="flex flex-col space-y-2 w-full">
+              {isUploading && (
+                <div className="w-full mb-2">
+                  <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-500 transition-all duration-500 ease-in-out" 
+                      style={{ 
+                        width: `${((processingStep + 1) / processingSteps.length) * 100}%` 
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 text-center">{processingSteps[processingStep]}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button 
+                  type="submit" 
+                  disabled={!file || isUploading} 
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  aria-label={isUploading ? "Processing resume..." : "Enhance My Resume"}
+                  aria-busy={isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Enhance My Resume"
+                  )}
+                </Button>
+              </div>
             </div>
           </form>
         </DialogContent>
