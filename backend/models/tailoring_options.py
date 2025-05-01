@@ -5,7 +5,7 @@ from .ai_models import AIModel
 from .templates import ResumeTemplate
 
 class TailoringOptionsBase(BaseModel):
-    ai_model: AIModel = AIModel.gpt_4o_mini
+    ai_model: AIModel = AIModel.gpt_4_1_nano
     resume_template: ResumeTemplate = ResumeTemplate.MTeck_resume
 
 class TailoringOptionsCreate(TailoringOptionsBase):
