@@ -20,9 +20,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://zumud.com"),
-  title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
-  description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application with our AI-powered resume tool.",
-  keywords: "tailored resume, AI resume builder, more interviews, custom cover letter, ATS-optimized resume, job application, time-saving",
+  title: "Instant job-specific resumes | Zumud",
+  description: "Tailored resume and cover letter for any job in seconds. Our users report 3× more interviews — and save 15+ minutes per application.",
+  keywords: "job-specific resume, tailored resume, AI resume builder, more interviews, cover letter, ATS-optimized resume, job application, time-saving",
   authors: [{ name: "Zumud" }],
   generator: "Next.js",
   applicationName: "Zumud AI Resume Builder",
@@ -46,8 +46,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
-    description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application with our AI-powered resume tool.",
+    title: "Instant job-specific resumes | Zumud",
+    description: "Tailored resume and cover letter for any job in seconds. Our users report 3× more interviews — and save 15+ minutes per application.",
     url: "https://zumud.com",
     siteName: "Zumud",
     locale: "en_US",
@@ -57,14 +57,14 @@ export const metadata: Metadata = {
         url: "/images/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Zumud AI Resume Builder - Get 3× More Interviews"
+        alt: "Zumud AI Resume Builder - Instant job-specific resumes"
       }
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
-    description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application.",
+    title: "Instant job-specific resumes | Zumud",
+    description: "Tailored resume and cover letter for any job in seconds. Our users report 3× more interviews — and save 15+ minutes per application.",
     images: ["/images/twitter-image.jpg"],
     creator: "@zumudapp",
   },
