@@ -46,7 +46,7 @@ class TailoringOptions(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
-    ai_model = Column(Enum(AIModel), nullable=False, default=AIModel.gpt_4o_mini)
+    ai_model = Column(Enum(AIModel), nullable=False, default=AIModel.gpt_4_1_nano)
     resume_template = Column(Enum(ResumeTemplate), nullable=False, default=ResumeTemplate.MTeck_resume)
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
