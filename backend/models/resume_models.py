@@ -37,48 +37,48 @@ class ResumeSection(BaseModel):
 
 class Experience(BaseModel):
     company: str
-    role: str
-    location: str
-    date_range: str
+    role: Optional[str] = None
+    location: Optional[str] = None
+    date_range: Optional[str] = None
     description: Optional[str] = None
-    achievements: List[str]
+    achievements: Optional[List[str]] = None
 
 class Education(BaseModel):
     institution: str
-    degree: str
-    location: str
-    date_range: str
+    degree: Optional[str] = None
+    location: Optional[str] = None
+    date_range: Optional[str] = None
     minors: Optional[List[str]] = None
 
 class Certification(BaseModel):
     name: str
-    issuer: str
+    issuer: Optional[str] = None
 
 class Project(BaseModel):
     name: str
-    date_range: str
-    achievements: List[str]
+    date_range: Optional[str] = None
+    achievements: Optional[List[str]] = None
 
 class PersonalInfo(BaseModel):
     name: str
-    email: str
-    phone: str
-    location: str
-    linkedin: str
-    github: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
+    linkedin: Optional[str] = None
+    github: Optional[str] = None
 
 class Award(BaseModel):
     title: str
-    issuer: str
-    date: str
+    issuer: Optional[str] = None
+    date: Optional[str] = None
     description: Optional[str] = None
 
 class StructuredResume(BaseModel):
     personal_info: PersonalInfo
-    summary: str
-    skills: List[ResumeSection]
-    experience: List[Experience]
-    education: List[Education]
+    summary: Optional[str] = None
+    skills: Optional[List[ResumeSection]] = None
+    experience: Optional[List[Experience]] = None
+    education: Optional[List[Education]] = None
     certifications: Optional[List[Certification]] = None
     projects: Optional[List[Project]] = None
     awards: Optional[List[Award]] = None
