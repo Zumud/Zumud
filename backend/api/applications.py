@@ -9,7 +9,7 @@ import os
 from backend.api.auth import get_current_user
 from backend.core import ai_service
 from backend.models.tailoring_options import TailoringOptionsBase
-from backend.utils.file_ops import PDFGenerator, save_pdf
+from backend.utils.file_ops import PDFGenerator, save_pdf, extract_text_from_pdf
 from backend.utils.path_ops import create_new_application_path, get_current_application_path
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -227,14 +227,9 @@ async def improve_resume_pdf(
             detail="Only PDF files are supported"
         )
     
-    # Read the uploaded PDF
+    # Read the uploaded PDF and extract text
     contents = await file.read()
-    pdf_reader = PyPDF2.PdfReader(io.BytesIO(contents))
-    
-    # Extract text from all pages
-    resume_text = ""
-    for page in pdf_reader.pages:
-        resume_text += page.extract_text()
+    resume_text = await extract_text_from_pdf(contents)
     
     if not resume_text.strip():
         raise HTTPException(
