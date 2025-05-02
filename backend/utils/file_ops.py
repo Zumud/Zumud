@@ -5,6 +5,8 @@ import requests
 import tarfile
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
+import io
+import PyPDF2
 
 from backend.config.config import TEX_FILE_NAME, TAR_FOLDER_NAME
 from backend.config.envs import LaTeX_COMPILER_URL_DATA
@@ -260,3 +262,22 @@ def save_application_qa(save_folder: str, question: str, answer: str) -> str:
     except Exception as e:
         logger.error(f"Error saving application Q&A: {str(e)}")
         raise e
+
+async def extract_text_from_pdf(pdf_contents: bytes) -> str:
+    """
+    Extract text from a PDF file.
+    
+    Args:
+        pdf_contents (bytes): The binary contents of the PDF file
+        
+    Returns:
+        str: Extracted text from all pages
+    """
+    pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_contents))
+    
+    # Extract text from all pages
+    extracted_text = ""
+    for page in pdf_reader.pages:
+        extracted_text += page.extract_text()
+    
+    return extracted_text
