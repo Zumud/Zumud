@@ -7,11 +7,10 @@ import { resume, applications } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Download, Loader2, FileCode, ExternalLink } from "lucide-react"
-import ProfileSettings from "./profile-settings"
+import Link from "next/link"
 
 export default function Dashboard() {
   const [userData, setUserData] = useState<any>(null)
-  const [resumeData, setResumeData] = useState<string>("")
   const [jobDescription, setJobDescription] = useState("")
   const [question, setQuestion] = useState("")
   const [answer, setAnswer] = useState("")
@@ -23,7 +22,6 @@ export default function Dashboard() {
   const [isDownloadingTeX, setIsDownloadingTeX] = useState(false)
   const [isDownloadingCoverLetter, setIsDownloadingCoverLetter] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showProfileSettings, setShowProfileSettings] = useState(false)
   const [isPreparingOverleaf, setIsPreparingOverleaf] = useState(false)
 
   // Load user data on mount
@@ -31,29 +29,8 @@ export default function Dashboard() {
     const storedUserData = getUserData()
     if (storedUserData) {
       setUserData(storedUserData)
-      fetchResumeData()
     }
   }, [])
-
-  const fetchResumeData = async () => {
-    try {
-      const data = await resume.getResume()
-      if (data && data.resume_content) {
-        setResumeData(data.resume_content)
-      }
-    } catch (err: any) {
-      console.error('Failed to load resume:', err)
-    }
-  }
-
-  const handleUpdateResume = async () => {
-    try {
-      await resume.updateResume(resumeData)
-      alert('Resume updated successfully!')
-    } catch (err: any) {
-      setError(err.message || 'Failed to update resume')
-    }
-  }
 
   const handleLogout = () => {
     removeAccessToken()
@@ -254,12 +231,11 @@ export default function Dashboard() {
       <header className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Welcome, {userData?.username || 'User'}!</h1>
         <div className="flex space-x-4">
-          <Button
-            variant="outline"
-            onClick={() => setShowProfileSettings(true)}
-          >
-            Profile Settings
-          </Button>
+          <Link href="/profile">
+            <Button variant="outline">
+              Profile Settings
+            </Button>
+          </Link>
           <Button
             variant="outline"
             onClick={handleLogout}
@@ -294,7 +270,6 @@ export default function Dashboard() {
               <TabsTrigger value="resume">Generate Resume</TabsTrigger>
               <TabsTrigger value="cover-letter">Cover Letter</TabsTrigger>
               <TabsTrigger value="questions">Answer Questions</TabsTrigger>
-              <TabsTrigger value="my-resume">My Resume</TabsTrigger>
             </TabsList>
 
             <TabsContent value="resume" className="bg-white p-6 rounded-lg shadow">
@@ -455,32 +430,9 @@ export default function Dashboard() {
                 </div>
               )}
             </TabsContent>
-
-            <TabsContent value="my-resume" className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Manage My Resume</h2>
-              <textarea
-                value={resumeData}
-                onChange={(e) => setResumeData(e.target.value)}
-                className="w-full h-80 p-3 border border-gray-300 rounded-md mb-4"
-              />
-              <Button
-                onClick={handleUpdateResume}
-                className="bg-emerald-600 hover:bg-emerald-700"
-              >
-                Save Resume
-              </Button>
-            </TabsContent>
           </Tabs>
         </div>
       </div>
-
-      {/* Profile Settings Modal */}
-      {showProfileSettings && (
-        <ProfileSettings 
-          isOpen={showProfileSettings}
-          onClose={() => setShowProfileSettings(false)}
-        />
-      )}
     </div>
   )
 } 
