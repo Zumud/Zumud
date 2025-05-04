@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from backend.models.db import Base
@@ -25,6 +25,7 @@ class Resume(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     resume_content = Column(Text, nullable=False)
+    resume_file_path = Column(String, nullable=True)  # Path to the uploaded PDF file
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Establish relationship with User
