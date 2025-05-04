@@ -135,6 +135,12 @@ export const resume = {
   
   getResumePdf: () => apiCall('users/me/resume/pdf'),
   
+  uploadResumePdf: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiCall('users/me/resume/upload', 'POST', formData, true);
+  },
+  
   getTailoringOptions: () => apiCall('users/me/tailoring-options'),
   
   updateTailoringOptions: (aiModel: string, resumeTemplate: string) => 
