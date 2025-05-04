@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
+from fastapi.responses import FileResponse
+import os
 
 from backend.models.db import get_db
 from backend.models.user_models import User, UserCreate
@@ -9,6 +11,10 @@ from backend.models.legal_authorization_models import LegalAuthorization
 from backend.models import db_models
 from backend.api.auth import get_current_user, pwd_context
 from backend.models.tailoring_options import TailoringOptionsBase, TailoringOptions
+from backend.utils.file_utils import save_base64_pdf
+from backend.utils.file_ops import extract_text_from_pdf
+import base64
+import io
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -18,7 +24,7 @@ def get_current_user_info(current_user = Depends(get_current_user)):
     return current_user
 
 @router.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
-def signup(user: UserCreate, db: Session = Depends(get_db)):
+async def signup(user: UserCreate, db: Session = Depends(get_db)):
     """Create a new user account"""
     if db.query(db_models.User).filter(db_models.User.username == user.username).first():
         raise HTTPException(
@@ -35,10 +41,40 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.flush()
     
-    if user.initial_resume:
+    # Process resume text content and/or file
+    resume_content = user.initial_resume or "Empty"
+    resume_file_path = None
+    
+    # If PDF file is provided, extract text from it
+    if user.resume_file:
+        try:
+            # Get the PDF content from base64
+            if "base64," in user.resume_file:
+                base64_data = user.resume_file.split("base64,")[1]
+            else:
+                base64_data = user.resume_file
+                
+            pdf_data = base64.b64decode(base64_data)
+            
+            # Extract text from the PDF
+            extracted_text = await extract_text_from_pdf(pdf_data)
+            
+            # Use the extracted text as resume content if it's not empty
+            if extracted_text and extracted_text.strip():
+                resume_content = extracted_text
+                
+            # Still save the file for future reference but we won't expose API endpoints for it now
+            resume_file_path = save_base64_pdf(user.resume_file)
+        except Exception as e:
+            # Log the error but continue with the signup process
+            print(f"Error extracting text from PDF: {e}")
+    
+    # Create resume record
+    if resume_content != "Empty" or resume_file_path:
         db_resume = db_models.Resume(
             user_id=db_user.id,
-            resume_content=user.initial_resume
+            resume_content=resume_content,
+            resume_file_path=resume_file_path
         )
         db.add(db_resume)
     
@@ -130,4 +166,4 @@ def update_tailoring_options(tailoring_options: TailoringOptionsBase, current_us
     
     db.commit()
     db.refresh(db_tailoring_options)
-    return db_tailoring_options 
+    return db_tailoring_options
