@@ -114,12 +114,13 @@ export const auth = {
     return apiCall('login', 'POST', formData, true);
   },
   
-  signup: (username: string, password: string, email: string, initialResume: string) => 
+  signup: (username: string, password: string, email: string, initialResume: string, resumeFile?: string) => 
     apiCall('users/signup', 'POST', { 
       username, 
       password, 
       email, 
-      initial_resume: initialResume || 'Empty' 
+      initial_resume: initialResume || 'Empty',
+      resume_file: resumeFile || null
     }),
     
   getProfile: () => apiCall('users/me'),
@@ -131,6 +132,8 @@ export const resume = {
   
   updateResume: (resumeContent: string) => 
     apiCall('users/me/resume', 'PUT', { resume_content: resumeContent }),
+  
+  getResumePdf: () => apiCall('users/me/resume/pdf'),
   
   getTailoringOptions: () => apiCall('users/me/tailoring-options'),
   
