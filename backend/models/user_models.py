@@ -10,6 +10,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     initial_resume: Optional[str] = None
+    resume_file: Optional[str] = None  # This will contain the base64 encoded file data
 
 class UserLogin(BaseModel):
     username: str
