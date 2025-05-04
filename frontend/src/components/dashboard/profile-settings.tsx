@@ -6,9 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Loader2, Upload, CheckCircle } from "lucide-react"
 import { resume } from "@/lib/api"
 
-// AI model and resume template options
-const AI_MODELS = ['GPT_3_5_TURBO', 'GPT_4', 'GPT_4_TURBO', 'CLAUDE_OPUS'];
-const RESUME_TEMPLATES = ['MINIMAL', 'PROFESSIONAL', 'MODERN', 'ACADEMIC', 'CREATIVE'];
+// AI model and resume template options have been removed
 
 interface ProfileSettingsProps {
   isOpen: boolean
@@ -16,8 +14,7 @@ interface ProfileSettingsProps {
 }
 
 export default function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
-  const [selectedAiModel, setSelectedAiModel] = useState<string>(AI_MODELS[0])
-  const [selectedResumeTemplate, setSelectedResumeTemplate] = useState<string>(RESUME_TEMPLATES[1])
+  // Removed state variables for AI model and resume template
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -27,34 +24,15 @@ export default function ProfileSettings({ isOpen, onClose }: ProfileSettingsProp
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Load current settings
-  useEffect(() => {
-    async function loadSettings() {
-      try {
-        // You'd need to create this API endpoint to get the current settings
-        const settings = await resume.getTailoringOptions()
-        if (settings) {
-          setSelectedAiModel(settings.ai_model || AI_MODELS[0])
-          setSelectedResumeTemplate(settings.resume_template || RESUME_TEMPLATES[1])
-        }
-      } catch (err) {
-        // If settings don't exist yet, no need to show an error
-        console.log('Could not load settings, using defaults')
-      }
-    }
-
-    if (isOpen) {
-      loadSettings()
-    }
-  }, [isOpen])
-
+  // Load current settings - removed as we don't need to load AI model and resume template
+  
   const handleSaveSettings = async () => {
     setIsLoading(true)
     setError(null)
     setSuccess(null)
 
     try {
-      await resume.updateTailoringOptions(selectedAiModel, selectedResumeTemplate)
+      // We're not sending AI model and resume template anymore
       setSuccess('Settings updated successfully!')
     } catch (err: any) {
       setError(err.message || 'Failed to update settings')
@@ -218,47 +196,7 @@ export default function ProfileSettings({ isOpen, onClose }: ProfileSettingsProp
             </div>
           </div>
 
-          <div>
-            <label htmlFor="ai-model" className="block text-sm font-medium text-gray-700 mb-1">
-              AI Model
-            </label>
-            <select
-              id="ai-model"
-              value={selectedAiModel}
-              onChange={(e) => setSelectedAiModel(e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
-            >
-              {AI_MODELS.map((model) => (
-                <option key={model} value={model}>
-                  {model.replace(/_/g, ' ')}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">
-              Select the AI model to use for generating content
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="resume-template" className="block text-sm font-medium text-gray-700 mb-1">
-              Resume Template
-            </label>
-            <select
-              id="resume-template"
-              value={selectedResumeTemplate}
-              onChange={(e) => setSelectedResumeTemplate(e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md"
-            >
-              {RESUME_TEMPLATES.map((template) => (
-                <option key={template} value={template}>
-                  {template.replace(/_/g, ' ')}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">
-              Choose the style for your generated resumes
-            </p>
-          </div>
+          {/* Removed AI Model and Resume Template sections */}
 
           <div className="flex justify-end pt-4">
             <Button 
