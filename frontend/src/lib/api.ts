@@ -135,10 +135,11 @@ export const resume = {
   
   getResumePdf: () => apiCall('users/me/resume/pdf'),
   
-  getTailoringOptions: () => apiCall('users/me/tailoring-options'),
-  
-  updateTailoringOptions: (aiModel: string, resumeTemplate: string) => 
-    apiCall('users/me/tailoring-options', 'PUT', { ai_model: aiModel, resume_template: resumeTemplate }),
+  uploadResumePdf: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiCall('users/me/resume/upload', 'POST', formData, true);
+  }
 };
 
 // Application endpoints

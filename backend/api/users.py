@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, File, UploadFile
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse
 import os
@@ -167,3 +167,67 @@ def update_tailoring_options(tailoring_options: TailoringOptionsBase, current_us
     db.commit()
     db.refresh(db_tailoring_options)
     return db_tailoring_options
+
+@router.post("/me/resume/upload", response_model=Resume)
+async def upload_resume_pdf(
+    file: UploadFile = File(...),
+    current_user = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """Upload a resume PDF to update the user's resume content"""
+    
+    # Check if file is PDF
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF files are supported"
+        )
+    
+    # Read the PDF contents
+    pdf_contents = await file.read()
+    
+    # Extract text from PDF
+    try:
+        extracted_text = await extract_text_from_pdf(pdf_contents)
+        
+        if not extracted_text.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Could not extract text from the PDF"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing PDF: {str(e)}"
+        )
+    
+    # Save the PDF file
+    resume_file_path = None
+    try:
+        # Convert to base64 for storage
+        base64_data = base64.b64encode(pdf_contents).decode('utf-8')
+        resume_file_path = save_base64_pdf(base64_data)
+    except Exception as e:
+        print(f"Error saving PDF file: {e}")
+        # Continue even if file save fails - we'll still update the text content
+    
+    # Check if user already has a resume
+    resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
+    
+    if resume:
+        # Update existing resume
+        resume.resume_content = extracted_text
+        resume.resume_file_path = resume_file_path or resume.resume_file_path
+        resume.last_updated = datetime.now(timezone.utc)
+    else:
+        # Create new resume
+        resume = db_models.Resume(
+            user_id=current_user.id,
+            resume_content=extracted_text,
+            resume_file_path=resume_file_path
+        )
+        db.add(resume)
+    
+    db.commit()
+    db.refresh(resume)
+    return resume
