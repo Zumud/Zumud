@@ -23,6 +23,18 @@
 - 📧 **Email Integration**: Send generated documents directly via email
 - ☁️ **Cloud Storage**: Automatic backup of your documents to Google Drive
 
+## 🌟 Key Features
+
+- **Resume Tailoring**: Automatically customize your resume for each job application using advanced AI.
+- **Cover Letter Generation**: Create personalized cover letters tailored to specific job descriptions.
+- **Resume PDF Extraction**: Upload your existing resume in PDF format and the system will intelligently extract the text.
+- **AI-Powered Resume Formatting**: Raw text from uploaded PDFs is transformed by AI into perfectly structured, clean formatting optimized for further processing.
+- **Section Recognition**: AI automatically identifies and categorizes resume sections for better analysis.
+- **Application Tracking**: Manage all your job applications in one place.
+- **Interview Question Preparation**: Get customized answers for common interview questions based on your resume and the job description.
+- **Professional PDF Output**: Download beautifully formatted PDFs for your resume and cover letter.
+- **LaTeX Export**: Access the LaTeX source code of your documents for further customization.
+
 ## 📋 Table of Contents
 
 - [Demo](#-demo)

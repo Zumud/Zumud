@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from datetime import datetime
 from fastapi.responses import FileResponse, PlainTextResponse
-import io
-import PyPDF2
 import uuid
 import os
 
