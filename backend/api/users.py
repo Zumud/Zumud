@@ -1,8 +1,6 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, status, HTTPException, File, UploadFile
 from sqlalchemy.orm import Session
-from fastapi.responses import FileResponse
-import os
 
 from backend.models.db import get_db
 from backend.models.user_models import User, UserCreate
@@ -13,6 +11,7 @@ from backend.api.auth import get_current_user, pwd_context
 from backend.models.tailoring_options import TailoringOptionsBase, TailoringOptions
 from backend.utils.file_utils import save_base64_pdf
 from backend.utils.file_ops import extract_text_from_pdf
+from backend.utils.resume_formatter import format_resume_text
 import base64
 import io
 
@@ -42,7 +41,7 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
     db.flush()
     
     # Process resume text content and/or file
-    resume_content = user.initial_resume or "Empty"
+    resume_content = user.initial_resume
     resume_file_path = None
     
     # If PDF file is provided, extract text from it
@@ -69,8 +68,12 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
             # Log the error but continue with the signup process
             print(f"Error extracting text from PDF: {e}")
     
+    # Format resume content if it exists
+    if resume_content:
+        # Use default model as user doesn't have tailoring options yet
+        resume_content = format_resume_text(resume_content)
+    
     # Create resume record
-    if resume_content != "Empty" or resume_file_path:
         db_resume = db_models.Resume(
             user_id=db_user.id,
             resume_content=resume_content,
@@ -103,7 +106,16 @@ def update_resume(resume_data: ResumeBase, current_user = Depends(get_current_us
             detail="No resume found to update"
         )
     
-    resume.resume_content = resume_data.resume_content
+    # Get the updated content
+    resume_content = resume_data.resume_content
+    
+    # Format the resume content if it's not empty
+    if resume_content:
+        # Format the resume content using AI for optimal processing
+        resume_content = format_resume_text(resume_content)
+    
+    # Update the resume content
+    resume.resume_content = resume_content
     resume.last_updated = datetime.now(timezone.utc)
     
     db.commit()
@@ -188,13 +200,18 @@ async def upload_resume_pdf(
     
     # Extract text from PDF
     try:
-        extracted_text = await extract_text_from_pdf(pdf_contents)
+        # Extract raw text from PDF
+        resume_content = await extract_text_from_pdf(pdf_contents)
         
-        if not extracted_text.strip():
+        if not resume_content.strip():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Could not extract text from the PDF"
             )
+            
+        # Format the resume content using AI for optimal processing
+        resume_content = format_resume_text(resume_content)
+        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -216,14 +233,14 @@ async def upload_resume_pdf(
     
     if resume:
         # Update existing resume
-        resume.resume_content = extracted_text
+        resume.resume_content = resume_content
         resume.resume_file_path = resume_file_path or resume.resume_file_path
         resume.last_updated = datetime.now(timezone.utc)
     else:
         # Create new resume
         resume = db_models.Resume(
             user_id=current_user.id,
-            resume_content=extracted_text,
+            resume_content=resume_content,
             resume_file_path=resume_file_path
         )
         db.add(resume)
