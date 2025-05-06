@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, status, HTTPException, File, UploadFile
+from fastapi import APIRouter, Depends, status, HTTPException, File, UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session
+from loguru import logger
+import base64
 
 from backend.models.db import get_db
 from backend.models.user_models import User, UserCreate
@@ -12,8 +14,6 @@ from backend.models.tailoring_options import TailoringOptionsBase, TailoringOpti
 from backend.utils.file_utils import save_base64_pdf
 from backend.utils.file_ops import extract_text_from_pdf
 from backend.utils.resume_formatter import format_resume_text
-import base64
-import io
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -22,8 +22,31 @@ def get_current_user_info(current_user = Depends(get_current_user)):
     """Get current user information"""
     return current_user
 
+async def process_resume_background(
+    user_id: int, 
+    resume_content: str, 
+    db_session_factory,
+):
+    """Background task to process resume content and update the database"""
+    # Create a new session for this background task
+    db = db_session_factory()
+    try:
+        # Format resume content if it exists and isn't empty
+        if resume_content and resume_content.strip():
+            formatted_content = format_resume_text(resume_content)
+            
+            # Update the resume record with formatted content
+            db_resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == user_id).first()
+            if db_resume:
+                db_resume.resume_content = formatted_content
+                db.commit()
+    except Exception as e:
+        logger.error(f"Error in background resume processing: {e}")
+    finally:
+        db.close()
+
 @router.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
-async def signup(user: UserCreate, db: Session = Depends(get_db)):
+async def signup(user: UserCreate, db: Session = Depends(get_db), background_tasks: BackgroundTasks = None):
     """Create a new user account"""
     if db.query(db_models.User).filter(db_models.User.username == user.username).first():
         raise HTTPException(
@@ -66,23 +89,26 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
             resume_file_path = save_base64_pdf(user.resume_file)
         except Exception as e:
             # Log the error but continue with the signup process
-            print(f"Error extracting text from PDF: {e}")
+            logger.error(f"Error extracting text from PDF: {e}")
     
-    # Format resume content if it exists and isn't empty
-    if resume_content and resume_content.strip():
-        # Use default model as user doesn't have tailoring options yet
-        resume_content = format_resume_text(resume_content)
-    
-    # Create resume record
+    # Store initial unformatted content in the database
     db_resume = db_models.Resume(
         user_id=db_user.id,
-        resume_content=resume_content or "",  # Store empty string if no content but we have a file
+        resume_content=resume_content or "",  # Store raw content initially
         resume_file_path=resume_file_path
     )
     db.add(db_resume)
-    
     db.commit()
     db.refresh(db_user)
+    
+    # Schedule the resume formatting to happen in the background
+    background_tasks.add_task(
+        process_resume_background,
+        db_user.id,
+        resume_content,
+        get_db
+    )
+    
     return db_user
 
 @router.get("/me/resume", response_model=Resume)
@@ -97,7 +123,12 @@ def get_user_resume(current_user = Depends(get_current_user), db: Session = Depe
     return resume
 
 @router.put("/me/resume", response_model=Resume)
-def update_resume(resume_data: ResumeBase, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_resume(
+    resume_data: ResumeBase, 
+    current_user = Depends(get_current_user), 
+    db: Session = Depends(get_db),
+    background_tasks: BackgroundTasks = None
+):
     """Update current user's resume"""
     resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
     if not resume:
@@ -109,17 +140,21 @@ def update_resume(resume_data: ResumeBase, current_user = Depends(get_current_us
     # Get the updated content
     resume_content = resume_data.resume_content
     
-    # Format the resume content if it's not empty
-    if resume_content:
-        # Format the resume content using AI for optimal processing
-        resume_content = format_resume_text(resume_content)
-    
-    # Update the resume content
+    # Store unformatted content initially
     resume.resume_content = resume_content
     resume.last_updated = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(resume)
+    
+    # Format the resume content in the background
+    background_tasks.add_task(
+        process_resume_background,
+        current_user.id,
+        resume_content,
+        get_db
+    )
+    
     return resume
 
 @router.get("/me/work-authorization", response_model=LegalAuthorization)
@@ -184,7 +219,8 @@ def update_tailoring_options(tailoring_options: TailoringOptionsBase, current_us
 async def upload_resume_pdf(
     file: UploadFile = File(...),
     current_user = Depends(get_current_user), 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    background_tasks: BackgroundTasks = None
 ):
     """Upload a resume PDF to update the user's resume content"""
     
@@ -208,10 +244,6 @@ async def upload_resume_pdf(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Could not extract text from the PDF"
             )
-            
-        # Format the resume content using AI for optimal processing
-        resume_content = format_resume_text(resume_content)
-        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -225,19 +257,19 @@ async def upload_resume_pdf(
         base64_data = base64.b64encode(pdf_contents).decode('utf-8')
         resume_file_path = save_base64_pdf(base64_data)
     except Exception as e:
-        print(f"Error saving PDF file: {e}")
+        logger.error(f"Error saving PDF file: {e}")
         # Continue even if file save fails - we'll still update the text content
     
     # Check if user already has a resume
     resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
     
     if resume:
-        # Update existing resume
+        # Update existing resume with raw content
         resume.resume_content = resume_content
         resume.resume_file_path = resume_file_path or resume.resume_file_path
         resume.last_updated = datetime.now(timezone.utc)
     else:
-        # Create new resume
+        # Create new resume with raw content
         resume = db_models.Resume(
             user_id=current_user.id,
             resume_content=resume_content,
@@ -247,4 +279,13 @@ async def upload_resume_pdf(
     
     db.commit()
     db.refresh(resume)
+    
+    # Format the resume content in the background
+    background_tasks.add_task(
+        process_resume_background,
+        current_user.id,
+        resume_content,
+        get_db
+    )
+    
     return resume
