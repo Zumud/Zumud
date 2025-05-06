@@ -32,7 +32,8 @@ async def process_resume_background(
     try:
         # Format resume content if it exists and isn't empty
         if resume_content and resume_content.strip():
-            formatted_content = format_resume_text(resume_content)
+            # Use the async format_resume_text function
+            formatted_content = await format_resume_text(resume_content)
             
             # Update the resume record with formatted content
             db_resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == user_id).first()
@@ -128,6 +129,7 @@ def update_resume(
     background_tasks: BackgroundTasks = None
 ):
     """Update current user's resume"""
+    
     resume = db.query(db_models.Resume).filter(db_models.Resume.user_id == current_user.id).first()
     if not resume:
         raise HTTPException(
@@ -143,7 +145,6 @@ def update_resume(
     resume.last_updated = datetime.now(timezone.utc)
     
     db.commit()
-    db.refresh(resume)
     
     # Format the resume content in the background
     background_tasks.add_task(
@@ -151,6 +152,7 @@ def update_resume(
         current_user.id,
         resume_content,
     )
+    
     
     return resume
 
@@ -220,6 +222,8 @@ async def upload_resume_pdf(
     background_tasks: BackgroundTasks = None
 ):
     """Upload a resume PDF to update the user's resume content"""
+    start_time = datetime.now()
+    logger.info(f"Starting resume upload for user {current_user.id}")
     
     # Check if file is PDF
     if not file.filename.endswith('.pdf'):
@@ -242,6 +246,7 @@ async def upload_resume_pdf(
                 detail="Could not extract text from the PDF"
             )
     except Exception as e:
+        logger.error(f"Error processing PDF: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing PDF: {str(e)}"
@@ -275,7 +280,6 @@ async def upload_resume_pdf(
         db.add(resume)
     
     db.commit()
-    db.refresh(resume)
     
     # Format the resume content in the background
     background_tasks.add_task(
@@ -283,5 +287,8 @@ async def upload_resume_pdf(
         current_user.id,
         resume_content,
     )
+    
+    end_time = datetime.now()
+    logger.info(f"Resume upload endpoint completed in {(end_time - start_time).total_seconds()} seconds")
     
     return resume

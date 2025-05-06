@@ -1,12 +1,13 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 from backend.config.envs import OPEN_AI_KEY
 from backend.models.ai_models import AIModel
 
-client = OpenAI(api_key=OPEN_AI_KEY)
+# Create an async client for OpenAI API calls
+client = AsyncOpenAI(api_key=OPEN_AI_KEY)
 
-def format_resume_text(raw_text: str, model=AIModel.gpt_4_1_nano) -> str:
+async def format_resume_text(raw_text: str, model=AIModel.gpt_4_1_nano) -> str:
     """
-    Format extracted resume text into a clean, structured format suitable for AI processing.
+    Asynchronously format extracted resume text into a clean, structured format suitable for AI processing.
     
     Args:
         raw_text (str): The raw text extracted from a resume PDF
@@ -38,8 +39,8 @@ Your output should ONLY include the formatted plain text resume without any expl
     
     user_prompt = f"Here is the raw text extracted from a resume PDF. Please format it into a clean, structured plain text resume:\n\n{raw_text}"
     
-    # Call the OpenAI API
-    response = client.chat.completions.create(
+    # Call the OpenAI API asynchronously
+    response = await client.chat.completions.create(
         model=model,  # Using the AI model from parameter
         messages=[
             {"role": "system", "content": system_prompt},
