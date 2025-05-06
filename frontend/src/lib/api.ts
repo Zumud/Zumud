@@ -119,7 +119,7 @@ export const auth = {
       username, 
       password, 
       email, 
-      initial_resume: initialResume || 'Empty',
+      initial_resume: initialResume || null,
       resume_file: resumeFile || null
     }),
     
