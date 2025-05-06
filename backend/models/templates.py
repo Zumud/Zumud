@@ -769,68 +769,7 @@ Template_Details = {
   }
 }
 
-john_doe_resume = """John Doe
 
-[Email: johndoe@example.com] | [Phone: +44 123 456 7890] | [LinkedIn: linkedin.com/in/johndoe] | [GitHub: github.com/johndoe]
-London, UK
-
-PROFESSIONAL SUMMARY
-
-Passionate and detail-oriented Software Engineer with 5+ years of experience designing, developing, and implementing scalable and efficient software solutions. Adept at collaborating with cross-functional teams, writing clean code, and leveraging cutting-edge technologies to drive business success. Skilled in back-end development, API integrations, and cloud computing.
-
-TECHNICAL SKILLS
-
-Programming Languages: Python, JavaScript, Java, C++
-Frameworks & Libraries: React.js, Node.js, Django, Spring Boot
-Databases: MySQL, PostgreSQL, MongoDB
-DevOps & Cloud: Docker, Kubernetes, AWS, Azure, CI/CD pipelines
-Tools: Git, JIRA, Jenkins, Elasticsearch, Redis
-
-PROFESSIONAL EXPERIENCE
-
-Software Engineer
-
-Tech Innovators Ltd., London, UK
-June 2020 – Present
-	•	Designed and implemented scalable APIs that improved system performance by 25%.
-	•	Migrated legacy systems to cloud-based architecture, reducing downtime by 30%.
-	•	Developed and deployed automated CI/CD pipelines, speeding up software delivery cycles by 40%.
-	•	Collaborated with product managers to gather requirements and optimize user experience.
-
-Junior Software Engineer
-
-Digital Solutions Inc., London, UK
-August 2018 – May 2020
-	•	Built responsive front-end applications using React.js, improving user engagement by 15%.
-	•	Debugged and resolved critical back-end issues, ensuring 99.9% uptime for client systems.
-	•	Conducted code reviews and implemented best practices to maintain high-quality codebases.
-	•	Developed scripts to automate routine tasks, saving over 10 hours of manual work per week.
-
-EDUCATION
-
-Bachelor of Science in Computer Science
-University College London (UCL)
-Graduated: 2018
-
-PROJECTS
-
-E-commerce Platform:
-	•	Built a full-stack e-commerce web app using React.js, Node.js, and MongoDB.
-	•	Implemented a recommendation engine using machine learning to boost sales by 20%.
-
-IoT Device Management System:
-	•	Designed a cloud-based dashboard to monitor and manage IoT devices, improving reliability by 30%.
-
-CERTIFICATIONS
-	•	AWS Certified Solutions Architect – Associate
-	•	Certified Kubernetes Administrator (CKA)
-	•	React Developer Certification
-
-PERSONAL ATTRIBUTES
-	•	Strong problem-solving skills with a passion for continuous learning.
-	•	Excellent team player with a proven ability to collaborate across departments.
-	•	Effective communicator, capable of presenting technical concepts to non-technical audiences.
-"""
 john_doe_legal_authorization = """
   eu_work_authorization: Yes
   us_work_authorization: Yes
