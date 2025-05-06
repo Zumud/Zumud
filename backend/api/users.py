@@ -68,18 +68,18 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
             # Log the error but continue with the signup process
             print(f"Error extracting text from PDF: {e}")
     
-    # Format resume content if it exists
-    if resume_content:
+    # Format resume content if it exists and isn't empty
+    if resume_content and resume_content.strip():
         # Use default model as user doesn't have tailoring options yet
         resume_content = format_resume_text(resume_content)
     
     # Create resume record
-        db_resume = db_models.Resume(
-            user_id=db_user.id,
-            resume_content=resume_content,
-            resume_file_path=resume_file_path
-        )
-        db.add(db_resume)
+    db_resume = db_models.Resume(
+        user_id=db_user.id,
+        resume_content=resume_content or "",  # Store empty string if no content but we have a file
+        resume_file_path=resume_file_path
+    )
+    db.add(db_resume)
     
     db.commit()
     db.refresh(db_user)
@@ -92,7 +92,7 @@ def get_user_resume(current_user = Depends(get_current_user), db: Session = Depe
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {current_user.id} does not have a resume"
+            detail=f"User with id {current_user.id} does not have a resume record"
         )
     return resume
 

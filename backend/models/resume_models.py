@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 
 class ResumeBase(BaseModel):
-    resume_content: str
+    resume_content: Optional[str] = None
 
 class Resume(ResumeBase):
     last_updated: datetime
