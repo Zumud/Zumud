@@ -21,9 +21,16 @@ def generate_tailored_plain_resume(
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User does not have a resume"
+            detail="User does not have a resume record. Please upload a resume first."
         )
     
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details before generating a tailored resume."
+        )
+
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     return ai_service.generate_tailored_resume_text(
         current_user.resumes.resume_content,
@@ -41,7 +48,14 @@ def generate_tailored_plain_coverletter(
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User does not have a resume"
+            detail="User does not have a resume record. Please upload a resume first."
+        )
+    
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details before generating a cover letter."
         )
     
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
@@ -102,7 +116,14 @@ def generate_and_save_pdf_resume(
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User does not have a resume"
+            detail="User does not have a resume record. Please upload a resume first."
+        )
+    
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details before generating a PDF."
         )
     
     company_name = ai_service.get_company_name(job_description)
@@ -201,7 +222,14 @@ def answer_application_questions(
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User does not have a resume"
+            detail="User does not have a resume record. Please upload a resume first."
+        )
+    
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details before generating answers."
         )
     
     save_path = get_current_application_path(current_user.username)
@@ -212,7 +240,7 @@ def answer_application_questions(
         question,
         str(save_path),
         tailoring_options.ai_model
-    ) 
+    )
 
 @router.post("/resume/improve")
 async def improve_resume_pdf(
