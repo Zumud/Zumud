@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from loguru import logger
 import base64
 
-from backend.models.db import get_db
+from backend.models.db import get_db, SessionLocal
 from backend.models.user_models import User, UserCreate
 from backend.models.resume_models import Resume, ResumeBase
 from backend.models.legal_authorization_models import LegalAuthorization
@@ -24,12 +24,11 @@ def get_current_user_info(current_user = Depends(get_current_user)):
 
 async def process_resume_background(
     user_id: int, 
-    resume_content: str, 
-    db_session_factory,
+    resume_content: str,
 ):
     """Background task to process resume content and update the database"""
     # Create a new session for this background task
-    db = db_session_factory()
+    db = SessionLocal()
     try:
         # Format resume content if it exists and isn't empty
         if resume_content and resume_content.strip():
@@ -106,7 +105,6 @@ async def signup(user: UserCreate, db: Session = Depends(get_db), background_tas
         process_resume_background,
         db_user.id,
         resume_content,
-        get_db
     )
     
     return db_user
@@ -152,7 +150,6 @@ def update_resume(
         process_resume_background,
         current_user.id,
         resume_content,
-        get_db
     )
     
     return resume
@@ -285,7 +282,6 @@ async def upload_resume_pdf(
         process_resume_background,
         current_user.id,
         resume_content,
-        get_db
     )
     
     return resume
