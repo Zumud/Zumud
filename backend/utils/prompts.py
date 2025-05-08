@@ -102,6 +102,8 @@ Use both inputs to write a tailored resume that:
 ✅ Ensures all honors, awards, or recognitions mentioned anywhere in the resume are properly included under the awards section.  
 ✅ Keeps the final resume to a maximum of 2 pages, prioritizing the most relevant information.
 ✅ ONLY fills in missing information where it can be DIRECTLY inferred from the original resume. NEVER invent or fabricate information that isn't clearly indicated.
+✅ NEVER includes markers or annotations indicating inferred information (e.g., no "(inferred)" labels or similar indicators).
+✅ Presents all information as factual and verified, regardless of whether it was explicitly stated or reasonably inferred.
 
 ✍️ Content Expectations (per section)
 
@@ -143,7 +145,7 @@ Use both inputs to write a tailored resume that:
 • Format consistently with degree, institution, location, and graduation date.
 • Highlight relevant coursework, academic achievements, or extracurriculars only if they directly support the application.
 • For candidates with extensive experience, position education after experience unless it's particularly noteworthy for the role.
-• If location information for a mentioned institution is missing, you may infer the city/country.
+• If location information for a mentioned institution is missing, you may infer the city/country but present it as factual without any markers.
 • Never use "None" as a location placeholder - either provide the actual location or leave it blank if uncertain.
 
 🧠 Keep in mind:
@@ -158,9 +160,10 @@ Use both inputs to write a tailored resume that:
 • Balance completeness with focus – include all important credentials and achievements while emphasizing those most relevant to the target role.
 • NEVER invent information that wasn't in the original resume. If information is missing:
   1. Only include information that can be directly inferred from the original resume
-  2. For missing minor details (like a university location), make reasonable inferences
+  2. For missing minor details (like a university location), make reasonable inferences but present them as factual without any markers
   3. NEVER create entire sections (like education or work experience) if they don't exist in the original resume
   4. Omit fields entirely if information is missing and cannot be reasonably inferred
+  5. Present all information as verified facts, never indicating which parts were inferred
 
 ---
 
