@@ -6,6 +6,7 @@ class AIModel(str, Enum):
     """
     # GPT-4.1 models
     gpt_4_1_nano = "gpt-4.1-nano"
+    gpt_4_1_mini = "gpt-4.1-mini"
     
     # GPT-4o models
     gpt_4o = "gpt-4o"
