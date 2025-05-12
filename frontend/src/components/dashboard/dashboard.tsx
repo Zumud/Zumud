@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
-import { resume, applications } from "@/lib/api"
+import { applications } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2, FileCode, ExternalLink } from "lucide-react"
+import { Download, Loader2, FileCode, ExternalLink, AlertCircle } from "lucide-react"
 import Link from "next/link"
 
 export default function Dashboard() {
@@ -38,72 +38,125 @@ export default function Dashboard() {
     window.location.reload()
   }
 
-  const handleGenerateResume = async () => {
-    if (!jobDescription.trim()) {
-      setError("Please enter a job description")
-      return
-    }
-
-    setIsGeneratingResume(true)
-    setError(null)
-
-    try {
-      // The API now directly returns a PDF blob
-      const result = await applications.generateResume(jobDescription)
-      
-      // Create a URL for the PDF blob
-      const pdfUrl = URL.createObjectURL(result)
-      setGeneratedResumePdf(pdfUrl)
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate resume')
-    } finally {
-      setIsGeneratingResume(false)
+  // Reusable function to handle errors, especially timeouts
+  const handleError = (err: any, defaultMessage: string) => {
+    console.error(defaultMessage, err)
+    
+    if (err.name === 'AbortError' || (err.message && err.message.includes("took too long to complete"))) {
+      setError("Timeout: The request took too long to complete. Try again with a shorter job description.")
+    } else {
+      setError(err.message || defaultMessage)
     }
   }
 
-  const handleGenerateCoverLetter = async () => {
-    if (!jobDescription.trim()) {
-      setError("Please enter a job description")
-      return
+  // Creates a URL from a blob and triggers download
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    // Release the URL after a short delay
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    return url
+  }
+
+  // Generic async operation handler with processing message
+  const asyncOperation = async (
+    operation: () => Promise<any>,
+    setLoading: (loading: boolean) => void,
+    operationName: string,
+    processingMessage: string,
+    onSuccess: (result: any) => void,
+    defaultErrorMessage: string,
+    validationFn?: () => string | null
+  ) => {
+    // Run validation if provided
+    if (validationFn) {
+      const validationError = validationFn()
+      if (validationError) {
+        setError(validationError)
+        return
+      }
     }
 
-    setIsGeneratingCoverLetter(true)
+    setLoading(true)
     setError(null)
+    
+    // Set a processing message after 5 seconds
+    const processingMessageTimeout = setTimeout(() => {
+      setError(processingMessage)
+    }, 5000)
 
     try {
-      const result = await applications.generateCoverLetter(jobDescription)
-      setCoverLetter(result)
+      const result = await operation()
+      setError(null)
+      onSuccess(result)
     } catch (err: any) {
-      setError(err.message || 'Failed to generate cover letter')
+      handleError(err, defaultErrorMessage)
     } finally {
-      setIsGeneratingCoverLetter(false)
+      clearTimeout(processingMessageTimeout)
+      setLoading(false)
     }
   }
 
-  const handleAnswerQuestion = async () => {
-    if (!jobDescription.trim() || !question.trim()) {
-      setError("Please enter both a job description and a question")
-      return
-    }
+  const handleGenerateResume = () => {
+    asyncOperation(
+      // Operation to perform
+      () => applications.generateResume(jobDescription),
+      // Set loading state
+      setIsGeneratingResume,
+      // Operation name 
+      "resume generation",
+      // Processing message
+      "Processing your request. Resume generation may take up to a minute for complex job descriptions...",
+      // Success handler
+      (result) => {
+        const pdfUrl = URL.createObjectURL(result)
+        setGeneratedResumePdf(pdfUrl)
+      },
+      // Default error message
+      "Failed to generate resume",
+      // Validation
+      () => !jobDescription.trim() ? "Please enter a job description" : null
+    )
+  }
 
-    setIsGeneratingAnswer(true)
-    setError(null)
+  const handleGenerateCoverLetter = () => {
+    asyncOperation(
+      () => applications.generateCoverLetter(jobDescription),
+      setIsGeneratingCoverLetter,
+      "cover letter generation",
+      "Processing your request. Cover letter generation may take up to a minute for complex job descriptions...",
+      (result) => setCoverLetter(result),
+      "Failed to generate cover letter",
+      () => !jobDescription.trim() ? "Please enter a job description" : null
+    )
+  }
 
-    try {
-      const result = await applications.answerQuestion(jobDescription, question)
-      setAnswer(result)
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate answer')
-    } finally {
-      setIsGeneratingAnswer(false)
-    }
+  const handleAnswerQuestion = () => {
+    asyncOperation(
+      () => applications.answerQuestion(jobDescription, question),
+      setIsGeneratingAnswer,
+      "answer generation",
+      "Processing your request. This may take up to a minute...",
+      (result) => setAnswer(result),
+      "Failed to generate answer",
+      () => {
+        if (!jobDescription.trim()) return "Please enter a job description"
+        if (!question.trim()) return "Please enter a question"
+        return null
+      }
+    )
   }
 
   const handleDownloadResume = () => {
     if (generatedResumePdf) {
       const link = document.createElement("a")
       link.href = generatedResumePdf
-      // Use a more descriptive filename that includes timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
       link.download = `tailored_resume_${timestamp}.pdf`
       document.body.appendChild(link)
@@ -112,118 +165,69 @@ export default function Dashboard() {
     }
   }
 
-  const handleDownloadTeX = async () => {
-    setIsDownloadingTeX(true)
-    setError(null)
-
-    try {
-      console.log("Requesting .tex file from API")
-      const result = await applications.getResumeTeX()
-      console.log("Received response:", result)
-      
-      // Check if we got a valid result
-      if (!result) {
-        throw new Error("Received empty response from server")
-      }
-      
-      // Create a URL for the tex file blob
-      const texUrl = URL.createObjectURL(result)
-      console.log("Created blob URL:", texUrl)
-      
-      const link = document.createElement("a")
-      link.href = texUrl
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      link.download = `tailored_resume_${timestamp}.tex`
-      document.body.appendChild(link)
-      console.log("Starting download")
-      link.click()
-      document.body.removeChild(link)
-      
-      // Release the blob URL
-      setTimeout(() => {
-        URL.revokeObjectURL(texUrl)
-        console.log("Revoked blob URL")
-      }, 1000)
-    } catch (err: any) {
-      console.error("Download .tex file error:", err)
-      setError(err.message || 'Failed to download .tex file. Make sure you have generated a resume first.')
-    } finally {
-      setIsDownloadingTeX(false)
-    }
+  const handleDownloadTeX = () => {
+    asyncOperation(
+      () => applications.getResumeTeX(),
+      setIsDownloadingTeX,
+      "tex file download",
+      "Processing your request. This may take up to a minute...",
+      (result) => {
+        if (!result) {
+          throw new Error("Received empty response from server")
+        }
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+        downloadBlob(result, `tailored_resume_${timestamp}.tex`)
+      },
+      "Failed to download .tex file. Make sure you have generated a resume first."
+    )
   }
 
-  const handleOpenInOverleaf = async () => {
-    setIsPreparingOverleaf(true)
-    setError(null)
+  const handleOpenInOverleaf = () => {
+    asyncOperation(
+      () => applications.getResumeTeXContent(),
+      setIsPreparingOverleaf,
+      "Overleaf preparation",
+      "Processing your request. This may take up to a minute...",
+      (texContent) => {
+        // Create a form to POST to Overleaf
+        const form = document.createElement('form')
+        form.method = 'post'
+        form.action = 'https://www.overleaf.com/docs'
+        form.target = '_blank'
+        form.style.display = 'none'
 
-    try {
-      console.log("Requesting .tex content for Overleaf")
-      const texContent = await applications.getResumeTeXContent()
-      console.log("Received .tex content")
+        // Create an input field with the content
+        const input = document.createElement('input')
+        input.type = 'hidden'
+        input.name = 'snip'
+        input.value = texContent
 
-      // Create a form to POST to Overleaf
-      const form = document.createElement('form')
-      form.method = 'post'
-      form.action = 'https://www.overleaf.com/docs'
-      form.target = '_blank'
-      form.style.display = 'none'
-
-      // Create an input field with the content
-      const input = document.createElement('input')
-      input.type = 'hidden'
-      input.name = 'snip'
-      input.value = texContent
-
-      // Add input to form and submit
-      form.appendChild(input)
-      document.body.appendChild(form)
-      console.log("Submitting to Overleaf")
-      form.submit()
-      document.body.removeChild(form)
-
-    } catch (err: any) {
-      console.error("Open in Overleaf error:", err)
-      setError(err.message || 'Failed to open in Overleaf. Make sure you have generated a resume first.')
-    } finally {
-      setIsPreparingOverleaf(false)
-    }
+        // Add input to form and submit
+        form.appendChild(input)
+        document.body.appendChild(form)
+        form.submit()
+        document.body.removeChild(form)
+      },
+      "Failed to open in Overleaf. Make sure you have generated a resume first."
+    )
   }
 
-  const handleDownloadCoverLetter = async () => {
-    if (!coverLetter) {
-      setError("Please generate a cover letter first")
-      return
-    }
-    
-    setIsDownloadingCoverLetter(true)
-    setError(null)
-
-    try {
-      const result = await applications.getCoverLetterPDF()
-      
-      if (!result) {
-        throw new Error("Received empty response from server")
-      }
-      
-      const pdfUrl = URL.createObjectURL(result)
-      
-      const link = document.createElement("a")
-      link.href = pdfUrl
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      link.download = `cover_letter_${timestamp}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      setTimeout(() => {
-        URL.revokeObjectURL(pdfUrl)
-      }, 1000)
-    } catch (err: any) {
-      console.error("Download cover letter error:", err)
-      setError(err.message || 'Failed to download cover letter PDF. Make sure you have generated a cover letter first.')
-    } finally {
-      setIsDownloadingCoverLetter(false)
-    }
+  const handleDownloadCoverLetter = () => {
+    asyncOperation(
+      () => applications.getCoverLetterPDF(),
+      setIsDownloadingCoverLetter,
+      "cover letter PDF download",
+      "Processing your request. This may take up to a minute...",
+      (result) => {
+        if (!result) {
+          throw new Error("Received empty response from server")
+        }
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+        downloadBlob(result, `cover_letter_${timestamp}.pdf`)
+      },
+      "Failed to download cover letter PDF. Make sure you have generated a cover letter first.",
+      () => !coverLetter ? "Please generate a cover letter first" : null
+    )
   }
 
   return (
@@ -245,9 +249,13 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Error message */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-          <span className="block sm:inline">{error}</span>
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            <span className="block sm:inline">{error}</span>
+          </div>
         </div>
       )}
 
