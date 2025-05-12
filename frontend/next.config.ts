@@ -11,6 +11,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Increase the proxy timeout for API requests to 120 seconds (default is 30s)
+  experimental: {
+    proxyTimeout: 120000, // 120 seconds in milliseconds
+  },
   async rewrites() {
     const apiUrl = process.env.API_URL || 'http://localhost:8000';
     return [
