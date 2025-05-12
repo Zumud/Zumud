@@ -86,11 +86,6 @@ export default function Dashboard() {
     setLoading(true)
     setError(null)
     
-    // Set a processing message after 5 seconds
-    const processingMessageTimeout = setTimeout(() => {
-      setError(processingMessage)
-    }, 5000)
-
     try {
       const result = await operation()
       setError(null)
@@ -98,7 +93,6 @@ export default function Dashboard() {
     } catch (err: any) {
       handleError(err, defaultErrorMessage)
     } finally {
-      clearTimeout(processingMessageTimeout)
       setLoading(false)
     }
   }
@@ -112,7 +106,7 @@ export default function Dashboard() {
       // Operation name 
       "resume generation",
       // Processing message
-      "Processing your request. Resume generation may take up to a minute for complex job descriptions...",
+      "Generating resume...",
       // Success handler
       (result) => {
         const pdfUrl = URL.createObjectURL(result)
@@ -130,7 +124,7 @@ export default function Dashboard() {
       () => applications.generateCoverLetter(jobDescription),
       setIsGeneratingCoverLetter,
       "cover letter generation",
-      "Processing your request. Cover letter generation may take up to a minute for complex job descriptions...",
+      "Generating cover letter...",
       (result) => setCoverLetter(result),
       "Failed to generate cover letter",
       () => !jobDescription.trim() ? "Please enter a job description" : null
@@ -142,7 +136,7 @@ export default function Dashboard() {
       () => applications.answerQuestion(jobDescription, question),
       setIsGeneratingAnswer,
       "answer generation",
-      "Processing your request. This may take up to a minute...",
+      "Generating answer...",
       (result) => setAnswer(result),
       "Failed to generate answer",
       () => {
@@ -170,7 +164,7 @@ export default function Dashboard() {
       () => applications.getResumeTeX(),
       setIsDownloadingTeX,
       "tex file download",
-      "Processing your request. This may take up to a minute...",
+      "Preparing TeX file...",
       (result) => {
         if (!result) {
           throw new Error("Received empty response from server")
@@ -187,7 +181,7 @@ export default function Dashboard() {
       () => applications.getResumeTeXContent(),
       setIsPreparingOverleaf,
       "Overleaf preparation",
-      "Processing your request. This may take up to a minute...",
+      "Preparing for Overleaf...",
       (texContent) => {
         // Create a form to POST to Overleaf
         const form = document.createElement('form')
@@ -217,7 +211,7 @@ export default function Dashboard() {
       () => applications.getCoverLetterPDF(),
       setIsDownloadingCoverLetter,
       "cover letter PDF download",
-      "Processing your request. This may take up to a minute...",
+      "Preparing PDF...",
       (result) => {
         if (!result) {
           throw new Error("Received empty response from server")
