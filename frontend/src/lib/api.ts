@@ -10,6 +10,9 @@ if (process.env.NODE_ENV === 'development') {
   API_BASE_URL = 'http://localhost:8000';
 }
 
+// Default timeout for API calls (in milliseconds)
+const DEFAULT_TIMEOUT = 60000; // 1 minute for all operations
+
 // Generic API call function
 async function apiCall(
   endpoint: string,
@@ -54,7 +57,18 @@ async function apiCall(
   
   try {
     console.log(`Calling ${method} ${url}`, options);
+    
+    // Use AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+    
+    // Add signal to options
+    options.signal = controller.signal;
+    
     const response = await fetch(url, options);
+    
+    // Clear the timeout since the request completed
+    clearTimeout(timeoutId);
     
     // Handle non-2xx responses
     if (!response.ok) {
@@ -97,8 +111,14 @@ async function apiCall(
     
     // Default to text
     return await response.text();
-  } catch (error) {
+  } catch (error: any) {
     console.error('API call failed:', error);
+    
+    // Handle timeout errors with more meaningful messages
+    if (error.name === 'AbortError') {
+      throw new Error('The request took too long to complete. This typically happens when generating complex resumes. Please try again or use a shorter job description.');
+    }
+    
     throw error;
   }
 }
@@ -145,16 +165,16 @@ export const resume = {
 // Application endpoints
 export const applications = {
   generateResume: (jobDescription: string) => 
-    apiCall('applications/resume/pdf', 'GET', { job_description: jobDescription }),
+    apiCall('applications/resume/pdf', 'GET', { job_description: jobDescription }, false),
   
   getResumeTeX: () => 
-    apiCall('applications/resume/tex', 'GET'),
+    apiCall('applications/resume/tex', 'GET', undefined, false),
   
   getResumeTeXContent: () => 
     apiCall('applications/resume/tex/content', 'GET'),
   
   generateCoverLetter: (jobDescription: string) => 
-    apiCall('applications/cover-letter/plain', 'GET', { job_description: jobDescription }),
+    apiCall('applications/cover-letter/plain', 'GET', { job_description: jobDescription }, false),
   
   getCoverLetterPDF: () => 
     apiCall('applications/cover-letter/pdf', 'GET'),
@@ -163,7 +183,7 @@ export const applications = {
     apiCall('applications/questions/answer', 'GET', { 
       job_description: jobDescription, 
       question 
-    }),
+    }, false),
     
   improveResume: (file: File) => {
     const formData = new FormData();
