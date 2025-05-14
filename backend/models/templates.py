@@ -648,7 +648,13 @@ mteck_resume = r"""
   \begin{multicols}{2}
 	  \begin{itemize}[itemsep=-2px, parsep=1pt, leftmargin=10pt, label={}]
       {% for skill in skills %}
-		  \item \textbf{ {{ skill.category }}: } {{ skill['items'] | join(', ') }}
+      {# 
+        NOTE: The {% raw %} tag below is used to escape the opening curly brace for LaTeX.
+        This prevents Jinja2 from confusing LaTeX curly braces with template syntax.
+        Without this we need to put spaces which results vertical alignment between skill 
+        categories and their values breaks and/or Jinja2 throws syntax errors when parsing the template.
+      #}
+		  \item \textbf{% raw %}{{% endraw %}{{ skill.category }}:} {{ skill['items'] | join(', ') }}
       {% endfor %}
 		\end{itemize}
 	\end{multicols}
