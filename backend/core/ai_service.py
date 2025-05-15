@@ -49,6 +49,9 @@ def generate_tailored_resume_text(resume: str, job_description: str, model=AIMod
 def generate_structured_latex_resume(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume):
     """
     Convert a plain resume to LaTeX using structured output and Jinja2 templating.
+    
+    Returns:
+        tuple: (latex_compiler_response, rendered_latex, structured_resume_json)
     """
     # First, get structured resume data from GPT
     completion = client.beta.chat.completions.parse(
@@ -64,7 +67,8 @@ def generate_structured_latex_resume(save_folder: str, resume: str, job_descript
         response_format=StructuredResume
     )
     
-    structured_resume = json.loads(completion.choices[0].message.content)
+    structured_resume_json = completion.choices[0].message.content
+    structured_resume = json.loads(structured_resume_json)
     
     logger.debug(f"Structured resume: {structured_resume}")
     
@@ -92,7 +96,7 @@ def generate_structured_latex_resume(save_folder: str, resume: str, job_descript
         raise ValueError(f"Failed to compile LaTeX document: {error_msg}")
     
     logger.debug("Successfully compiled LaTeX document")
-    return latex_compiler_response, rendered_latex
+    return latex_compiler_response, rendered_latex, structured_resume_json
 
 def generate_tailored_coverletter_text(resume: str, job_description: str, model=AIModel.gpt_4_1_nano) -> str:
     completion = client.beta.chat.completions.parse(
@@ -133,3 +137,81 @@ def generate_answer_questions(resume: str, job_description: str, question: str, 
             logger.error(f"Error saving application Q&A: {str(e)}")
     
     return answer
+
+def update_resume_with_instructions(resume_json: str, instructions: str, model=AIModel.gpt_4_1_nano) -> str:
+    """
+    Update a JSON resume based on free-form text instructions.
+    
+    Args:
+        resume_json (str): The original resume JSON
+        instructions (str): Free-form text instructions describing changes to make
+        model: The AI model to use
+        
+    Returns:
+        str: The updated resume JSON
+    """
+    prompt = (
+        f"You are a resume editor assistant. I have a resume in JSON format and I need you to "
+        f"update it based on the following instructions. Make only the changes specified in the "
+        f"instructions and keep the rest of the resume exactly the same.\n\n"
+        f"Original Resume JSON:\n{resume_json}\n\n"
+        f"Instructions:\n{instructions}\n\n"
+        f"Return the modified resume that conforms to the provided schema. "
+        f"Ensure all fields match the expected types and formats."
+    )
+    
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a resume editor assistant. Provide the updated resume in the specified format."},
+            {"role": "user", "content": prompt}
+        ],
+        response_format=StructuredResume
+    )
+    
+    updated_resume = completion.choices[0].message.content
+    return updated_resume
+
+def edit_resume_and_generate_pdf(save_path: str, resume_json: str, edit_instructions: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume):
+    """
+    Process edit instructions on a resume JSON and generate a PDF.
+    
+    Args:
+        save_path (str): Path to save the updated resume files
+        resume_json (str): Original resume JSON
+        edit_instructions (str): Free-form text instructions for editing
+        model: AI model to use
+        template: LaTeX template to use
+        
+    Returns:
+        tuple: (pdf_compiler_response, updated_resume_json)
+    """
+    # Update the resume JSON using AI
+    updated_resume_json = update_resume_with_instructions(
+        resume_json,
+        edit_instructions,
+        model
+    )
+    
+    # Parse the updated JSON to get the structured resume
+    structured_resume = json.loads(updated_resume_json)
+    
+    # Escape LaTeX special characters
+    escaped_resume = escape_latex(structured_resume)
+    
+    # Get the LaTeX template
+    latex_template = Template_Details[template]['structure']
+    
+    # Create Jinja2 template and render
+    jinjatex_template = Template(latex_template)
+    rendered_latex = jinjatex_template.render(escaped_resume)
+    
+    # Compile LaTeX to PDF
+    compiler = Template_Details[template]['compiler']
+    latex_compiler_response = generate_pdf_from_latex(save_path, rendered_latex, compiler)
+    
+    if b"error: " in latex_compiler_response.content:
+        error_msg = latex_compiler_response.content.decode('utf-8')
+        raise ValueError(f"Failed to compile LaTeX document: {error_msg}")
+    
+    return latex_compiler_response, updated_resume_json

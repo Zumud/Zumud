@@ -23,6 +23,10 @@ export default function Dashboard() {
   const [isDownloadingCoverLetter, setIsDownloadingCoverLetter] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPreparingOverleaf, setIsPreparingOverleaf] = useState(false)
+  const [editInstruction, setEditInstruction] = useState("")
+  const [isEditingResume, setIsEditingResume] = useState(false)
+  const [updatedResumeJson, setUpdatedResumeJson] = useState<string | null>(null)
+  const [lastGeneratedResumeJson, setLastGeneratedResumeJson] = useState<string | null>(null)
 
   // Load user data on mount
   useEffect(() => {
@@ -100,7 +104,23 @@ export default function Dashboard() {
   const handleGenerateResume = () => {
     asyncOperation(
       // Operation to perform
-      () => applications.generateResume(jobDescription),
+      async () => {
+        // Generate the resume PDF first
+        const pdfResult = await applications.generateResume(jobDescription)
+        
+        // After generating the PDF, fetch the latest resume JSON
+        try {
+          const jsonResult = await applications.getLatestResumeJson()
+          if (jsonResult && jsonResult.resume_json) {
+            setLastGeneratedResumeJson(jsonResult.resume_json)
+          }
+        } catch (err) {
+          console.error("Error fetching resume JSON:", err)
+          // Continue with the PDF generation even if JSON fetch fails
+        }
+        
+        return pdfResult
+      },
       // Set loading state
       setIsGeneratingResume,
       // Operation name 
@@ -224,6 +244,28 @@ export default function Dashboard() {
     )
   }
 
+  const handleEditResume = () => {
+    if (!generatedResumePdf) {
+      setError("Please generate a resume first before editing.")
+      return
+    }
+    
+    asyncOperation(
+      () => applications.editResumeWithInstructions(editInstruction),
+      setIsEditingResume,
+      "resume editing",
+      "Updating resume...",
+      (result) => {
+        // The result is now a PDF blob
+        const pdfUrl = URL.createObjectURL(result)
+        setGeneratedResumePdf(pdfUrl)
+        setEditInstruction("") // Clear the edit instruction field
+      },
+      "Failed to update resume with instructions. Please check your input.",
+      () => !editInstruction.trim() ? "Please enter edit instructions" : null
+    )
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="flex justify-between items-center mb-8">
@@ -253,95 +295,190 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Job Description Section */}
-        <div className="md:col-span-1 bg-white p-6 rounded-lg shadow">
+      <Tabs defaultValue="generate" className="w-full">
+        <TabsList className="grid grid-cols-3 mb-8">
+          <TabsTrigger value="generate">Generate Resume</TabsTrigger>
+          <TabsTrigger value="cover">Cover Letter</TabsTrigger>
+          <TabsTrigger value="questions">Application Questions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="generate" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+            {/* Left panel - Job Description (reduced width) */}
+            <div className="lg:col-span-2">
+              <div className="bg-white p-6 rounded-lg shadow h-full flex flex-col">
           <h2 className="text-xl font-semibold mb-4">Job Description</h2>
           <textarea
+                  className="w-full flex-grow p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4"
+                  placeholder="Paste the job description here..."
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste the job description here..."
-            className="w-full h-64 p-3 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        {/* Main Content Area */}
-        <div className="md:col-span-2">
-          <Tabs defaultValue="resume">
-            <TabsList className="mb-4">
-              <TabsTrigger value="resume">Generate Resume</TabsTrigger>
-              <TabsTrigger value="cover-letter">Cover Letter</TabsTrigger>
-              <TabsTrigger value="questions">Answer Questions</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="resume" className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Create Tailored Resume</h2>
+                />
               <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700" 
                 onClick={handleGenerateResume}
-                disabled={isGeneratingResume || !jobDescription.trim()}
-                className="mb-4 bg-emerald-600 hover:bg-emerald-700"
+                  disabled={isGeneratingResume}
               >
                 {isGeneratingResume ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
+                      Generating Resume...
                   </>
                 ) : (
                   "Generate Resume"
                 )}
               </Button>
+              </div>
+            </div>
 
+            {/* Right panel - Resume Preview & Chat-like Edit Interface (increased width) */}
+            <div className="lg:col-span-4">
+              <div className="bg-white p-6 rounded-lg shadow h-full flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Your Resume</h2>
               {generatedResumePdf && (
-                <div className="mt-4">
-                  <PdfViewer pdfUrl={generatedResumePdf} />
-                  <div className="flex flex-wrap gap-2 mt-4">
+                    <div className="flex space-x-2">
                     <Button
+                        size="sm"
+                        variant="outline"
                       onClick={handleDownloadResume}
-                      className="bg-emerald-600 hover:bg-emerald-700"
                     >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download Resume
+                        <Download className="h-4 w-4 mr-1" />
+                        PDF
                     </Button>
                     <Button
+                        size="sm"
+                        variant="outline"
                       onClick={handleDownloadTeX}
-                      className="bg-blue-600 hover:bg-blue-700"
                       disabled={isDownloadingTeX}
                     >
                       {isDownloadingTeX ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Downloading...
-                        </>
+                          <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <>
-                          <FileCode className="mr-2 h-4 w-4" />
-                          Download .tex File
+                            <FileCode className="h-4 w-4 mr-1" />
+                            TEX
                         </>
                       )}
                     </Button>
                     <Button
+                        size="sm"
+                        variant="outline"
                       onClick={handleOpenInOverleaf}
-                      className="bg-orange-600 hover:bg-orange-700"
                       disabled={isPreparingOverleaf}
                     >
                       {isPreparingOverleaf ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Preparing...
-                        </>
+                          <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <>
-                          <ExternalLink className="mr-2 h-4 w-4" />
+                            <ExternalLink className="h-4 w-4 mr-1" />
                           Edit in Overleaf
                         </>
                       )}
                     </Button>
                   </div>
+                  )}
+                </div>
+
+                {/* Resume Workspace with PDF and Chat-style editing */}
+                <div className="flex-grow flex flex-col">
+                  {generatedResumePdf ? (
+                    <>
+                      {/* PDF Preview Area */}
+                      <div className="h-96 border border-gray-300 rounded-t-md overflow-hidden">
+                        <PdfViewer pdfUrl={generatedResumePdf} />
+                      </div>
+                      
+                      {/* AI Resume Editor */}
+                      <div className="border border-t-0 border-gray-300 rounded-b-md bg-gray-50 p-4">
+                        <div className="flex items-start mb-3">
+                          <div className="bg-emerald-100 p-2 rounded-full mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-700">
+                              <path d="M12 8V16M8 12H16" />
+                            </svg>
+                          </div>
+                          <div className="bg-emerald-50 text-emerald-800 p-3 rounded-lg rounded-tl-none max-w-[85%]">
+                            <p className="text-sm">
+                              I can help you refine your resume with AI. Simply tell me what you'd like to change, such as:
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span 
+                                className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
+                                onClick={() => setEditInstruction("Add AWS to my skills section")}
+                              >
+                                Add AWS to skills
+                              </span>
+                              <span 
+                                className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
+                                onClick={() => setEditInstruction("Update my job title to Senior Developer")}
+                              >
+                                Update job title
+                              </span>
+                              <span 
+                                className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
+                                onClick={() => setEditInstruction("Add a new project with React and TypeScript")}
+                              >
+                                Add a project
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-end mt-3">
+                          <input
+                            type="text"
+                            className="flex-grow p-3 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            placeholder="Describe what you want to change..."
+                            value={editInstruction}
+                            onChange={(e) => setEditInstruction(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && editInstruction.trim() && !isEditingResume) {
+                                handleEditResume();
+                              }
+                            }}
+                            style={{ height: '44px' }}
+                          />
+                          <Button 
+                            onClick={handleEditResume}
+                            disabled={isEditingResume || !editInstruction.trim()}
+                            className="bg-emerald-600 hover:bg-emerald-700 rounded-l-none h-[44px] flex items-center justify-center"
+                          >
+                            {isEditingResume ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                                <path d="m5 11 4 4L19 7" />
+                              </svg>
+                            )}
+                          </Button>
+                        </div>
+                        {isEditingResume && (
+                          <p className="text-xs text-gray-500 mt-2 flex items-center">
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            Updating your resume...
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-grow border border-gray-300 rounded-md flex flex-col items-center justify-center bg-gray-50 text-center p-8">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 mb-4">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">No Resume Generated Yet</h3>
+                      <p className="text-gray-500 max-w-md">
+                        Paste a job description in the left panel and click "Generate Resume" to create a tailored resume for your application.
+                      </p>
                 </div>
               )}
+                </div>
+              </div>
+            </div>
+          </div>
             </TabsContent>
 
-            <TabsContent value="cover-letter" className="bg-white p-6 rounded-lg shadow">
+        <TabsContent value="cover" className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-xl font-semibold mb-4">Generate Cover Letter</h2>
               <Button
                 onClick={handleGenerateCoverLetter}
@@ -433,8 +570,6 @@ export default function Dashboard() {
               )}
             </TabsContent>
           </Tabs>
-        </div>
-      </div>
     </div>
   )
 } 
