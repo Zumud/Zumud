@@ -173,6 +173,9 @@ export const applications = {
   getResumeTeXContent: () => 
     apiCall('applications/resume/tex/content', 'GET'),
   
+  getLatestResumeJson: () =>
+    apiCall('applications/resume/json', 'GET'),
+  
   generateCoverLetter: (jobDescription: string) => 
     apiCall('applications/cover-letter/plain', 'GET', { job_description: jobDescription }, false),
   
@@ -189,7 +192,10 @@ export const applications = {
     const formData = new FormData();
     formData.append('file', file);
     return apiCall('applications/resume/improve', 'POST', formData, true);
-  }
+  },
+  
+  editResumeWithInstructions: (editInstruction: string) => 
+    apiCall('applications/resume/edit', 'GET', { edit_instruction: editInstruction }, false)
 };
 
 export default {
