@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile, Body
 from datetime import datetime
 from fastapi.responses import FileResponse, PlainTextResponse
 import uuid
 import os
+import json
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
@@ -131,7 +132,7 @@ def generate_and_save_pdf_resume(
     save_path = create_new_application_path(current_user.username, company_name, timestamp)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     
-    latex_compiler_response, _ = ai_service.generate_structured_latex_resume(
+    latex_compiler_response, _, structured_resume_json = ai_service.generate_structured_latex_resume(
         str(save_path),
         current_user.resumes.resume_content,
         job_description,
@@ -141,11 +142,19 @@ def generate_and_save_pdf_resume(
     
     pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, current_user.username)
     
+    # Store the structured resume JSON for later use in the session or a temporary file
+    # This would be better implemented with a proper session or database storage
+    json_file_path = os.path.join(save_path, "resume.json")
+    with open(json_file_path, 'w') as f:
+        f.write(structured_resume_json)
+    
     # Return the PDF file directly
     return FileResponse(
         path=pdf_file_path,
         filename=f"{current_user.username}_{timestamp}_{company_name}_tailored_resume.pdf",
-        media_type="application/pdf"
+        media_type="application/pdf",
+        # Note: We cannot include custom headers with FileResponse easily
+        # A better approach would be to create a custom endpoint to retrieve the JSON separately
     )
 
 @router.get("/resume/tex", response_class=FileResponse)
@@ -288,4 +297,90 @@ async def improve_resume_pdf(
         path=pdf_file_path,
         filename=f"{timestamp}_improved_resume.pdf",
         media_type="application/pdf"
-    ) 
+    )
+
+@router.get("/resume/edit", response_class=FileResponse)
+async def edit_resume_with_instructions(
+    edit_instruction: str = Query(..., description="Free-form text instructions for editing the resume"),
+    current_user = Depends(get_current_user)
+):
+    """Update a resume JSON based on free-form text instructions and return the updated PDF"""
+    # Get the current application path to read the existing JSON
+    current_save_path = get_current_application_path(current_user.username)
+    
+    # Check if the JSON file exists
+    json_file_path = os.path.join(current_save_path, "resume.json")
+    
+    if not os.path.exists(json_file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No resume JSON found. Please generate a resume first."
+        )
+    
+    # Read the JSON file
+    with open(json_file_path, 'r') as f:
+        last_resume_json = f.read()
+    
+    # Create a new path for the updated resume with a timestamp
+    company_name = os.path.basename(current_save_path).split('_')[-1]
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
+    
+    # Get user's tailoring options
+    # tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
+    
+    try:
+        # Process the edit and generate PDF using the new service function
+        latex_compiler_response, updated_resume_json = ai_service.edit_resume_and_generate_pdf(
+            str(new_save_path),
+            last_resume_json,
+            edit_instruction,
+            # Use GPT-4.1 Nano which is sufficient for resume edits   
+            # tailoring_options.ai_model,
+            # tailoring_options.resume_template
+        )
+        
+        # Save the updated JSON to the new path
+        new_json_file_path = os.path.join(new_save_path, "resume.json")
+        with open(new_json_file_path, 'w') as f:
+            f.write(updated_resume_json)
+        
+        # Save the PDF
+        pdf_file_path = save_pdf(str(new_save_path), latex_compiler_response.content, current_user.username)
+        
+        # Return the PDF file
+        return FileResponse(
+            path=pdf_file_path,
+            filename=f"{current_user.username}_{timestamp}_{company_name}_updated_resume.pdf",
+            media_type="application/pdf"
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.get("/resume/json")
+def get_latest_resume_json(
+    current_user = Depends(get_current_user)
+):
+    """Get the latest generated resume JSON"""
+    
+    # Get the current application path for this user
+    save_path = get_current_application_path(current_user.username)
+    
+    # Check if the JSON file exists
+    json_file_path = os.path.join(save_path, "resume.json")
+    
+    if not os.path.exists(json_file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No resume JSON found. Please generate a resume first."
+        )
+    
+    # Read the JSON file
+    with open(json_file_path, 'r') as f:
+        resume_json = f.read()
+    
+    # Return the JSON
+    return {"resume_json": resume_json} 
