@@ -111,6 +111,9 @@ Use both inputs to write a tailored resume that:
 • A 2–3 sentence pitch aligned with the job's core priorities.  
 • Communicate the candidate's key strengths and relevance to the role.  
 • Mirror tone and phrasing from the job description where appropriate.
+• Use the job title exactly as it is in the job description.
+• NEVER mention the target company by name in the summary.
+• NEVER include phrases that imply the candidate is already working at or aligned with the specific target company (e.g., "aligning with [Company]'s mission").
 
 🔹 Experience
 • Use job-title-level formatting (Title, Company, Dates).  
@@ -147,6 +150,18 @@ Use both inputs to write a tailored resume that:
 • For candidates with extensive experience, position education after experience unless it's particularly noteworthy for the role.
 • If location information for a mentioned institution is missing, you may infer the city/country but present it as factual without any markers.
 • Never use "None" as a location placeholder - either provide the actual location or leave it blank if uncertain.
+
+🔹 Honors & Awards
+• Include ALL honors, awards, and recognitions mentioned in the original resume without exception.
+• Format consistently with the information available in the original resume (title, date, issuer).
+• Present awards chronologically with the most recent first.
+• For fields where information is not explicitly stated in the original resume:
+  - Only include information that can be directly inferred from the original resume
+  - Make reasonable inferences but present them as factual without any markers
+  - Include widely known public information related to institutions, exams, or certifications (e.g., locations of well-known universities)
+  - For organizations or credentials mentioned, add relevant context that would be publicly verifiable
+  - Omit fields entirely if information is missing and cannot be reasonably inferred or verified through public knowledge
+  - Present all information as verified facts, never indicating which parts were inferred
 
 🧠 Keep in mind:
 

@@ -648,7 +648,13 @@ mteck_resume = r"""
   \begin{multicols}{2}
 	  \begin{itemize}[itemsep=-2px, parsep=1pt, leftmargin=10pt, label={}]
       {% for skill in skills %}
-		  \item \textbf{ {{ skill.category }}: } {{ skill['items'] | join(', ') }}
+      {# 
+        NOTE: The {% raw %} tag below is used to escape the opening curly brace for LaTeX.
+        This prevents Jinja2 from confusing LaTeX curly braces with template syntax.
+        Without this we need to put spaces which results vertical alignment between skill 
+        categories and their values breaks and/or Jinja2 throws syntax errors when parsing the template.
+      #}
+		  \item \textbf{% raw %}{{% endraw %}{{ skill.category }}:} {{ skill['items'] | join(', ') }}
       {% endfor %}
 		\end{itemize}
 	\end{multicols}
@@ -685,8 +691,8 @@ mteck_resume = r"""
   \section{Education}
 
   {% for edu in education %}
-  \headingBf{ {{ edu.institution }} }{ {{ edu.date_range|default('') }} }
-  \headingIt{ {{ edu.degree|default('') }} }{ {{ edu.location|default('') }} }
+  \headingBf{ {{ edu.degree|default('') }} }{ {{ edu.date_range|default('') }} }
+  \headingIt{ {{ edu.institution }} }{ {{ edu.location|default('') }} }
   {% if edu.minors and edu.minors is iterable and edu.minors|length > 0 %}
   \headingIt{Minors: {{ edu['minors'] | join(' ; ') }}}{}
   {% endif %}
@@ -720,6 +726,7 @@ mteck_resume = r"""
   \end{resume_list}
   {% endif %}
   {% endfor %}
+  {% endif %}
 
   {% if awards and awards|length > 0 %}
   %----------------------------%
@@ -734,7 +741,6 @@ mteck_resume = r"""
   \headingIt{ {{ award.description|default('') if award.description and award.description != 'None' else '' }} }{ {{ award.issuer|default('') if award.issuer and award.issuer != 'None' else '' }} }
   {% endif %}
   {% endfor %}
-  {% endif %}
   {% endif %}
 
 \end{document}
