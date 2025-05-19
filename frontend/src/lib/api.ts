@@ -182,6 +182,9 @@ export const applications = {
   getCoverLetterPDF: () => 
     apiCall('applications/cover-letter/pdf', 'GET'),
   
+  getCoverLetterText: () => 
+    apiCall('applications/cover-letter/text', 'GET'),
+  
   answerQuestion: (jobDescription: string, question: string) => 
     apiCall('applications/questions/answer', 'GET', { 
       job_description: jobDescription, 
@@ -195,7 +198,10 @@ export const applications = {
   },
   
   editResumeWithInstructions: (editInstruction: string) => 
-    apiCall('applications/resume/edit', 'GET', { edit_instruction: editInstruction }, false)
+    apiCall('applications/resume/edit', 'GET', { edit_instruction: editInstruction }, false),
+    
+  editCoverLetterWithInstructions: (editInstruction: string) => 
+    apiCall('applications/cover-letter/edit', 'GET', { edit_instruction: editInstruction }, false)
 };
 
 export default {

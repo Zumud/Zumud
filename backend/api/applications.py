@@ -67,6 +67,13 @@ def generate_tailored_plain_coverletter(
     )
     
     save_path = get_current_application_path(current_user.username)
+    
+    # Save the plain text version for future editing
+    text_file_path = os.path.join(save_path, "CoverLetter.txt")
+    with open(text_file_path, 'w') as f:
+        f.write(cover_letter_text)
+    
+    # Generate PDF
     pdf_generator = PDFGenerator()
     pdf_generator.create_pdf_document(
         cover_letter_text,
@@ -383,4 +390,106 @@ def get_latest_resume_json(
         resume_json = f.read()
     
     # Return the JSON
-    return {"resume_json": resume_json} 
+    return {"resume_json": resume_json}
+
+@router.get("/cover-letter/edit", response_class=FileResponse)
+async def edit_cover_letter_with_instructions(
+    edit_instruction: str = Query(..., description="Free-form text instructions for editing the cover letter"),
+    current_user = Depends(get_current_user)
+):
+    """Update a cover letter based on free-form text instructions and return the updated PDF"""
+    # Get the current application path to read the existing cover letter
+    current_save_path = get_current_application_path(current_user.username)
+    
+    # Check if the cover letter file exists
+    cover_letter_file_path = os.path.join(current_save_path, "CoverLetter.pdf")
+    
+    if not os.path.exists(cover_letter_file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No cover letter found. Please generate a cover letter first."
+        )
+    
+    # Check if we have the plain text cover letter
+    text_file_path = os.path.join(current_save_path, "CoverLetter.txt")
+    
+    # If we don't have the text file, create it with an error message
+    if not os.path.exists(text_file_path):
+        # We need the original cover letter text to edit it
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cover letter text not found. Please generate a new cover letter."
+        )
+    
+    # Read the cover letter text
+    with open(text_file_path, 'r') as f:
+        cover_letter_text = f.read()
+    
+    # Create a new path for the updated cover letter with a timestamp
+    company_name = os.path.basename(current_save_path).split('_')[-1]
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
+    
+    try:
+        # Process the edit using the AI service
+        updated_cover_letter = ai_service.update_cover_letter_with_instructions(
+            cover_letter_text,
+            edit_instruction
+        )
+        
+        # Save the updated cover letter text
+        new_text_file_path = os.path.join(new_save_path, "CoverLetter.txt")
+        with open(new_text_file_path, 'w') as f:
+            f.write(updated_cover_letter)
+        
+        # Generate a PDF from the updated cover letter
+        pdf_generator = PDFGenerator()
+        pdf_generator.create_pdf_document(
+            updated_cover_letter,
+            output_folder=str(new_save_path),
+        )
+        
+        # The path to the newly generated PDF
+        new_pdf_file_path = os.path.join(new_save_path, "CoverLetter.pdf")
+        
+        # Return the PDF file
+        return FileResponse(
+            path=new_pdf_file_path,
+            filename=f"{current_user.username}_{timestamp}_{company_name}_updated_cover_letter.pdf",
+            media_type="application/pdf"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update cover letter: {str(e)}"
+        )
+
+@router.get("/cover-letter/text", response_class=PlainTextResponse)
+def get_cover_letter_text_content(
+    current_user = Depends(get_current_user)
+):
+    """Get the raw content of the cover letter text file"""
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume"
+        )
+    
+    # Get the current application path for this user
+    save_path = get_current_application_path(current_user.username)
+    
+    # Check if the text file exists
+    text_file_path = os.path.join(save_path, "CoverLetter.txt")
+    
+    if not os.path.exists(text_file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No cover letter text file found. Please generate a cover letter first."
+        )
+    
+    # Read the content of the file
+    with open(text_file_path, 'r') as f:
+        text_content = f.read()
+    
+    # Return the raw content
+    return text_content 
