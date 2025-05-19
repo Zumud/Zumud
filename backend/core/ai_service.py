@@ -248,3 +248,50 @@ def update_cover_letter_with_instructions(cover_letter: str, instructions: str, 
     
     updated_cover_letter = json.loads(completion.choices[0].message.content)["tailored_coverletter"]
     return updated_cover_letter
+
+def update_answer_with_instructions(original_answer: str, question: str, job_description: str, resume_content: str, instructions: str, model=AIModel.gpt_4_1_nano) -> str:
+    """
+    Update an application question answer based on free-form text instructions.
+    
+    Args:
+        original_answer (str): The original answer text
+        question (str): The application question being answered
+        job_description (str): The job description for context
+        resume_content (str): The user's resume content for reference
+        instructions (str): Free-form text instructions describing changes to make
+        model: The AI model to use
+        
+    Returns:
+        str: The updated answer text
+    """
+    prompt = (
+        f"You are an expert job application coach specializing in interview questions. You help candidates refine their answers to make them more impactful, relevant, and tailored to specific positions.\n\n"
+        f"I have an answer to a job application question that needs refinement based on specific instructions. I'll provide you with the candidate's resume, job description, question, original answer, and edit instructions.\n\n"
+        f"When updating the answer, please:\n"
+        f"1. Make only the changes requested in the instructions\n"
+        f"2. Keep the overall structure and flow unless specified otherwise\n"
+        f"3. Ensure the answer directly addresses the question asked\n"
+        f"4. Highlight relevant skills/experiences from the resume that match the job description\n"
+        f"5. Maintain a professional, confident tone\n"
+        f"6. Use concrete examples and quantifiable achievements from the resume when possible\n"
+        f"7. Keep the answer concise and impactful (typically 3-5 sentences for brief answers, 2-3 paragraphs for detailed ones)\n"
+        f"8. Ensure all information is truthful and accurately reflects what's in the resume\n\n"
+        f"Return only the improved answer text, maintaining appropriate professional language and formatting.\n\n"
+        f"Candidate's Resume:\n{resume_content}\n\n"
+        f"Job Description:\n{job_description}\n\n"
+        f"Question:\n{question}\n\n"
+        f"Original Answer:\n{original_answer}\n\n"
+        f"Instructions:\n{instructions}"
+    )
+    
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a professional job application answer editor. Provide the updated answer with the requested changes."},
+            {"role": "user", "content": prompt}
+        ],
+        response_format=TailoredAnswer
+    )
+    
+    updated_answer = json.loads(completion.choices[0].message.content)["tailored_answer"]
+    return updated_answer

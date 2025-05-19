@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from datetime import datetime
 from fastapi.responses import FileResponse, PlainTextResponse
 import uuid
 import os
-import json
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
@@ -492,4 +491,55 @@ def get_cover_letter_text_content(
         text_content = f.read()
     
     # Return the raw content
-    return text_content 
+    return text_content
+
+@router.get("/questions/answer/edit")
+def edit_answer_with_instructions(
+    edit_instruction: str = Query(..., description="Instructions for editing the answer"),
+    original_answer: str = Query(..., description="The original answer to edit"),
+    job_description: str = Query(..., description="The job description context"),
+    question: str = Query(..., description="The question being answered"),
+    current_user = Depends(get_current_user)
+) -> str:
+    """Update an application answer based on free-form text instructions"""
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume record. Please upload a resume first."
+        )
+    
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details first."
+        )
+    
+    tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
+    
+    try:
+        # Process the edit using the AI service
+        updated_answer = ai_service.update_answer_with_instructions(
+            original_answer,
+            question,
+            job_description,
+            current_user.resumes.resume_content,  # Pass the user's resume content
+            edit_instruction,
+            tailoring_options.ai_model
+        )
+        
+        # Get the current application path for this user
+        save_path = get_current_application_path(current_user.username)
+        
+        # Save the Q&A pair in the application folder
+        qa_file_path = os.path.join(save_path, f"question_updated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+        with open(qa_file_path, 'w') as f:
+            f.write(f"Question: {question}\n\nAnswer: {updated_answer}\n\nEdit Instructions: {edit_instruction}")
+        
+        return updated_answer
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update answer: {str(e)}"
+        ) 
