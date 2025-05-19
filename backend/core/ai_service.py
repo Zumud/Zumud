@@ -215,3 +215,36 @@ def edit_resume_and_generate_pdf(save_path: str, resume_json: str, edit_instruct
         raise ValueError(f"Failed to compile LaTeX document: {error_msg}")
     
     return latex_compiler_response, updated_resume_json
+
+def update_cover_letter_with_instructions(cover_letter: str, instructions: str, model=AIModel.gpt_4_1_nano) -> str:
+    """
+    Update a cover letter based on free-form text instructions.
+    
+    Args:
+        cover_letter (str): The original cover letter text
+        instructions (str): Free-form text instructions describing changes to make
+        model: The AI model to use
+        
+    Returns:
+        str: The updated cover letter text
+    """
+    prompt = (
+        f"You are a cover letter editor assistant. I have a cover letter and I need you to "
+        f"update it based on the following instructions. Make only the changes specified in the "
+        f"instructions and keep the rest of the cover letter exactly the same.\n\n"
+        f"Original Cover Letter:\n{cover_letter}\n\n"
+        f"Instructions:\n{instructions}\n\n"
+        f"Return the modified cover letter text that maintains the same professional tone and structure."
+    )
+    
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a professional cover letter editor assistant. Provide the updated cover letter with the requested changes."},
+            {"role": "user", "content": prompt}
+        ],
+        response_format=TailoredCoverLetter
+    )
+    
+    updated_cover_letter = json.loads(completion.choices[0].message.content)["tailored_coverletter"]
+    return updated_cover_letter
