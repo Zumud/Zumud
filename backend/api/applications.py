@@ -308,9 +308,26 @@ async def improve_resume_pdf(
 @router.get("/resume/edit", response_class=FileResponse)
 async def edit_resume_with_instructions(
     edit_instruction: str = Query(..., description="Free-form text instructions for editing the resume"),
+    job_description: str = Query(..., description="The job description to tailor the resume for"),
     current_user = Depends(get_current_user)
 ):
     """Update a resume JSON based on free-form text instructions and return the updated PDF"""
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume record. Please upload a resume first."
+        )
+    
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details first."
+        )
+    
+    # Get the original resume content from the user's profile
+    original_resume_content = current_user.resumes.resume_content
+    
     # Get the current application path to read the existing JSON
     current_save_path = get_current_application_path(current_user.username)
     
@@ -340,6 +357,8 @@ async def edit_resume_with_instructions(
         latex_compiler_response, updated_resume_json = ai_service.edit_resume_and_generate_pdf(
             str(new_save_path),
             last_resume_json,
+            original_resume_content,  # Pass the original resume content
+            job_description,
             edit_instruction,
             # Use GPT-4.1 Nano which is sufficient for resume edits   
             # tailoring_options.ai_model,
@@ -394,6 +413,7 @@ def get_latest_resume_json(
 @router.get("/cover-letter/edit", response_class=FileResponse)
 async def edit_cover_letter_with_instructions(
     edit_instruction: str = Query(..., description="Free-form text instructions for editing the cover letter"),
+    job_description: str = Query(..., description="The job description to tailor the cover letter for"),
     current_user = Depends(get_current_user)
 ):
     """Update a cover letter based on free-form text instructions and return the updated PDF"""
@@ -402,6 +422,19 @@ async def edit_cover_letter_with_instructions(
     
     # Check if the cover letter file exists
     cover_letter_file_path = os.path.join(current_save_path, "CoverLetter.pdf")
+    
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume record. Please upload a resume first."
+        )
+    
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details first."
+        )
     
     if not os.path.exists(cover_letter_file_path):
         raise HTTPException(
@@ -433,6 +466,8 @@ async def edit_cover_letter_with_instructions(
         # Process the edit using the AI service
         updated_cover_letter = ai_service.update_cover_letter_with_instructions(
             cover_letter_text,
+            current_user.resumes.resume_content,  # Pass the user's resume content
+            job_description,  # Pass the job description
             edit_instruction
         )
         

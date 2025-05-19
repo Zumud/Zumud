@@ -264,7 +264,10 @@ export default function Dashboard() {
     }
     
     asyncOperation(
-      () => applications.editResumeWithInstructions(editInstruction),
+      () => applications.editResumeWithInstructions(
+        editInstruction,
+        jobDescription
+      ),
       setIsEditingResume,
       "resume editing",
       "Updating resume...",
@@ -275,7 +278,11 @@ export default function Dashboard() {
         setEditInstruction("") // Clear the edit instruction field
       },
       "Failed to update resume with instructions. Please check your input.",
-      () => !editInstruction.trim() ? "Please enter edit instructions" : null
+      () => {
+        if (!editInstruction.trim()) return "Please enter edit instructions"
+        if (!jobDescription.trim()) return "Please ensure there is a job description"
+        return null
+      }
     )
   }
 
@@ -286,7 +293,10 @@ export default function Dashboard() {
     }
     
     asyncOperation(
-      () => applications.editCoverLetterWithInstructions(coverLetterEditInstruction),
+      () => applications.editCoverLetterWithInstructions(
+        coverLetterEditInstruction,
+        jobDescription
+      ),
       setIsEditingCoverLetter,
       "cover letter editing",
       "Updating cover letter...",
@@ -309,7 +319,11 @@ export default function Dashboard() {
         setCoverLetterEditInstruction("") // Clear the edit instruction field
       },
       "Failed to update cover letter with instructions. Please check your input.",
-      () => !coverLetterEditInstruction.trim() ? "Please enter edit instructions" : null
+      () => {
+        if (!coverLetterEditInstruction.trim()) return "Please enter edit instructions"
+        if (!jobDescription.trim()) return "Please ensure there is a job description"
+        return null
+      }
     )
   }
 
