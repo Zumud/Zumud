@@ -191,6 +191,14 @@ export const applications = {
       question 
     }, false),
     
+  editAnswerWithInstructions: (editInstruction: string, originalAnswer: string, question: string, jobDescription: string) => 
+    apiCall('applications/questions/answer/edit', 'GET', { 
+      edit_instruction: editInstruction,
+      original_answer: originalAnswer,
+      question,
+      job_description: jobDescription
+    }, false),
+    
   improveResume: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
