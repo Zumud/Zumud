@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from datetime import datetime
 from fastapi.responses import FileResponse, PlainTextResponse
 import uuid
 import os
-import json
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
@@ -67,6 +66,13 @@ def generate_tailored_plain_coverletter(
     )
     
     save_path = get_current_application_path(current_user.username)
+    
+    # Save the plain text version for future editing
+    text_file_path = os.path.join(save_path, "CoverLetter.txt")
+    with open(text_file_path, 'w') as f:
+        f.write(cover_letter_text)
+    
+    # Generate PDF
     pdf_generator = PDFGenerator()
     pdf_generator.create_pdf_document(
         cover_letter_text,
@@ -302,9 +308,26 @@ async def improve_resume_pdf(
 @router.get("/resume/edit", response_class=FileResponse)
 async def edit_resume_with_instructions(
     edit_instruction: str = Query(..., description="Free-form text instructions for editing the resume"),
+    job_description: str = Query(..., description="The job description to tailor the resume for"),
     current_user = Depends(get_current_user)
 ):
     """Update a resume JSON based on free-form text instructions and return the updated PDF"""
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume record. Please upload a resume first."
+        )
+    
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details first."
+        )
+    
+    # Get the original resume content from the user's profile
+    original_resume_content = current_user.resumes.resume_content
+    
     # Get the current application path to read the existing JSON
     current_save_path = get_current_application_path(current_user.username)
     
@@ -334,6 +357,8 @@ async def edit_resume_with_instructions(
         latex_compiler_response, updated_resume_json = ai_service.edit_resume_and_generate_pdf(
             str(new_save_path),
             last_resume_json,
+            original_resume_content,  # Pass the original resume content
+            job_description,
             edit_instruction,
             # Use GPT-4.1 Nano which is sufficient for resume edits   
             # tailoring_options.ai_model,
@@ -383,4 +408,173 @@ def get_latest_resume_json(
         resume_json = f.read()
     
     # Return the JSON
-    return {"resume_json": resume_json} 
+    return {"resume_json": resume_json}
+
+@router.get("/cover-letter/edit", response_class=FileResponse)
+async def edit_cover_letter_with_instructions(
+    edit_instruction: str = Query(..., description="Free-form text instructions for editing the cover letter"),
+    job_description: str = Query(..., description="The job description to tailor the cover letter for"),
+    current_user = Depends(get_current_user)
+):
+    """Update a cover letter based on free-form text instructions and return the updated PDF"""
+    # Get the current application path to read the existing cover letter
+    current_save_path = get_current_application_path(current_user.username)
+    
+    # Check if the cover letter file exists
+    cover_letter_file_path = os.path.join(current_save_path, "CoverLetter.pdf")
+    
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume record. Please upload a resume first."
+        )
+    
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details first."
+        )
+    
+    if not os.path.exists(cover_letter_file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No cover letter found. Please generate a cover letter first."
+        )
+    
+    # Check if we have the plain text cover letter
+    text_file_path = os.path.join(current_save_path, "CoverLetter.txt")
+    
+    # If we don't have the text file, create it with an error message
+    if not os.path.exists(text_file_path):
+        # We need the original cover letter text to edit it
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cover letter text not found. Please generate a new cover letter."
+        )
+    
+    # Read the cover letter text
+    with open(text_file_path, 'r') as f:
+        cover_letter_text = f.read()
+    
+    # Create a new path for the updated cover letter with a timestamp
+    company_name = os.path.basename(current_save_path).split('_')[-1]
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
+    
+    try:
+        # Process the edit using the AI service
+        updated_cover_letter = ai_service.update_cover_letter_with_instructions(
+            cover_letter_text,
+            current_user.resumes.resume_content,  # Pass the user's resume content
+            job_description,  # Pass the job description
+            edit_instruction
+        )
+        
+        # Save the updated cover letter text
+        new_text_file_path = os.path.join(new_save_path, "CoverLetter.txt")
+        with open(new_text_file_path, 'w') as f:
+            f.write(updated_cover_letter)
+        
+        # Generate a PDF from the updated cover letter
+        pdf_generator = PDFGenerator()
+        pdf_generator.create_pdf_document(
+            updated_cover_letter,
+            output_folder=str(new_save_path),
+        )
+        
+        # The path to the newly generated PDF
+        new_pdf_file_path = os.path.join(new_save_path, "CoverLetter.pdf")
+        
+        # Return the PDF file
+        return FileResponse(
+            path=new_pdf_file_path,
+            filename=f"{current_user.username}_{timestamp}_{company_name}_updated_cover_letter.pdf",
+            media_type="application/pdf"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update cover letter: {str(e)}"
+        )
+
+@router.get("/cover-letter/text", response_class=PlainTextResponse)
+def get_cover_letter_text_content(
+    current_user = Depends(get_current_user)
+):
+    """Get the raw content of the cover letter text file"""
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume"
+        )
+    
+    # Get the current application path for this user
+    save_path = get_current_application_path(current_user.username)
+    
+    # Check if the text file exists
+    text_file_path = os.path.join(save_path, "CoverLetter.txt")
+    
+    if not os.path.exists(text_file_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No cover letter text file found. Please generate a cover letter first."
+        )
+    
+    # Read the content of the file
+    with open(text_file_path, 'r') as f:
+        text_content = f.read()
+    
+    # Return the raw content
+    return text_content
+
+@router.get("/questions/answer/edit")
+def edit_answer_with_instructions(
+    edit_instruction: str = Query(..., description="Instructions for editing the answer"),
+    original_answer: str = Query(..., description="The original answer to edit"),
+    job_description: str = Query(..., description="The job description context"),
+    question: str = Query(..., description="The question being answered"),
+    current_user = Depends(get_current_user)
+) -> str:
+    """Update an application answer based on free-form text instructions"""
+    if not current_user.resumes:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User does not have a resume record. Please upload a resume first."
+        )
+    
+    # Check if the user has resume content
+    if not current_user.resumes.resume_content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume content found. Please add your resume details first."
+        )
+    
+    tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
+    
+    try:
+        # Process the edit using the AI service
+        updated_answer = ai_service.update_answer_with_instructions(
+            original_answer,
+            question,
+            job_description,
+            current_user.resumes.resume_content,  # Pass the user's resume content
+            edit_instruction,
+            tailoring_options.ai_model
+        )
+        
+        # Get the current application path for this user
+        save_path = get_current_application_path(current_user.username)
+        
+        # Save the Q&A pair in the application folder
+        qa_file_path = os.path.join(save_path, f"question_updated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+        with open(qa_file_path, 'w') as f:
+            f.write(f"Question: {question}\n\nAnswer: {updated_answer}\n\nEdit Instructions: {edit_instruction}")
+        
+        return updated_answer
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update answer: {str(e)}"
+        ) 
