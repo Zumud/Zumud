@@ -205,11 +205,17 @@ export const applications = {
     return apiCall('applications/resume/improve', 'POST', formData, true);
   },
   
-  editResumeWithInstructions: (editInstruction: string) => 
-    apiCall('applications/resume/edit', 'GET', { edit_instruction: editInstruction }, false),
+  editResumeWithInstructions: (editInstruction: string, jobDescription: string) => 
+    apiCall('applications/resume/edit', 'GET', { 
+      edit_instruction: editInstruction,
+      job_description: jobDescription 
+    }, false),
     
-  editCoverLetterWithInstructions: (editInstruction: string) => 
-    apiCall('applications/cover-letter/edit', 'GET', { edit_instruction: editInstruction }, false)
+  editCoverLetterWithInstructions: (editInstruction: string, jobDescription: string) => 
+    apiCall('applications/cover-letter/edit', 'GET', { 
+      edit_instruction: editInstruction, 
+      job_description: jobDescription 
+    }, false)
 };
 
 export default {
