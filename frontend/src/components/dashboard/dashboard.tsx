@@ -6,7 +6,7 @@ import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
 import { applications } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2, FileCode, ExternalLink, AlertCircle } from "lucide-react"
+import { Download, Loader2, FileCode, ExternalLink, AlertCircle, MessageSquare } from "lucide-react"
 import Link from "next/link"
 
 export default function Dashboard() {
@@ -27,6 +27,11 @@ export default function Dashboard() {
   const [isEditingResume, setIsEditingResume] = useState(false)
   const [updatedResumeJson, setUpdatedResumeJson] = useState<string | null>(null)
   const [lastGeneratedResumeJson, setLastGeneratedResumeJson] = useState<string | null>(null)
+  const [coverLetterEditInstruction, setCoverLetterEditInstruction] = useState('')
+  const [isEditingCoverLetter, setIsEditingCoverLetter] = useState(false)
+  const [downloadCoverLetterUrl, setDownloadCoverLetterUrl] = useState<string | null>(null)
+  const [answerEditInstruction, setAnswerEditInstruction] = useState('')
+  const [isEditingAnswer, setIsEditingAnswer] = useState(false)
 
   // Load user data on mount
   useEffect(() => {
@@ -228,7 +233,15 @@ export default function Dashboard() {
 
   const handleDownloadCoverLetter = () => {
     asyncOperation(
-      () => applications.getCoverLetterPDF(),
+      async () => {
+        // If we have a downloadCoverLetterUrl from a recent edit, use that
+        if (downloadCoverLetterUrl) {
+          const response = await fetch(downloadCoverLetterUrl);
+          return await response.blob();
+        }
+        // Otherwise fetch from the API
+        return applications.getCoverLetterPDF();
+      },
       setIsDownloadingCoverLetter,
       "cover letter PDF download",
       "Preparing PDF...",
@@ -251,7 +264,10 @@ export default function Dashboard() {
     }
     
     asyncOperation(
-      () => applications.editResumeWithInstructions(editInstruction),
+      () => applications.editResumeWithInstructions(
+        editInstruction,
+        jobDescription
+      ),
       setIsEditingResume,
       "resume editing",
       "Updating resume...",
@@ -262,7 +278,80 @@ export default function Dashboard() {
         setEditInstruction("") // Clear the edit instruction field
       },
       "Failed to update resume with instructions. Please check your input.",
-      () => !editInstruction.trim() ? "Please enter edit instructions" : null
+      () => {
+        if (!editInstruction.trim()) return "Please enter edit instructions"
+        if (!jobDescription.trim()) return "Please ensure there is a job description"
+        return null
+      }
+    )
+  }
+
+  const handleEditCoverLetter = () => {
+    if (!coverLetter) {
+      setError("Please generate a cover letter first before editing.")
+      return
+    }
+    
+    asyncOperation(
+      () => applications.editCoverLetterWithInstructions(
+        coverLetterEditInstruction,
+        jobDescription
+      ),
+      setIsEditingCoverLetter,
+      "cover letter editing",
+      "Updating cover letter...",
+      async (result) => {
+        // Create a URL for the PDF
+        const pdfUrl = URL.createObjectURL(result)
+        setDownloadCoverLetterUrl(pdfUrl)
+        
+        // Fetch the updated cover letter text
+        try {
+          const updatedText = await applications.getCoverLetterText()
+          if (updatedText) {
+            setCoverLetter(updatedText)
+          }
+        } catch (err) {
+          console.error("Error fetching updated cover letter text:", err)
+          // Continue even if text fetch fails
+        }
+        
+        setCoverLetterEditInstruction("") // Clear the edit instruction field
+      },
+      "Failed to update cover letter with instructions. Please check your input.",
+      () => {
+        if (!coverLetterEditInstruction.trim()) return "Please enter edit instructions"
+        if (!jobDescription.trim()) return "Please ensure there is a job description"
+        return null
+      }
+    )
+  }
+
+  const handleEditAnswer = () => {
+    if (!answer) {
+      setError("Please generate an answer first before editing.")
+      return
+    }
+    
+    asyncOperation(
+      () => applications.editAnswerWithInstructions(
+        answerEditInstruction,
+        answer,
+        question,
+        jobDescription
+      ),
+      setIsEditingAnswer,
+      "answer editing",
+      "Updating answer...",
+      (result) => {
+        // Update the answer with the result from the API (now a plain string)
+        if (result) {
+          setAnswer(result)
+        }
+        setAnswerEditInstruction("") // Clear the edit instruction field
+      },
+      "Failed to update answer with instructions. Please check your input.",
+      () => !answerEditInstruction.trim() ? "Please enter edit instructions" : null
     )
   }
 
@@ -478,58 +567,180 @@ export default function Dashboard() {
           </div>
             </TabsContent>
 
-        <TabsContent value="cover" className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Generate Cover Letter</h2>
-              <Button
-                onClick={handleGenerateCoverLetter}
-                disabled={isGeneratingCoverLetter || !jobDescription.trim()}
-                className="mb-4 bg-emerald-600 hover:bg-emerald-700"
-              >
-                {isGeneratingCoverLetter ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  "Generate Cover Letter"
+        <TabsContent value="cover" className="space-y-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold">Your Cover Letter</h2>
+              <div className="flex space-x-3">
+                <Button
+                  onClick={handleGenerateCoverLetter}
+                  disabled={isGeneratingCoverLetter || !jobDescription.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {isGeneratingCoverLetter ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate Cover Letter"
+                  )}
+                </Button>
+                
+                {coverLetter && (
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadCoverLetter}
+                    disabled={isDownloadingCoverLetter}
+                  >
+                    {isDownloadingCoverLetter ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-1" />
+                        Download PDF
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Button>
+              </div>
+            </div>
 
-              {coverLetter && (
+            {!jobDescription.trim() && (
+              <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded relative">
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 mr-2" />
+                  <span className="block sm:inline">Please enter a job description in the "Generate Resume" tab first.</span>
+                </div>
+              </div>
+            )}
+
+            {/* Cover Letter Content Area */}
+            <div className="flex-grow flex flex-col">
+              {coverLetter ? (
                 <>
-                  <div className="mt-4 border border-gray-200 rounded-md p-4 bg-gray-50">
+                  {/* Cover Letter Text Area */}
+                  <div className="flex-grow border border-gray-300 rounded-t-md bg-gray-50 p-4">
                     <textarea
                       value={coverLetter}
                       onChange={(e) => setCoverLetter(e.target.value)}
-                      className="w-full h-80 p-3 border border-gray-300 rounded-md"
-                      readOnly={false}
+                      className="w-full h-full p-3 border border-gray-300 rounded-md resize-none"
+                      style={{ minHeight: "300px" }}
                     />
                   </div>
-                  <div className="mt-4 flex justify-end">
-                    <Button
-                      onClick={handleDownloadCoverLetter}
-                      disabled={isDownloadingCoverLetter}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {isDownloadingCoverLetter ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="mr-2 h-4 w-4" />
-                          Download PDF
-                        </>
-                      )}
-                    </Button>
+                  
+                  {/* AI Cover Letter Editor */}
+                  <div className="border border-t-0 border-gray-300 rounded-b-md bg-gray-50 p-4">
+                    <div className="flex items-start mb-3">
+                      <div className="bg-emerald-100 p-2 rounded-full mr-3">
+                        <MessageSquare className="h-5 w-5 text-emerald-700" />
+                      </div>
+                      <div className="bg-emerald-50 text-emerald-800 p-3 rounded-lg rounded-tl-none max-w-[85%]">
+                        <p className="text-sm">
+                          I can help you refine your cover letter with AI. Simply tell me what you'd like to change:
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span 
+                            className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
+                            onClick={() => setCoverLetterEditInstruction("Make the tone more professional")}
+                          >
+                            More professional tone
+                          </span>
+                          <span 
+                            className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
+                            onClick={() => setCoverLetterEditInstruction("Highlight my leadership experience")}
+                          >
+                            Highlight leadership
+                          </span>
+                          <span 
+                            className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
+                            onClick={() => setCoverLetterEditInstruction("Make it more concise")}
+                          >
+                            More concise
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-end mt-3">
+                      <input
+                        type="text"
+                        className="flex-grow p-3 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="Describe what you want to change..."
+                        value={coverLetterEditInstruction}
+                        onChange={(e) => setCoverLetterEditInstruction(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && coverLetterEditInstruction.trim() && !isEditingCoverLetter) {
+                            handleEditCoverLetter();
+                          }
+                        }}
+                        style={{ height: '44px' }}
+                      />
+                      <Button 
+                        onClick={handleEditCoverLetter}
+                        disabled={isEditingCoverLetter || !coverLetterEditInstruction.trim()}
+                        className="bg-emerald-600 hover:bg-emerald-700 rounded-l-none h-[44px] flex items-center justify-center"
+                      >
+                        {isEditingCoverLetter ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                            <path d="m5 11 4 4L19 7" />
+                          </svg>
+                        )}
+                      </Button>
+                    </div>
+                    {isEditingCoverLetter && (
+                      <p className="text-xs text-gray-500 mt-2 flex items-center">
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        Updating your cover letter...
+                      </p>
+                    )}
                   </div>
                 </>
+              ) : (
+                <div className="flex-grow border border-gray-300 rounded-md flex flex-col items-center justify-center bg-gray-50 text-center p-8">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 mb-4">
+                    <path d="M21 14h-8a2 2 0 0 0-2 2v.5A2.5 2.5 0 0 0 13.5 19h1a2.5 2.5 0 0 0 2.5-2.5V16a2 2 0 0 0-2-2h-8M3 8h18M3 12h18M3 16h6M3 20h6" />
+                  </svg>
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">No Cover Letter Generated Yet</h3>
+                  <p className="text-gray-500 max-w-md">
+                    Click "Generate Cover Letter" to create a tailored letter based on your job description from the Resume tab.
+                  </p>
+                </div>
               )}
-            </TabsContent>
+            </div>
+          </div>
+        </TabsContent>
 
             <TabsContent value="questions" className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Answer Application Questions</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">Application Questions</h2>
+                <Button
+                  onClick={handleAnswerQuestion}
+                  disabled={isGeneratingAnswer || !jobDescription.trim() || !question.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {isGeneratingAnswer ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Answer...
+                    </>
+                  ) : (
+                    "Generate Answer"
+                  )}
+                </Button>
+              </div>
+
+              {!jobDescription.trim() && (
+                <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded relative">
+                  <div className="flex items-center">
+                    <AlertCircle className="h-5 w-5 mr-2" />
+                    <span className="block sm:inline">Please enter a job description in the "Generate Resume" tab first.</span>
+                  </div>
+                </div>
+              )}
+
               <div className="mb-4">
                 <label htmlFor="question" className="block text-sm font-medium text-gray-700 mb-1">
                   Question
@@ -539,35 +750,108 @@ export default function Dashboard() {
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
                   placeholder="Enter the application question..."
-                  className="w-full h-24 p-3 border border-gray-300 rounded-md"
+                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  rows={3}
                 />
               </div>
               
-              <Button
-                onClick={handleAnswerQuestion}
-                disabled={isGeneratingAnswer || !jobDescription.trim() || !question.trim()}
-                className="mb-4 bg-emerald-600 hover:bg-emerald-700"
-              >
-                {isGeneratingAnswer ? (
+              {/* Answer Content Area */}
+              <div className="flex-grow flex flex-col">
+                {answer ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
+                    <div className="border border-gray-300 rounded-t-md bg-gray-50 p-4">
+                      <textarea
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        className="w-full h-full p-3 border border-gray-300 rounded-md resize-none"
+                        style={{ minHeight: "200px" }}
+                        placeholder="Your generated answer will appear here..."
+                      />
+                    </div>
+                    
+                    {/* AI Answer Editor */}
+                    <div className="border border-t-0 border-gray-300 rounded-b-md bg-gray-50 p-4">
+                      <div className="flex items-start mb-3">
+                        <div className="bg-emerald-100 p-2 rounded-full mr-3">
+                          <MessageSquare className="h-5 w-5 text-emerald-700" />
+                        </div>
+                        <div className="bg-emerald-50 text-emerald-800 p-3 rounded-lg rounded-tl-none max-w-[85%]">
+                          <p className="text-sm">
+                            I can help you refine your answer with AI. Simply tell me what you'd like to change:
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <span 
+                              className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
+                              onClick={() => setAnswerEditInstruction("Make the answer more detailed")}
+                            >
+                              More detailed
+                            </span>
+                            <span 
+                              className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
+                              onClick={() => setAnswerEditInstruction("Highlight specific achievements")}
+                            >
+                              Highlight achievements
+                            </span>
+                            <span 
+                              className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
+                              onClick={() => setAnswerEditInstruction("Make it more concise")}
+                            >
+                              More concise
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-end mt-3">
+                        <input
+                          type="text"
+                          className="flex-grow p-3 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="Describe what you want to change..."
+                          value={answerEditInstruction}
+                          onChange={(e) => setAnswerEditInstruction(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && answerEditInstruction.trim() && !isEditingAnswer) {
+                              handleEditAnswer();
+                            }
+                          }}
+                          style={{ height: '44px' }}
+                        />
+                        <Button 
+                          onClick={handleEditAnswer}
+                          disabled={isEditingAnswer || !answerEditInstruction.trim()}
+                          className="bg-emerald-600 hover:bg-emerald-700 rounded-l-none h-[44px] flex items-center justify-center"
+                        >
+                          {isEditingAnswer ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                              <path d="m5 11 4 4L19 7" />
+                            </svg>
+                          )}
+                        </Button>
+                      </div>
+                      {isEditingAnswer && (
+                        <p className="text-xs text-gray-500 mt-2 flex items-center">
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          Updating your answer...
+                        </p>
+                      )}
+                    </div>
                   </>
                 ) : (
-                  "Generate Answer"
+                  <div className="flex-grow border border-gray-300 rounded-md flex flex-col items-center justify-center bg-gray-50 text-center p-8">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 mb-4">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                      <path d="M12 17h.01" />
+                    </svg>
+                    <h3 className="text-lg font-medium text-gray-700 mb-2">No Answer Generated Yet</h3>
+                    <p className="text-gray-500 max-w-md">
+                      Enter an application question above and click "Generate Answer" to create a tailored response based on your job description.
+                    </p>
+                  </div>
                 )}
-              </Button>
-
-              {answer && (
-                <div className="mt-4 border border-gray-200 rounded-md p-4 bg-gray-50">
-                  <textarea
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    className="w-full h-48 p-3 border border-gray-300 rounded-md"
-                    readOnly={false}
-                  />
-                </div>
-              )}
+              </div>
             </TabsContent>
           </Tabs>
     </div>

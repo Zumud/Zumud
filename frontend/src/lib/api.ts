@@ -182,10 +182,21 @@ export const applications = {
   getCoverLetterPDF: () => 
     apiCall('applications/cover-letter/pdf', 'GET'),
   
+  getCoverLetterText: () => 
+    apiCall('applications/cover-letter/text', 'GET'),
+  
   answerQuestion: (jobDescription: string, question: string) => 
     apiCall('applications/questions/answer', 'GET', { 
       job_description: jobDescription, 
       question 
+    }, false),
+    
+  editAnswerWithInstructions: (editInstruction: string, originalAnswer: string, question: string, jobDescription: string) => 
+    apiCall('applications/questions/answer/edit', 'GET', { 
+      edit_instruction: editInstruction,
+      original_answer: originalAnswer,
+      question,
+      job_description: jobDescription
     }, false),
     
   improveResume: (file: File) => {
@@ -194,8 +205,17 @@ export const applications = {
     return apiCall('applications/resume/improve', 'POST', formData, true);
   },
   
-  editResumeWithInstructions: (editInstruction: string) => 
-    apiCall('applications/resume/edit', 'GET', { edit_instruction: editInstruction }, false)
+  editResumeWithInstructions: (editInstruction: string, jobDescription: string) => 
+    apiCall('applications/resume/edit', 'GET', { 
+      edit_instruction: editInstruction,
+      job_description: jobDescription 
+    }, false),
+    
+  editCoverLetterWithInstructions: (editInstruction: string, jobDescription: string) => 
+    apiCall('applications/cover-letter/edit', 'GET', { 
+      edit_instruction: editInstruction, 
+      job_description: jobDescription 
+    }, false)
 };
 
 export default {
