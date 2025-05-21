@@ -288,7 +288,7 @@ async def improve_resume_pdf(
     tailoring_options = TailoringOptionsBase()
     
     # Generate improved resume using AI with default options
-    latex_compiler_response, _ = ai_service.generate_structured_latex_resume(
+    latex_compiler_response, _, _ = ai_service.generate_structured_latex_resume(
         str(save_path),
         resume_text,
         "There is no specific job description for general improvement",  # No specific job description for general improvement
