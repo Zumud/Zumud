@@ -2,14 +2,18 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Loader2, Upload, CheckCircle, ArrowLeft, Save } from "lucide-react"
+import { Loader2, Upload, CheckCircle, ArrowLeft, Save, LogIn } from "lucide-react"
 import { resume } from "@/lib/api"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { removeAccessToken, removeUserData } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 export default function ProfileSettingsPage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isAuthError, setIsAuthError] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [resumeData, setResumeData] = useState<string>("")
   
@@ -18,6 +22,15 @@ export default function ProfileSettingsPage() {
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
   const fileInputRef = useRef<HTMLInputElement>(null)
   
+  // Function to redirect to login page
+  const redirectToLogin = () => {
+    // Clear auth data
+    removeAccessToken()
+    removeUserData()
+    // Redirect to home/login page
+    router.push('/')
+  }
+
   // Load current resume data
   useEffect(() => {
     fetchResumeData()
@@ -29,9 +42,26 @@ export default function ProfileSettingsPage() {
       if (data && data.resume_content) {
         setResumeData(data.resume_content)
       }
+      setIsAuthError(false)
     } catch (err: any) {
       console.error('Failed to load resume:', err)
-      setError('Failed to load your current resume. Please try again later.')
+      
+      // Check if this is an authentication error
+      if (err.message && (
+          err.message.includes('session has expired') || 
+          err.message.includes('login') || 
+          err.message.includes('token') || 
+          err.message.includes('unauthorized') ||
+          err.message.includes('authentication')
+      )) {
+        // Show authentication error message
+        setError('Your session has expired. Please log in again to continue.')
+        setIsAuthError(true)
+      } else {
+        // For other errors, show the appropriate message
+        setError(err.message || 'Failed to load your current resume. Please try again later.')
+        setIsAuthError(false)
+      }
     }
   }
 
@@ -39,12 +69,27 @@ export default function ProfileSettingsPage() {
     setIsLoading(true)
     setError(null)
     setSuccess(null)
+    setIsAuthError(false)
 
     try {
       await resume.updateResume(resumeData)
       setSuccess('Resume text updated successfully!')
     } catch (err: any) {
-      setError(err.message || 'Failed to update resume text')
+      // Check if this is an authentication error
+      if (err.message && (
+          err.message.includes('session has expired') || 
+          err.message.includes('login') || 
+          err.message.includes('token') || 
+          err.message.includes('unauthorized') ||
+          err.message.includes('authentication')
+      )) {
+        // Show authentication error message
+        setError('Your session has expired. Please log in again to continue.')
+        setIsAuthError(true)
+      } else {
+        setError(err.message || 'Failed to update resume text')
+        setIsAuthError(false)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -57,6 +102,7 @@ export default function ProfileSettingsPage() {
     // Reset upload status
     setUploadStatus('idle')
     setError(null)
+    setIsAuthError(false)
     
     // Check if the file is a PDF
     if (file.type !== 'application/pdf') {
@@ -82,6 +128,7 @@ export default function ProfileSettingsPage() {
     setUploadStatus('uploading')
     setError(null)
     setSuccess(null)
+    setIsAuthError(false)
     
     try {
       await resume.uploadResumePdf(resumeFile)
@@ -100,8 +147,23 @@ export default function ProfileSettingsPage() {
         }
       }, 3000)
     } catch (err: any) {
-      setUploadStatus('error')
-      setError(err.message || 'Failed to upload resume')
+      // Check if this is an authentication error
+      if (err.message && (
+          err.message.includes('session has expired') || 
+          err.message.includes('login') || 
+          err.message.includes('token') || 
+          err.message.includes('unauthorized') ||
+          err.message.includes('authentication')
+      )) {
+        // Show authentication error message
+        setUploadStatus('error')
+        setError('Your session has expired. Please log in again to continue.')
+        setIsAuthError(true)
+      } else {
+        setUploadStatus('error')
+        setError(err.message || 'Failed to upload resume')
+        setIsAuthError(false)
+      }
     }
   }
 
@@ -118,7 +180,20 @@ export default function ProfileSettingsPage() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-          <span className="block sm:inline">{error}</span>
+          <div className="flex items-start justify-between">
+            <span className="block sm:inline">{error}</span>
+            {isAuthError && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={redirectToLogin}
+                className="ml-4 bg-red-100 hover:bg-red-200 text-red-800 border-red-300"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Log In
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
