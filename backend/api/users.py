@@ -117,7 +117,7 @@ def get_user_resume(current_user = Depends(get_current_user), db: Session = Depe
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {current_user.id} does not have a resume record"
+            detail="No resume found. Please upload or create a resume to get started."
         )
     return resume
 
@@ -134,7 +134,7 @@ def update_resume(
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No resume found to update"
+            detail="No resume found. Please upload or create a resume first."
         )
     
     # Get the updated content
