@@ -104,6 +104,7 @@ Use both inputs to write a tailored resume that:
 ✅ ONLY fills in missing information where it can be DIRECTLY inferred from the original resume. NEVER invent or fabricate information that isn't clearly indicated.
 ✅ NEVER includes markers or annotations indicating inferred information (e.g., no "(inferred)" labels or similar indicators).
 ✅ Presents all information as factual and verified, regardless of whether it was explicitly stated or reasonably inferred.
+✅ For ALL social media profiles and URLs (LinkedIn, GitHub, Twitter, etc.), ONLY provide usernames/handles, NEVER full URLs. This is CRITICAL for proper template rendering.
 
 ✍️ Content Expectations (per section)
 
@@ -162,6 +163,16 @@ Use both inputs to write a tailored resume that:
   - For organizations or credentials mentioned, add relevant context that would be publicly verifiable
   - Omit fields entirely if information is missing and cannot be reasonably inferred or verified through public knowledge
   - Present all information as verified facts, never indicating which parts were inferred
+
+🔹 Contact Information
+• When providing social media profiles or online accounts, ONLY include the username or handle component:
+  - LinkedIn: Only "johndoe" (NOT "linkedin.com/in/johndoe" or "https://www.linkedin.com/in/johndoe")
+  - GitHub: Only "johndoe" (NOT "github.com/johndoe" or "https://github.com/johndoe")
+  - Twitter: Only "johndoe" (NOT "twitter.com/johndoe" or "https://twitter.com/johndoe")
+  - Any other online profile: Extract only the unique username/handle
+• URLs will be constructed automatically in the resume template - providing full URLs will break formatting
+• If you're unsure how to extract the handle, use only the final component of the URL path
+• This is CRITICAL for proper template rendering - full URLs will cause formatting problems in the final document
 
 🧠 Keep in mind:
 
