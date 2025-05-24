@@ -18,6 +18,7 @@ export default function PreferencesPrompt({
   onDismiss 
 }: PreferencesPromptProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
   const [countdown, setCountdown] = useState(15)
 
   // Auto-dismiss countdown
@@ -40,17 +41,29 @@ export default function PreferencesPrompt({
     return () => clearInterval(timer)
   }, [isVisible, onDismiss])
 
-  const handleSavePreference = async () => {
+  const handleSavePreference = () => {
+    // Immediate visual feedback
     setIsLoading(true)
-    try {
-      const preference = `Apply edits like: "${editInstruction}" to future resumes`
-      await onSavePreference(preference)
-      onDismiss()
-    } catch (error) {
+    setIsSaved(true)
+    
+    // Fire the preference save immediately - completely independent operation
+    const preference = `Apply edits like: "${editInstruction}" to future resumes`
+    
+    // Start the API call immediately in the background
+    onSavePreference(preference).then(() => {
+      console.log('Preference saved successfully!')
+    }).catch((error) => {
       console.error('Failed to save preference:', error)
-    } finally {
+      // On error, revert the visual state
+      setIsSaved(false)
       setIsLoading(false)
-    }
+      return // Don't dismiss on error
+    })
+    
+    // Dismiss after showing success for a brief moment
+    setTimeout(() => {
+      onDismiss()
+    }, 1500)
   }
 
   if (!isVisible) return null
@@ -75,17 +88,17 @@ export default function PreferencesPrompt({
               </button>
             </div>
             <p className="text-xs text-gray-600 mb-2">
-              Apply "<span className="font-medium text-emerald-700">{editInstruction}</span>" to future resumes automatically?
+              <span className="font-medium text-emerald-700">Your edit is already being applied!</span> Would you also like to save "<span className="font-medium text-emerald-700">{editInstruction}</span>" as a preference for future resumes?
             </p>
             
             <div className="flex items-center space-x-2">
               <Button
                 onClick={handleSavePreference}
-                disabled={isLoading}
+                disabled={isLoading || isSaved}
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700 text-xs px-3 py-1.5 h-7"
               >
-                {isLoading ? 'Saving...' : 'Yes, Save'}
+                {isSaved ? 'Saved!' : isLoading ? 'Saving...' : 'Yes, Save'}
               </Button>
               <Button
                 onClick={onDismiss}

@@ -268,10 +268,7 @@ export default function Dashboard() {
       return
     }
     
-    // Show preferences prompt immediately
-    setCurrentEditInstruction(editInstruction)
-    setShowPreferencesPrompt(true)
-    
+    // Start the edit operation immediately - no waiting for preferences
     asyncOperation(
       () => applications.editResumeWithInstructions(
         editInstruction,
@@ -293,6 +290,10 @@ export default function Dashboard() {
         return null
       }
     )
+    
+    // Show preferences prompt immediately and independently - no blocking the edit
+    setCurrentEditInstruction(editInstruction)
+    setShowPreferencesPrompt(true)
   }
 
   const handleEditCoverLetter = () => {
@@ -301,10 +302,7 @@ export default function Dashboard() {
       return
     }
     
-    // Show preferences prompt immediately
-    setCurrentEditInstruction(coverLetterEditInstruction)
-    setShowPreferencesPrompt(true)
-    
+    // Start the edit operation immediately - no waiting for preferences
     asyncOperation(
       () => applications.editCoverLetterWithInstructions(
         coverLetterEditInstruction,
@@ -338,6 +336,10 @@ export default function Dashboard() {
         return null
       }
     )
+    
+    // Show preferences prompt immediately and independently - no blocking the edit
+    setCurrentEditInstruction(coverLetterEditInstruction)
+    setShowPreferencesPrompt(true)
   }
 
   const handleEditAnswer = () => {
@@ -346,10 +348,7 @@ export default function Dashboard() {
       return
     }
     
-    // Show preferences prompt immediately
-    setCurrentEditInstruction(answerEditInstruction)
-    setShowPreferencesPrompt(true)
-    
+    // Start the edit operation immediately - no waiting for preferences
     asyncOperation(
       () => applications.editAnswerWithInstructions(
         answerEditInstruction,
@@ -370,17 +369,22 @@ export default function Dashboard() {
       "Failed to update answer with instructions. Please check your input.",
       () => !answerEditInstruction.trim() ? "Please enter edit instructions" : null
     )
+    
+    // Show preferences prompt immediately and independently - no blocking the edit
+    setCurrentEditInstruction(answerEditInstruction)
+    setShowPreferencesPrompt(true)
   }
 
   const handleSavePreference = async (preference: string) => {
-    try {
-      await preferences.addUserPreference(preference)
+    // Fire and forget - don't block any other operations
+    preferences.addUserPreference(preference).then(() => {
       console.log('Preference saved successfully:', preference)
-    } catch (error) {
+    }).catch((error) => {
       console.error('Failed to save preference:', error)
       setError('Failed to save preference. Please try again.')
-      throw error; // Re-throw to let the prompt handle the error
-    }
+    })
+    
+    // Return immediately - don't await the API call
   }
 
   const handleDismissPreferencesPrompt = () => {
