@@ -33,12 +33,30 @@ def get_company_name(job_description):
     )  # Since this is a simple task we use the cheapest ai
     return company_name
 
-def generate_tailored_resume_text(resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume) -> str:
+def generate_tailored_resume_text(resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None) -> str:
+    # Format the user preferences section
+    if user_preferences:
+        user_preferences_section = f"""**User Preferences:**
+{user_preferences}"""
+    else:
+        user_preferences_section = ""
+        
+    # Use standard system content
+    system_content = "You are an expert in resume writing."
+    
+    # Format the prompt with user preferences
+    prompt = prompts.create_tailored_resume.format(
+        resume=resume, 
+        job_description=job_description, 
+        num_pages=Template_Details[template]['num_pages'],
+        user_preferences_section=user_preferences_section
+    )
+    
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": "You are an expert in resume writing."},
-            {"role": "user", "content": prompts.create_tailored_resume.format(resume=resume, job_description=job_description, num_pages=Template_Details[template]['num_pages'])}
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": prompt}
         ],
         response_format=TailoredResume
     )
@@ -46,23 +64,30 @@ def generate_tailored_resume_text(resume: str, job_description: str, model=AIMod
     logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-def generate_structured_latex_resume(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume):
+def generate_structured_latex_resume(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None):
     """
     Convert a plain resume to LaTeX using structured output and Jinja2 templating.
     
     Returns:
         tuple: (latex_compiler_response, rendered_latex, structured_resume_json)
     """
+    
+    # Use standard system content
+    system_content = """You are a world-class resume writer, career strategist, and ATS optimization expert. You specialize in transforming general resumes into sharply focused, high-impact documents tailored for specific job applications — increasing interview rates significantly."""
+    
+    # Format the prompt with user preferences
+    prompt = prompts.structured_resume_prompt.format(
+        resume=resume,
+        job_description=job_description,
+        user_preferences= user_preferences if user_preferences else "No specific preferences provided."
+    )
+    
     # First, get structured resume data from GPT
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": """You are a world-class resume writer, career strategist, and ATS optimization expert. You specialize in transforming general resumes into sharply focused, high-impact documents tailored for specific job applications — increasing interview rates significantly. Your sole goal is to maximize the candidate's chances of getting an interview by rewriting their resume content to match a specific job description. Your output will be structured as JSON for formatting later, but you should focus purely on crafting the best possible content."""},
-            {"role": "user", "content": prompts.structured_resume_prompt.format(
-                resume=resume,
-                job_description=job_description,
-                schema=json.dumps(StructuredResume.model_json_schema(), indent=2)
-            )}
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": prompt}
         ],
         response_format=StructuredResume
     )
@@ -184,7 +209,7 @@ def update_resume_with_instructions(resume_json: str, original_resume_content: s
     updated_resume = completion.choices[0].message.content
     return updated_resume
 
-def edit_resume_and_generate_pdf(save_path: str, resume_json: str, original_resume_content: str, job_description: str, edit_instructions: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume):
+def edit_resume_and_generate_pdf(save_path: str, resume_json: str, original_resume_content: str, job_description: str, edit_instructions: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None):
     """
     Process edit instructions on a resume JSON and generate a PDF.
     
@@ -196,18 +221,34 @@ def edit_resume_and_generate_pdf(save_path: str, resume_json: str, original_resu
         edit_instructions (str): Free-form text instructions for editing
         model: AI model to use
         template: LaTeX template to use
+        user_preferences (str, optional): User preferences to incorporate in the edits
         
     Returns:
         tuple: (pdf_compiler_response, updated_resume_json)
     """
-    # Update the resume JSON using AI
-    updated_resume_json = update_resume_with_instructions(
-        resume_json,
-        original_resume_content,
-        job_description,
-        edit_instructions,
-        model
+    # Use standard system content
+    system_content = "You are a resume editor assistant. Provide the updated resume in the specified format."
+    
+    # Format the prompt with user preferences using the template from prompts.py
+    prompt = prompts.edit_resume_instructions_prompt.format(
+        user_preferences=user_preferences if user_preferences else "No specific preferences provided.",
+        original_resume_content=original_resume_content,
+        job_description=job_description,
+        resume_json=resume_json,
+        edit_instructions=edit_instructions
     )
+    
+    # Update the resume JSON using AI
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": prompt}
+        ],
+        response_format=StructuredResume
+    )
+    
+    updated_resume_json = completion.choices[0].message.content
     
     # Parse the updated JSON to get the structured resume
     structured_resume = json.loads(updated_resume_json)

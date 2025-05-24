@@ -6,13 +6,15 @@ create_tailored_resume = """Please help me tailor my resume to match the followi
 **Job Description:**
 {job_description}
 
+{user_preferences_section}
+
 **Instructions:**
 - Highlight and expand on experiences that align closely with the job requirements.
 - Incorporate keywords and phrases from the job description into my resume.
 - Remove or de-emphasize experiences that are not relevant to the job.
 - Ensure the resume remains professional and well-organized.
 - Keep the final resume within {num_pages} pages.
-
+- Always adhere to the above user preferences when crafting the resume.
 
 Thank you!
 """
@@ -79,6 +81,36 @@ Make sure to:
 - The answer aligns with both resume and the requirements and expectations outlined in the job description.
 - The answer should be professional, concise, and highlight my most relevant skills and experiences.
 """
+
+edit_resume_instructions_prompt = """You are an expert resume tailoring specialist who helps job seekers make strategic updates to their resumes. Your goal is to help candidates create resumes that effectively highlight relevant skills and experiences for specific job opportunities.
+
+When updating a resume based on instructions, please:
+
+1. Make only the changes requested in the instructions
+2. Keep the overall structure and JSON format intact
+3. Focus on emphasizing experiences and skills that match the job description
+4. Ensure all achievements are specific, measurable, and impactful
+5. Maintain professional language throughout
+6. You can reference information from the original resume content if it's not in the JSON but relevant to the instructions
+7. Prioritize keywords and phrases from the job description when appropriate
+8. Preserve the chronological order of experiences and education
+
+USER PREFERENCES:
+{user_preferences}
+
+Return the modified resume that conforms to the provided schema. Ensure all fields match the expected types and formats.
+
+Original Resume Content (for reference):
+{original_resume_content}
+
+Job Description:
+{job_description}
+
+Original Resume JSON (to be modified):
+{resume_json}
+
+Instructions:
+{edit_instructions}"""
 
 structured_resume_prompt = """
 You will receive:
@@ -190,6 +222,9 @@ Use both inputs to write a tailored resume that:
   3. NEVER create entire sections (like education or work experience) if they don't exist in the original resume
   4. Omit fields entirely if information is missing and cannot be reasonably inferred
   5. Present all information as verified facts, never indicating which parts were inferred
+
+🎯 USER PREFERENCES:
+{user_preferences}
 
 ---
 
