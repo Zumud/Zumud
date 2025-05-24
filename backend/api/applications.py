@@ -1,21 +1,26 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
 from datetime import datetime
 from fastapi.responses import FileResponse, PlainTextResponse
+from sqlalchemy.orm import Session
 import uuid
 import os
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
+from backend.models.ai_models import AIModel
 from backend.models.tailoring_options import TailoringOptionsBase
 from backend.utils.file_ops import PDFGenerator, save_pdf, extract_text_from_pdf
 from backend.utils.path_ops import create_new_application_path, get_current_application_path
+from backend.models import db_models
+from backend.models.db import get_db
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 @router.get("/resume/plain")
 def generate_tailored_plain_resume(
     job_description: str = Query(..., description="The job description to tailor the resume for"),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ) -> str:
     """Generate a tailored plain text resume based on job description"""
     if not current_user.resumes:
@@ -31,12 +36,19 @@ def generate_tailored_plain_resume(
             detail="No resume content found. Please add your resume details before generating a tailored resume."
         )
 
+    # Get user preferences if they exist
+    user_preferences = None
+    preferences = db.query(db_models.UserPreferences).filter(db_models.UserPreferences.user_id == current_user.id).first()
+    if preferences:
+        user_preferences = preferences.preferences_text
+
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     return ai_service.generate_tailored_resume_text(
         current_user.resumes.resume_content,
         job_description,
         tailoring_options.ai_model,
-        tailoring_options.resume_template
+        tailoring_options.resume_template,
+        user_preferences
     )
 
 @router.get("/cover-letter/plain")
@@ -117,7 +129,8 @@ def download_cover_letter_pdf(
 @router.get("/resume/pdf", response_class=FileResponse)
 def generate_and_save_pdf_resume(
     job_description: str = Query(..., description="The job description to tailor the resume for"),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Generate a tailored resume and return it as a PDF file"""
     if not current_user.resumes:
@@ -133,6 +146,12 @@ def generate_and_save_pdf_resume(
             detail="No resume content found. Please add your resume details before generating a PDF."
         )
     
+    # Get user preferences if they exist
+    user_preferences = None
+    preferences = db.query(db_models.UserPreferences).filter(db_models.UserPreferences.user_id == current_user.id).first()
+    if preferences:
+        user_preferences = preferences.preferences_text
+    
     company_name = ai_service.get_company_name(job_description)
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     save_path = create_new_application_path(current_user.username, company_name, timestamp)
@@ -143,7 +162,8 @@ def generate_and_save_pdf_resume(
         current_user.resumes.resume_content,
         job_description,
         tailoring_options.ai_model,
-        tailoring_options.resume_template
+        tailoring_options.resume_template,
+        user_preferences
     )
     
     pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, current_user.username)
@@ -309,7 +329,8 @@ async def improve_resume_pdf(
 async def edit_resume_with_instructions(
     edit_instruction: str = Query(..., description="Free-form text instructions for editing the resume"),
     job_description: str = Query(..., description="The job description to tailor the resume for"),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Update a resume JSON based on free-form text instructions and return the updated PDF"""
     if not current_user.resumes:
@@ -350,7 +371,13 @@ async def edit_resume_with_instructions(
     new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
     
     # Get user's tailoring options
-    # tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
+    tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
+    
+    # Get user preferences if they exist
+    user_preferences = None
+    preferences = db.query(db_models.UserPreferences).filter(db_models.UserPreferences.user_id == current_user.id).first()
+    if preferences:
+        user_preferences = preferences.preferences_text
     
     try:
         # Process the edit and generate PDF using the new service function
@@ -360,9 +387,9 @@ async def edit_resume_with_instructions(
             original_resume_content,  # Pass the original resume content
             job_description,
             edit_instruction,
-            # Use GPT-4.1 Nano which is sufficient for resume edits   
-            # tailoring_options.ai_model,
-            # tailoring_options.resume_template
+            AIModel.gpt_4_1_nano,  # Use GPT-4.1 Nano model
+            tailoring_options.resume_template,  # Use user's template preference
+            user_preferences  # Pass user preferences for context
         )
         
         # Save the updated JSON to the new path
