@@ -5,7 +5,7 @@ from loguru import logger
 import base64
 
 from backend.models.db import get_db, SessionLocal
-from backend.models.user_models import User, UserCreate
+from backend.models.user_models import User, UserCreate, UserPreference, UserPreferenceCreate
 from backend.models.resume_models import Resume, ResumeBase
 from backend.models.legal_authorization_models import LegalAuthorization
 from backend.models import db_models
@@ -14,6 +14,7 @@ from backend.models.tailoring_options import TailoringOptionsBase, TailoringOpti
 from backend.utils.file_utils import save_base64_pdf
 from backend.utils.file_ops import extract_text_from_pdf
 from backend.utils.resume_formatter import format_resume_text
+from backend.core.ai_service import format_user_preferences
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -117,7 +118,7 @@ def get_user_resume(current_user = Depends(get_current_user), db: Session = Depe
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {current_user.id} does not have a resume record"
+            detail="No resume found. Please upload or create a resume to get started."
         )
     return resume
 
@@ -134,7 +135,7 @@ def update_resume(
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No resume found to update"
+            detail="No resume found. Please upload or create a resume first."
         )
     
     # Get the updated content
@@ -292,3 +293,53 @@ async def upload_resume_pdf(
     logger.info(f"Resume upload endpoint completed in {(end_time - start_time).total_seconds()} seconds")
     
     return resume
+
+@router.get("/me/preferences", response_model=UserPreference)
+def get_user_preferences(current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get current user's preferences"""
+    preferences = db.query(db_models.UserPreferences).filter(db_models.UserPreferences.user_id == current_user.id).first()
+    if not preferences:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No preferences found for this user."
+        )
+    return preferences
+
+@router.post("/me/preferences", response_model=UserPreference)
+def add_user_preference(preference_data: UserPreferenceCreate, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Add a new preference to the user's existing preferences"""
+    # First, check if the user already has preference data
+    preferences = db.query(db_models.UserPreferences).filter(db_models.UserPreferences.user_id == current_user.id).first()
+    
+    # Get existing preferences text (if any)
+    existing_preferences_text = preferences.preferences_text if preferences and preferences.preferences_text else "No preferences"
+    
+    # Format the preferences using OpenAI
+    try:
+        formatted_preferences = format_user_preferences(
+            existing_preferences=existing_preferences_text,
+            new_preference=preference_data.preference
+        )
+    except Exception as e:
+        logger.error(f"Error formatting preferences with OpenAI: {e}")
+        # Fallback to simple concatenation if OpenAI fails
+        if existing_preferences_text:
+            formatted_preferences = f"{existing_preferences_text}\n{preference_data.preference}"
+        else:
+            formatted_preferences = preference_data.preference
+    
+    if preferences:
+        # Update existing preferences with formatted text
+        preferences.preferences_text = formatted_preferences
+        preferences.last_updated = datetime.now(timezone.utc)
+    else:
+        # Create new preferences record with formatted text
+        preferences = db_models.UserPreferences(
+            user_id=current_user.id,
+            preferences_text=formatted_preferences
+        )
+        db.add(preferences)
+    
+    db.commit()
+    db.refresh(preferences)
+    return preferences

@@ -18,6 +18,7 @@ class User(Base):
     resumes = relationship("Resume", back_populates="user", uselist=False)
     legal_authorization = relationship("LegalAuthorization", back_populates="user", uselist=False)
     tailoring_options = relationship("TailoringOptions", back_populates="user", uselist=False)
+    preferences = relationship("UserPreferences", back_populates="user", uselist=False)
 
 class Resume(Base):
     __tablename__ = "resumes"
@@ -52,4 +53,15 @@ class TailoringOptions(Base):
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Establish relationship with User
-    user = relationship("User", back_populates="tailoring_options") 
+    user = relationship("User", back_populates="tailoring_options")
+
+class UserPreferences(Base):
+    __tablename__ = "user_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    preferences_text = Column(Text, nullable=False, default="")
+    last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Establish relationship with User
+    user = relationship("User", back_populates="preferences") 

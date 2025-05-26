@@ -6,13 +6,15 @@ create_tailored_resume = """Please help me tailor my resume to match the followi
 **Job Description:**
 {job_description}
 
+{user_preferences_section}
+
 **Instructions:**
 - Highlight and expand on experiences that align closely with the job requirements.
 - Incorporate keywords and phrases from the job description into my resume.
 - Remove or de-emphasize experiences that are not relevant to the job.
 - Ensure the resume remains professional and well-organized.
 - Keep the final resume within {num_pages} pages.
-
+- Always adhere to the above user preferences when crafting the resume.
 
 Thank you!
 """
@@ -80,6 +82,36 @@ Make sure to:
 - The answer should be professional, concise, and highlight my most relevant skills and experiences.
 """
 
+edit_resume_instructions_prompt = """You are an expert resume tailoring specialist who helps job seekers make strategic updates to their resumes. Your goal is to help candidates create resumes that effectively highlight relevant skills and experiences for specific job opportunities.
+
+When updating a resume based on instructions, please:
+
+1. Make only the changes requested in the instructions
+2. Keep the overall structure and JSON format intact
+3. Focus on emphasizing experiences and skills that match the job description
+4. Ensure all achievements are specific, measurable, and impactful
+5. Maintain professional language throughout
+6. You can reference information from the original resume content if it's not in the JSON but relevant to the instructions
+7. Prioritize keywords and phrases from the job description when appropriate
+8. Preserve the chronological order of experiences and education
+
+USER PREFERENCES:
+{user_preferences}
+
+Return the modified resume that conforms to the provided schema. Ensure all fields match the expected types and formats.
+
+Original Resume Content (for reference):
+{original_resume_content}
+
+Job Description:
+{job_description}
+
+Original Resume JSON (to be modified):
+{resume_json}
+
+Instructions:
+{edit_instructions}"""
+
 structured_resume_prompt = """
 You will receive:
 1. Original Resume Content — the candidate's current experience, skills, and achievements, in raw form.
@@ -104,6 +136,7 @@ Use both inputs to write a tailored resume that:
 ✅ ONLY fills in missing information where it can be DIRECTLY inferred from the original resume. NEVER invent or fabricate information that isn't clearly indicated.
 ✅ NEVER includes markers or annotations indicating inferred information (e.g., no "(inferred)" labels or similar indicators).
 ✅ Presents all information as factual and verified, regardless of whether it was explicitly stated or reasonably inferred.
+✅ For ALL social media profiles and URLs (LinkedIn, GitHub, Twitter, etc.), ONLY provide usernames/handles, NEVER full URLs. This is CRITICAL for proper template rendering.
 
 ✍️ Content Expectations (per section)
 
@@ -163,6 +196,16 @@ Use both inputs to write a tailored resume that:
   - Omit fields entirely if information is missing and cannot be reasonably inferred or verified through public knowledge
   - Present all information as verified facts, never indicating which parts were inferred
 
+🔹 Contact Information
+• When providing social media profiles or online accounts, ONLY include the username or handle component:
+  - LinkedIn: Only "johndoe" (NOT "linkedin.com/in/johndoe" or "https://www.linkedin.com/in/johndoe")
+  - GitHub: Only "johndoe" (NOT "github.com/johndoe" or "https://github.com/johndoe")
+  - Twitter: Only "johndoe" (NOT "twitter.com/johndoe" or "https://twitter.com/johndoe")
+  - Any other online profile: Extract only the unique username/handle
+• URLs will be constructed automatically in the resume template - providing full URLs will break formatting
+• If you're unsure how to extract the handle, use only the final component of the URL path
+• This is CRITICAL for proper template rendering - full URLs will cause formatting problems in the final document
+
 🧠 Keep in mind:
 
 • Always consider the level of the role (e.g., senior, junior, IC, lead).
@@ -180,6 +223,9 @@ Use both inputs to write a tailored resume that:
   4. Omit fields entirely if information is missing and cannot be reasonably inferred
   5. Present all information as verified facts, never indicating which parts were inferred
 
+🎯 USER PREFERENCES:
+{user_preferences}
+
 ---
 
 **Original Resume:**
@@ -188,3 +234,43 @@ Use both inputs to write a tailored resume that:
 **Target Job Description:**
 {job_description}
 """
+
+format_user_preferences_prompt = """You are an expert career coach specializing in resume and cover letter optimization. 
+
+Your task is to take user-provided career preferences and format them into clean, professional bullet points that can be effectively used in resumes and cover letters.
+
+The user has existing preferences and is adding a new preference. The new preference might:
+- Add to existing preferences
+- Modify or refine existing preferences  
+- Replace existing preferences
+- Remove or contradict existing preferences
+
+CRITICAL: When the new preference contradicts, removes, or replaces an existing preference, you must ELIMINATE the conflicting existing preference entirely. Do NOT include both contradictory preferences in the final output.
+
+Analysis Process:
+1. First, identify if the new preference conflicts with any existing preferences
+2. If conflicts exist, REMOVE the conflicting existing preferences completely
+3. Then add the new preference to the remaining preferences
+4. Format the final consolidated list
+
+Guidelines:
+1. Preserve the user's original meaning and intent for non-conflicting preferences
+2. Format as bullet points (use • or -)
+3. Keep it professional and actionable
+4. Each point should start with an action verb or clear trait/goal
+5. Remove any redundancy or overlap between preferences
+6. Ensure each point is specific and meaningful
+7. Focus on career-relevant preferences that would be valuable to employers
+8. Maintain a consistent tone and style throughout
+9. Keep points concise but comprehensive
+10. Order points logically (e.g., career goals first, then work preferences, etc.)
+11. NEVER include contradictory preferences in the same list
+12. When removing preferences, ensure the removal is complete and thorough
+
+**Current Preferences:**
+{existing_preferences}
+
+**New Preference:**
+{new_preference}
+
+Please provide ONLY the final formatted preferences as bullet points. Do not include any introductory text, explanations, or additional commentary. Return only the bullet points themselves."""
