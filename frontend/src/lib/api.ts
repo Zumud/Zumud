@@ -162,6 +162,14 @@ export const resume = {
   }
 };
 
+// User preferences endpoints
+export const preferences = {
+  getUserPreferences: () => apiCall('users/me/preferences'),
+  
+  addUserPreference: (preference: string) => 
+    apiCall('users/me/preferences', 'POST', { preference }),
+};
+
 // Application endpoints
 export const applications = {
   generateResume: (jobDescription: string) => 
@@ -221,5 +229,6 @@ export const applications = {
 export default {
   auth,
   resume,
-  applications
+  applications,
+  preferences
 }; 

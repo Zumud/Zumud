@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
-import { applications } from "@/lib/api"
+import { applications, preferences } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
+import PreferencesPrompt from "@/components/ui/preferences-prompt"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Download, Loader2, FileCode, ExternalLink, AlertCircle, MessageSquare } from "lucide-react"
 import Link from "next/link"
@@ -32,6 +33,10 @@ export default function Dashboard() {
   const [downloadCoverLetterUrl, setDownloadCoverLetterUrl] = useState<string | null>(null)
   const [answerEditInstruction, setAnswerEditInstruction] = useState('')
   const [isEditingAnswer, setIsEditingAnswer] = useState(false)
+  
+  // Preferences prompt state
+  const [showPreferencesPrompt, setShowPreferencesPrompt] = useState(false)
+  const [currentEditInstruction, setCurrentEditInstruction] = useState("")
 
   // Load user data on mount
   useEffect(() => {
@@ -263,6 +268,7 @@ export default function Dashboard() {
       return
     }
     
+    // Start the edit operation immediately - no waiting for preferences
     asyncOperation(
       () => applications.editResumeWithInstructions(
         editInstruction,
@@ -284,6 +290,10 @@ export default function Dashboard() {
         return null
       }
     )
+    
+    // Show preferences prompt immediately and independently - no blocking the edit
+    setCurrentEditInstruction(editInstruction)
+    setShowPreferencesPrompt(true)
   }
 
   const handleEditCoverLetter = () => {
@@ -292,6 +302,7 @@ export default function Dashboard() {
       return
     }
     
+    // Start the edit operation immediately - no waiting for preferences
     asyncOperation(
       () => applications.editCoverLetterWithInstructions(
         coverLetterEditInstruction,
@@ -325,6 +336,10 @@ export default function Dashboard() {
         return null
       }
     )
+    
+    // Show preferences prompt immediately and independently - no blocking the edit
+    setCurrentEditInstruction(coverLetterEditInstruction)
+    setShowPreferencesPrompt(true)
   }
 
   const handleEditAnswer = () => {
@@ -333,6 +348,7 @@ export default function Dashboard() {
       return
     }
     
+    // Start the edit operation immediately - no waiting for preferences
     asyncOperation(
       () => applications.editAnswerWithInstructions(
         answerEditInstruction,
@@ -353,6 +369,27 @@ export default function Dashboard() {
       "Failed to update answer with instructions. Please check your input.",
       () => !answerEditInstruction.trim() ? "Please enter edit instructions" : null
     )
+    
+    // Show preferences prompt immediately and independently - no blocking the edit
+    setCurrentEditInstruction(answerEditInstruction)
+    setShowPreferencesPrompt(true)
+  }
+
+  const handleSavePreference = async (preference: string) => {
+    // Fire and forget - don't block any other operations
+    preferences.addUserPreference(preference).then(() => {
+      console.log('Preference saved successfully:', preference)
+    }).catch((error) => {
+      console.error('Failed to save preference:', error)
+      setError('Failed to save preference. Please try again.')
+    })
+    
+    // Return immediately - don't await the API call
+  }
+
+  const handleDismissPreferencesPrompt = () => {
+    setShowPreferencesPrompt(false)
+    setCurrentEditInstruction("")
   }
 
   return (
@@ -513,6 +550,16 @@ export default function Dashboard() {
                           </div>
                         </div>
                         
+                        {/* Preferences Prompt for Resume */}
+                        {showPreferencesPrompt && (
+                          <PreferencesPrompt
+                            isVisible={showPreferencesPrompt}
+                            editInstruction={currentEditInstruction}
+                            onSavePreference={handleSavePreference}
+                            onDismiss={handleDismissPreferencesPrompt}
+                          />
+                        )}
+                        
                         <div className="flex items-end mt-3">
                           <input
                             type="text"
@@ -662,6 +709,16 @@ export default function Dashboard() {
                       </div>
                     </div>
                     
+                    {/* Preferences Prompt for Cover Letter */}
+                    {showPreferencesPrompt && (
+                      <PreferencesPrompt
+                        isVisible={showPreferencesPrompt}
+                        editInstruction={currentEditInstruction}
+                        onSavePreference={handleSavePreference}
+                        onDismiss={handleDismissPreferencesPrompt}
+                      />
+                    )}
+                    
                     <div className="flex items-end mt-3">
                       <input
                         type="text"
@@ -801,6 +858,16 @@ export default function Dashboard() {
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Preferences Prompt for Answer */}
+                      {showPreferencesPrompt && (
+                        <PreferencesPrompt
+                          isVisible={showPreferencesPrompt}
+                          editInstruction={currentEditInstruction}
+                          onSavePreference={handleSavePreference}
+                          onDismiss={handleDismissPreferencesPrompt}
+                        />
+                      )}
                       
                       <div className="flex items-end mt-3">
                         <input
