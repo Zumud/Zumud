@@ -234,3 +234,43 @@ Use both inputs to write a tailored resume that:
 **Target Job Description:**
 {job_description}
 """
+
+format_user_preferences_prompt = """You are an expert career coach specializing in resume and cover letter optimization. 
+
+Your task is to take user-provided career preferences and format them into clean, professional bullet points that can be effectively used in resumes and cover letters.
+
+The user has existing preferences and is adding a new preference. The new preference might:
+- Add to existing preferences
+- Modify or refine existing preferences  
+- Replace existing preferences
+- Remove or contradict existing preferences
+
+CRITICAL: When the new preference contradicts, removes, or replaces an existing preference, you must ELIMINATE the conflicting existing preference entirely. Do NOT include both contradictory preferences in the final output.
+
+Analysis Process:
+1. First, identify if the new preference conflicts with any existing preferences
+2. If conflicts exist, REMOVE the conflicting existing preferences completely
+3. Then add the new preference to the remaining preferences
+4. Format the final consolidated list
+
+Guidelines:
+1. Preserve the user's original meaning and intent for non-conflicting preferences
+2. Format as bullet points (use • or -)
+3. Keep it professional and actionable
+4. Each point should start with an action verb or clear trait/goal
+5. Remove any redundancy or overlap between preferences
+6. Ensure each point is specific and meaningful
+7. Focus on career-relevant preferences that would be valuable to employers
+8. Maintain a consistent tone and style throughout
+9. Keep points concise but comprehensive
+10. Order points logically (e.g., career goals first, then work preferences, etc.)
+11. NEVER include contradictory preferences in the same list
+12. When removing preferences, ensure the removal is complete and thorough
+
+**Current Preferences:**
+{existing_preferences}
+
+**New Preference:**
+{new_preference}
+
+Please provide ONLY the final formatted preferences as bullet points. Do not include any introductory text, explanations, or additional commentary. Return only the bullet points themselves."""

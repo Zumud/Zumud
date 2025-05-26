@@ -367,3 +367,35 @@ def update_answer_with_instructions(original_answer: str, question: str, job_des
     
     updated_answer = json.loads(completion.choices[0].message.content)["tailored_answer"]
     return updated_answer
+
+def format_user_preferences(existing_preferences: str, new_preference: str, model=AIModel.gpt_4_1_nano) -> str:
+    """
+    Format and combine user preferences into a clean, structured format suitable for resumes and cover letters.
+    
+    Args:
+        existing_preferences (str): The current stored preferences (can be empty/None)
+        new_preference (str): The new preference to add
+        model: The AI model to use
+        
+    Returns:
+        str: The formatted preferences as bullet points
+    """
+    # If no new preference to process, return existing preferences
+    if not new_preference or not new_preference.strip():
+        return existing_preferences
+    
+    prompt = prompts.format_user_preferences_prompt.format(
+        existing_preferences=existing_preferences,
+        new_preference=new_preference
+    )
+
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are an expert career coach and professional writer."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3,  # Lower temperature for more consistent formatting
+    )
+    
+    return completion.choices[0].message.content.strip()

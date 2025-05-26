@@ -14,6 +14,7 @@ from backend.models.tailoring_options import TailoringOptionsBase, TailoringOpti
 from backend.utils.file_utils import save_base64_pdf
 from backend.utils.file_ops import extract_text_from_pdf
 from backend.utils.resume_formatter import format_resume_text
+from backend.core.ai_service import format_user_preferences
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -310,19 +311,32 @@ def add_user_preference(preference_data: UserPreferenceCreate, current_user = De
     # First, check if the user already has preference data
     preferences = db.query(db_models.UserPreferences).filter(db_models.UserPreferences.user_id == current_user.id).first()
     
-    if preferences:
-        # Append the new preference to existing preferences, separated by a newline
-        if preferences.preferences_text:
-            preferences.preferences_text += f"\n{preference_data.preference}"
+    # Get existing preferences text (if any)
+    existing_preferences_text = preferences.preferences_text if preferences and preferences.preferences_text else "No preferences"
+    
+    # Format the preferences using OpenAI
+    try:
+        formatted_preferences = format_user_preferences(
+            existing_preferences=existing_preferences_text,
+            new_preference=preference_data.preference
+        )
+    except Exception as e:
+        logger.error(f"Error formatting preferences with OpenAI: {e}")
+        # Fallback to simple concatenation if OpenAI fails
+        if existing_preferences_text:
+            formatted_preferences = f"{existing_preferences_text}\n{preference_data.preference}"
         else:
-            preferences.preferences_text = preference_data.preference
-        
+            formatted_preferences = preference_data.preference
+    
+    if preferences:
+        # Update existing preferences with formatted text
+        preferences.preferences_text = formatted_preferences
         preferences.last_updated = datetime.now(timezone.utc)
     else:
-        # Create new preferences record
+        # Create new preferences record with formatted text
         preferences = db_models.UserPreferences(
             user_id=current_user.id,
-            preferences_text=preference_data.preference
+            preferences_text=formatted_preferences
         )
         db.add(preferences)
     
