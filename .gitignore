@@ -10,4 +10,5 @@ resume/
 resume.tar
 Application
 Applications
-user_database.db
+user_database*.db
+production_server*.db
