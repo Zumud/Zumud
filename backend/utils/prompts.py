@@ -175,6 +175,25 @@ Use both inputs to write a tailored resume that:
 • You may exclude projects that have no connection to the target role.
 • If the original project listing is missing key details like location or technologies used, research or infer this information where reasonable.
 
+🔹 Publications
+• Include ALL publications, research papers, articles, and academic contributions mentioned in the original resume.
+• Format with complete bibliographic information following academic standards: authors, title, venue, volume/issue/pages, date.
+• Authors: List all authors as they appear in the original publication. Use "et al." only if space is extremely limited.
+• Title: Present exactly as published, will be italicized in the template.
+• Venue: Include full journal name or conference name without abbreviations when possible.
+• Volume/Issue/Pages: Extract volume numbers, issue numbers (in parentheses), and page ranges when available.
+• Date: Use "Month Year" format (e.g., "March 2024", "July 2023") for consistency.
+• Status: For unpublished works, include status such as "Under Review", "In Press", "Forthcoming", or "Submitted".
+• DOI: Include Digital Object Identifier when available - this will be automatically formatted as a clickable link.
+• URL: Include direct links to the publication when DOI is not available.
+• Present publications in reverse chronological order (most recent first).
+• Prioritize publications most relevant to the target role (e.g., technical publications for engineering roles, business publications for management roles).
+• Only include peer-reviewed publications, conference papers, journal articles, book chapters, or other credible academic/professional contributions.
+• You may exclude publications that have no connection to the target role or industry.
+• If publication details are incomplete in the original resume, only include information that can be directly verified or reasonably inferred from context.
+• Maintain academic citation standards while adapting for resume format.
+• For co-authored works, preserve the author order as it appears in the original publication.
+
 🔹 Education  
 • ONLY include education credentials that are explicitly mentioned in the original resume.
 • If no education is listed in the original resume, DO NOT create an education section or invent any educational background.
@@ -212,7 +231,7 @@ Use both inputs to write a tailored resume that:
 • Use the vocabulary and priorities from the job description to craft a resume that sounds like it was written for this exact role.
 • Integrate themes from the job description naturally into the resume without repeating verbatim.
 • Do not mention the company name or write sentences that imply the candidate already has the job.
-• Preserve all sections from the original resume (experience, education, skills, projects, certifications, awards) but optimize their content and ordering based on relevance.
+• Preserve all sections from the original resume (experience, education, skills, projects, certifications, publications, awards) but optimize their content and ordering based on relevance.
 • While generally preserving all key credentials, you should exclude content that is entirely unrelated to the target role and would not contribute to the candidate's narrative.
 • If the original resume contains specialized sections (e.g., publications, patents), maintain these if relevant to the target position.
 • Balance completeness with focus – include all important credentials and achievements while emphasizing those most relevant to the target role.
