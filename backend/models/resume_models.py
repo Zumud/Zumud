@@ -73,6 +73,18 @@ class Award(BaseModel):
     date: Optional[str] = None
     description: Optional[str] = None
 
+class Publication(BaseModel):
+    title: str
+    authors: Optional[str] = None
+    venue: Optional[str] = None
+    volume: Optional[str] = None
+    issue: Optional[str] = None
+    pages: Optional[str] = None
+    date: Optional[str] = None
+    status: Optional[str] = None  # For "Under Review", "In Press", "Forthcoming", "Submitted"
+    doi: Optional[str] = None
+    url: Optional[str] = None
+
 class StructuredResume(BaseModel):
     personal_info: PersonalInfo
     summary: Optional[str] = None
@@ -81,4 +93,5 @@ class StructuredResume(BaseModel):
     education: Optional[List[Education]] = None
     certifications: Optional[List[Certification]] = None
     projects: Optional[List[Project]] = None
+    publications: Optional[List[Publication]] = None
     awards: Optional[List[Award]] = None
