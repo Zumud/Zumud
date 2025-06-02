@@ -728,6 +728,23 @@ mteck_resume = r"""
   {% endfor %}
   {% endif %}
 
+  {% if publications and publications|length > 0 %}
+  %----------------------------%
+  % Publications %
+  %----------------------------%
+
+  \section{Publications}
+
+  {% for pub in publications %}
+  \vspace{3pt}
+  \begin{itemize}[itemsep=0pt, parsep=0pt, leftmargin=10pt, topsep=0pt]
+    \item[] {% if pub.authors and pub.authors != 'None' %}{{ pub.authors }}. {% endif %}{% if pub.title and pub.title != 'None' %}\textit{ {{ pub.title }} }. {% endif %}{% if pub.venue and pub.venue != 'None' %}{{ pub.venue }}{% if pub.volume and pub.volume != 'None' %}, {{ pub.volume }}{% if pub.issue and pub.issue != 'None' %}({{ pub.issue }}){% endif %}{% if pub.pages and pub.pages != 'None' %}, {{ pub.pages }}{% endif %}{% endif %}.{% endif %}{% if pub.status and pub.status != 'None' %} \textbf{ {{ pub.status }} }.{% endif %}{% if pub.date and pub.date != 'None' %} \textbf{ {{ pub.date }} }{% endif %}{% if pub.doi and pub.doi != 'None' %}
+    \\[2pt] \href{https://doi.org/{{ pub.doi }}}{https://doi.org/{{ pub.doi }}}{% elif pub.url and pub.url != 'None' %}
+    \\[2pt] \href{ {{ pub.url }} }{ {{ pub.url }} }{% endif %}
+  \end{itemize}
+  {% endfor %}
+  {% endif %}
+
   {% if awards and awards|length > 0 %}
   %----------------------------%
   % Honors & Awards %
