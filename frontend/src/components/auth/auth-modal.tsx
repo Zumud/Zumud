@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -12,10 +12,11 @@ interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  defaultTab?: 'login' | 'signup'
 }
 
-export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login')
+export default function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'login' }: AuthModalProps) {
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>(defaultTab)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resumeMethod, setResumeMethod] = useState<'none' | 'upload' | 'paste'>('none')
@@ -34,6 +35,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
   
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Reset to default tab when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab)
+    }
+  }, [isOpen, defaultTab])
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
