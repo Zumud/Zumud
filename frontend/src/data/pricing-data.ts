@@ -1,0 +1,47 @@
+export const PRICING_PLANS = [
+  {
+    id: "free",
+    name: "Free Trial",
+    description: "Perfect for getting started",
+    features: [
+      "3 free resume generations",
+      "Basic resume templates",
+      "Standard resume analysis",
+      "Email support",
+    ],
+    cta: "Start Free Trial",
+    popular: false,
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    description: "Perfect for job seekers",
+    features: [
+      "Unlimited resume generations",
+      "Advanced ATS optimization",
+      "Premium resume templates",
+      "Real-time job match scoring",
+      "Cover letter generation",
+      "LinkedIn profile optimization",
+      "Priority support",
+    ],
+    cta: "Get Started",
+    popular: true,
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    description: "Everything you need to get hired",
+    features: [
+      "Everything in Pro",
+      "Personal career coach consultation",
+      "Interview preparation materials",
+      "Salary negotiation templates",
+      "Job application tracking",
+      "Custom resume branding",
+      "24/7 phone support",
+    ],
+    cta: "Go Premium",
+    popular: false,
+  },
+]; 

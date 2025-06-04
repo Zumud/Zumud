@@ -6,98 +6,49 @@ import InterviewReadyResume from "@/components/interview-ready-resume"
 import AuthModal from "@/components/auth/auth-modal"
 import { isAuthenticated } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import Navbar from "@/components/landing/navbar"
+import HeroSection from "@/components/landing/hero-section"
+import HowItWorksSection from "@/components/landing/how-it-works-section"
+import FeaturesSection from "@/components/landing/features-section"
+import TestimonialsSection from "@/components/landing/testimonials-section"
+import PricingSection from "@/components/landing/pricing-section"
+import CallToActionSection from "@/components/landing/call-to-action-section"
+import Footer from "@/components/landing/footer"
 
-export default function Home() {
-  const router = useRouter()
+export default function LandingPage() {
   const [showAuthModal, setShowAuthModal] = useState(false)
-  
-  useEffect(() => {
-    if (isAuthenticated()) {
-      router.push("/dashboard")
-    }
-  }, [router])
-  
-  const handleLoginSuccess = () => {
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
+  const router = useRouter()
+
+  const handleAuthSuccess = () => {
     setShowAuthModal(false)
-    router.push("/dashboard")
+    router.push('/dashboard')
   }
-  
-  // We define the structured data directly without schema-dts to avoid type issues
-  const websiteSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "Zumud - Instant job-specific resumes",
-    "url": "https://zumud.com",
-    "description": "Tailored resume and cover letter for any job in seconds. Our users report 3× more interviews — and save 15+ minutes per application.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://zumud.com/search?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  };
 
-  const applicationSchema = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Zumud AI Resume Builder",
-    "description": "Get job-specific resumes instantly. Tailored resume and cover letter that get 3× more interviews",
-    "applicationCategory": "BusinessApplication",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
-    },
-    "operatingSystem": "Web Browser"
-  };
-
-  const organizationSchema = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "Zumud",
-    "description": "We help job seekers get more interviews with instant job-specific resumes and cover letters",
-    "url": "https://zumud.com",
-    "logo": "https://zumud.com/logo.png",
-    "sameAs": [
-      "https://twitter.com/zumudapp",
-      "https://linkedin.com/company/zumud"
-    ]
-  };
+  const handleAuthModalOpen = (mode: 'login' | 'signup' = 'login') => {
+    setAuthMode(mode)
+    setShowAuthModal(true)
+  }
 
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(applicationSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
-      />
-      <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-        <header className="container mx-auto py-4 px-4 flex justify-between items-center">
-          <div className="text-2xl font-bold text-emerald-600">Zumud</div>
-          <div className="space-x-2">
-            <Button 
-              variant="outline"
-              onClick={() => setShowAuthModal(true)}
-            >
-              Login / Sign Up
-            </Button>
-          </div>
-        </header>
-        
-        <InterviewReadyResume />
-        
-        <AuthModal 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
-          onSuccess={handleLoginSuccess}
-        />
+    <div className="flex min-h-screen flex-col overflow-x-hidden">
+      <Navbar onAuthModalOpen={handleAuthModalOpen} />
+      <main className="flex-1">
+        <HeroSection onAuthModalOpen={handleAuthModalOpen} />
+        <HowItWorksSection />
+        <FeaturesSection />
+        <TestimonialsSection />
+        <PricingSection onAuthModalOpen={handleAuthModalOpen} />
+        <CallToActionSection onAuthModalOpen={handleAuthModalOpen} />
       </main>
-    </>
+      <Footer />
+      
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={handleAuthSuccess}
+        defaultTab={authMode}
+      />
+    </div>
   )
 }
