@@ -96,11 +96,6 @@ export default function Footer() {
                   How It Works
                 </Link>
               </li>
-              <li>
-                <Link href="#testimonials" className="text-sm text-muted-foreground hover:text-foreground">
-                  Testimonials
-                </Link>
-              </li>
             </ul>
           </div>
           <div>
@@ -151,7 +146,7 @@ export default function Footer() {
         </div>
         <div className="mt-8 border-t pt-8 flex flex-col sm:flex-row justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            © 2024 Zumud. All rights reserved.
+            © 2025 Zumud. All rights reserved.
           </p>
           <div className="mt-4 sm:mt-0 flex space-x-4">
             <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground">
