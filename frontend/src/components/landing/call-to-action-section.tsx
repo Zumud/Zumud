@@ -15,7 +15,7 @@ export default function CallToActionSection({ onAuthModalOpen }: CallToActionSec
             Ready to Land Your Dream Job?
           </h2>
           <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-            Join thousands of professionals who have transformed their careers
+            Join professionals who have transformed their careers
             with AI-powered resume optimization. Start creating resumes that get
             you hired today.
           </p>
@@ -32,11 +32,9 @@ export default function CallToActionSection({ onAuthModalOpen }: CallToActionSec
               size="lg"
               variant="outline"
               className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg"
-              asChild
+              onClick={() => onAuthModalOpen?.('login')}
             >
-              <Link href="#demo">
-                Watch Demo
-              </Link>
+              Log In
             </Button>
           </div>
           <div className="mt-8 flex items-center justify-center space-x-6 text-sm text-blue-100">
@@ -68,7 +66,7 @@ export default function CallToActionSection({ onAuthModalOpen }: CallToActionSec
                   clipRule="evenodd"
                 />
               </svg>
-              <span>Setup in 2 minutes</span>
+              <span>Setup in less than a minute</span>
             </div>
           </div>
         </div>

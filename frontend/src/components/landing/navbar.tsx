@@ -81,13 +81,6 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink className={navigationMenuTriggerStyle()} asChild>
-                  <Link href="#testimonials">
-                    Testimonials
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()} asChild>
                   <Link href="#how-it-works">
                     How It Works
                   </Link>
