@@ -728,6 +728,21 @@ mteck_resume = r"""
   {% endfor %}
   {% endif %}
 
+  {% if awards and awards|length > 0 %}
+  %----------------------------%
+  % Honors & Awards %
+  %----------------------------%
+
+  \section{Honors \& Awards}
+
+  {% for award in awards %}
+  \headingBf{ {{ award.title }} }{ {{ award.date|default('') if award.date and award.date != 'None' else '' }} }
+  {% if (award.description and award.description != 'None') or (award.issuer and award.issuer != 'None') %}
+  \headingIt{ {{ award.description|default('') if award.description and award.description != 'None' else '' }} }{ {{ award.issuer|default('') if award.issuer and award.issuer != 'None' else '' }} }
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+
   {% if publications and publications|length > 0 %}
   %----------------------------%
   % Publications %
@@ -742,21 +757,6 @@ mteck_resume = r"""
     \\[2pt] \href{https://doi.org/{{ pub.doi }}}{https://doi.org/{{ pub.doi }}}{% elif pub.url and pub.url != 'None' %}
     \\[2pt] \href{ {{ pub.url }} }{ {{ pub.url }} }{% endif %}
   \end{itemize}
-  {% endfor %}
-  {% endif %}
-
-  {% if awards and awards|length > 0 %}
-  %----------------------------%
-  % Honors & Awards %
-  %----------------------------%
-
-  \section{Honors \& Awards}
-
-  {% for award in awards %}
-  \headingBf{ {{ award.title }} }{ {{ award.date|default('') if award.date and award.date != 'None' else '' }} }
-  {% if (award.description and award.description != 'None') or (award.issuer and award.issuer != 'None') %}
-  \headingIt{ {{ award.description|default('') if award.description and award.description != 'None' else '' }} }{ {{ award.issuer|default('') if award.issuer and award.issuer != 'None' else '' }} }
-  {% endif %}
   {% endfor %}
   {% endif %}
 
