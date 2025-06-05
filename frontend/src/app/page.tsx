@@ -8,9 +8,9 @@ import { isAuthenticated } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Navbar from "@/components/landing/navbar"
 import HeroSection from "@/components/landing/hero-section"
+import CompanyLogosSection from "@/components/landing/company-logos-section"
 import HowItWorksSection from "@/components/landing/how-it-works-section"
 import FeaturesSection from "@/components/landing/features-section"
-import TestimonialsSection from "@/components/landing/testimonials-section"
 import PricingSection from "@/components/landing/pricing-section"
 import CallToActionSection from "@/components/landing/call-to-action-section"
 import Footer from "@/components/landing/footer"
@@ -35,9 +35,9 @@ export default function LandingPage() {
       <Navbar onAuthModalOpen={handleAuthModalOpen} />
       <main className="flex-1">
         <HeroSection onAuthModalOpen={handleAuthModalOpen} />
+        <CompanyLogosSection />
         <HowItWorksSection />
         <FeaturesSection />
-        <TestimonialsSection />
         <PricingSection onAuthModalOpen={handleAuthModalOpen} />
         <CallToActionSection onAuthModalOpen={handleAuthModalOpen} />
       </main>

@@ -1,9 +1,6 @@
 import { 
   BrainIcon, 
   FileTextIcon, 
-  TargetIcon, 
-  TrendingUpIcon, 
-  ShieldCheckIcon, 
   ClockIcon 
 } from "lucide-react";
 
@@ -22,28 +19,10 @@ export default function FeaturesSection() {
         "Get past Applicant Tracking Systems with resumes formatted and optimized for maximum compatibility.",
     },
     {
-      icon: <TargetIcon className="h-8 w-8 text-indigo-500" />,
-      title: "Job Match Scoring",
-      description:
-        "See exactly how well your resume matches each job posting with our detailed compatibility scoring system.",
-    },
-    {
-      icon: <TrendingUpIcon className="h-8 w-8 text-green-500" />,
-      title: "Performance Analytics",
-      description:
-        "Track your application success rate and get insights on how to improve your resume performance.",
-    },
-    {
-      icon: <ShieldCheckIcon className="h-8 w-8 text-orange-500" />,
-      title: "Quality Assurance",
-      description:
-        "Every generated resume goes through quality checks to ensure professional formatting and content accuracy.",
-    },
-    {
       icon: <ClockIcon className="h-8 w-8 text-red-500" />,
       title: "Lightning Fast",
       description:
-        "Generate a perfectly tailored resume in under 2 minutes. No more hours spent customizing applications.",
+        "Generate a perfectly tailored resume in 30 seconds. No more hours spent customizing applications.",
     },
   ];
 
@@ -79,29 +58,7 @@ export default function FeaturesSection() {
           ))}
         </div>
 
-        <div className="mt-16 text-center">
-          <div className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-6 py-2 text-sm text-blue-600 dark:text-blue-300 mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4 mr-2"
-            >
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-            </svg>
-            Trusted by 10,000+ job seekers
-          </div>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Join thousands of professionals who have successfully landed their dream jobs
-            using our AI-powered resume optimization platform.
-          </p>
-        </div>
+
       </div>
     </section>
   );
