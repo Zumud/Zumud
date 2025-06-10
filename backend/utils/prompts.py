@@ -201,7 +201,6 @@ Use both inputs to write a tailored resume that:
 • Highlight relevant coursework, academic achievements, or extracurriculars only if they directly support the application.
 • For candidates with extensive experience, position education after experience unless it's particularly noteworthy for the role.
 • If location information for a mentioned institution is missing, you may infer the city/country but present it as factual without any markers.
-• Never use "None" as a location placeholder - either provide the actual location or leave it blank if uncertain.
 
 🔹 Honors & Awards
 • Include ALL honors, awards, and recognitions mentioned in the original resume without exception.
