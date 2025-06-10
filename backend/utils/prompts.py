@@ -128,9 +128,9 @@ Use both inputs to write a tailored resume that:
 ✅ Reflects the candidate's seniority level and strategic positioning (e.g., team lead vs. IC).  
 ✅ Avoids filler, redundancy, or passive descriptions. Every bullet point should earn its place.  
 ✅ Completes all relevant sections fully — such as title, description, dates, links, or outcomes.  
-✅ Uses a consistent date format throughout (e.g., "Jan 2020 -- Present").  
+✅ Use a consistent date format throughout. For example, If the original resume provides month and year (e.g., "Jan 2020 -- Present"), use that. If it only provides years (e.g., "2020 -- 2022"), use that format and do not add months.
 ✅ Includes skills that are inferable but not explicitly stated (e.g., Python if FastAPI is present).  
-✅ Adds a brief description for each company in the experience section that highlights its relevance to the target position.  
+✅ Adds a factual company description for each work experience, prioritizing information from the original resume.
 ✅ Ensures all honors, awards, or recognitions mentioned anywhere in the resume are properly included under the awards section.  
 ✅ Keeps the final resume to a maximum of 2 pages, prioritizing the most relevant information.
 ✅ ONLY fills in missing information where it can be DIRECTLY inferred from the original resume. NEVER invent or fabricate information that isn't clearly indicated.
@@ -150,7 +150,7 @@ Use both inputs to write a tailored resume that:
 
 🔹 Experience
 • Use job-title-level formatting (Title, Company, Dates).  
-• Always include a brief 1-2 line company description for each employer that highlights the company's industry, size, and relevance to the target role.
+• Company Description: If the original resume includes a description for a company, prioritize using it. You can slightly tailor it to emphasize aspects relevant to the target role, but the core information must remain unchanged. If no description is provided, write a factual 1-2 line description based on publicly available information. This description must be based on verifiable facts about the company's industry and core business, not on assumptions from the job description.
 • 2–5 bullet points per job — each bullet should demonstrate:  
     • A problem, responsibility, or challenge.  
     • An action the candidate took.  
@@ -182,7 +182,7 @@ Use both inputs to write a tailored resume that:
 • Title: Present exactly as published, will be italicized in the template.
 • Venue: Include full journal name or conference name without abbreviations when possible.
 • Volume/Issue/Pages: Extract volume numbers, issue numbers (in parentheses), and page ranges when available.
-• Date: Use "Month Year" format (e.g., "March 2024", "July 2023") for consistency.
+• Date: Use "Month Year" format (e.g., "March 2024", "July 2023") for consistency. If the month is not provided, use only the year.
 • Status: For unpublished works, include status such as "Under Review", "In Press", "Forthcoming", or "Submitted".
 • DOI: Include Digital Object Identifier when available - this will be automatically formatted as a clickable link.
 • URL: Include direct links to the publication when DOI is not available.
