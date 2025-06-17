@@ -1,14 +1,26 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from backend.api import api_router
-from backend.models.db import Base, engine
+from backend.models.db import Base, engine, check_db_connection
 from backend.utils.log import logger
 import os
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
-
 logger.info("Starting FastAPI application")
+
+# Check database connection and create tables on startup
+try:
+    if check_db_connection():
+        logger.info("Successfully connected to Supabase database")
+        # Create database tables
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created/verified successfully")
+    else:
+        logger.error("Failed to connect to Supabase database")
+        raise Exception("Database connection failed")
+except Exception as e:
+    logger.error(f"Database initialization error: {e}")
+    # In production, you might want to exit the application
+    # For now, we'll continue but log the error
 
 app = FastAPI(
     title="Resume Tailorer API",
@@ -48,6 +60,29 @@ def root():
     return {
         "message": "Welcome to the Zumud API!",
         "version": "1.0.0",
+        "database": "Supabase PostgreSQL",
         "docs_url": "/docs",
         "redoc_url": "/redoc"
     }
+
+@app.get("/health", tags=["Health"])
+def health_check():
+    """Health check endpoint that includes database connectivity."""
+    logger.info("Health check endpoint accessed")
+    
+    # Check database connection
+    db_healthy = check_db_connection()
+    
+    health_status = {
+        "status": "healthy" if db_healthy else "unhealthy",
+        "database": "connected" if db_healthy else "disconnected",
+        "version": "1.0.0"
+    }
+    
+    if not db_healthy:
+        raise HTTPException(
+            status_code=503, 
+            detail="Database connection failed"
+        )
+    
+    return health_status
