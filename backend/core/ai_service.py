@@ -1,5 +1,4 @@
 import json
-
 from loguru import logger
 from openai import OpenAI, AsyncOpenAI
 from jinja2 import Template

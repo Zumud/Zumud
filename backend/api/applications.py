@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, File, Uplo
 from datetime import datetime
 from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 import uuid
 import os
 import json
+import base64
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
@@ -17,6 +19,10 @@ from backend.models import db_models
 from backend.models.db import get_db
 
 router = APIRouter(prefix="/applications", tags=["applications"])
+
+class AnonymousResumeRequest(BaseModel):
+    resume_text: str
+    job_description: str
 
 @router.get("/resume/plain")
 def generate_tailored_plain_resume(
@@ -782,4 +788,59 @@ def activate_user_template(
     template.is_active = True
     db.commit()
     
-    return {"message": "Template activated successfully"} 
+    return {"message": "Template activated successfully"}
+
+@router.post("/resume/anonymous")
+async def generate_anonymous_resume(request: AnonymousResumeRequest):
+    """Generate a tailored resume without authentication for landing page demo"""
+    try:
+        # Generate a session ID for tracking
+        session_id = str(uuid.uuid4())
+        
+        # Extract company name from job description
+        company_name = ai_service.get_company_name(request.job_description)
+        
+        # Create a temporary path for anonymous user
+        timestamp = datetime.now().strftime("%m-%d_%H-%M")
+        anonymous_username = f"anonymous_{session_id[:8]}"
+        save_path = create_new_application_path(anonymous_username, company_name, timestamp)
+        
+        # Use default AI model and template for anonymous users
+        from backend.models.ai_models import AIModel
+        from backend.models.tailoring_options import TailoringOptionsBase
+        
+        tailoring_options = TailoringOptionsBase()
+        
+        # Generate the resume PDF
+        latex_compiler_response, _, structured_resume_json = await ai_service.generate_structured_latex_resume_async(
+            str(save_path),
+            request.resume_text,
+            request.job_description,
+            tailoring_options.ai_model,
+            tailoring_options.resume_template,
+            None,  # No user preferences for anonymous users
+            None,  # No user ID for anonymous users
+            None   # No database session for anonymous users
+        )
+        
+        # Convert PDF to base64 for frontend
+        pdf_base64 = base64.b64encode(latex_compiler_response.content).decode('utf-8')
+        
+        # Generate filename
+        structured_resume = json.loads(structured_resume_json)
+        name = structured_resume.get('personal_info', {}).get('name', 'Resume') if structured_resume.get('personal_info', {}).get('name') else 'Resume'
+        filename = f"{name}_{timestamp}_{company_name}.pdf"
+        
+        return {
+            "session_id": session_id,
+            "pdf_base64": pdf_base64,
+            "company_name": company_name,
+            "generated_at": timestamp,
+            "filename": filename
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate anonymous resume: {str(e)}"
+        ) 

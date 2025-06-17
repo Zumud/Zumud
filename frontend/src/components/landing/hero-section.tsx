@@ -1,15 +1,19 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRightIcon, PlayIcon, Upload, FileText } from "lucide-react";
+import { ArrowRightIcon, PlayIcon, Upload, FileText, Loader2 } from "lucide-react";
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { applications } from "@/lib/api";
 
 interface HeroSectionProps {
   onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
 }
 
 export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
+  const router = useRouter();
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sampleResume = `John Smith
@@ -92,13 +96,35 @@ BENEFITS:
     setJobDescription(sampleJobDescription);
   };
 
-  const handleGetTailoredResume = () => {
-    if (!resumeText.trim() && !jobDescription.trim()) {
-      alert("Please provide your resume and job description");
+  const handleGetTailoredResume = async () => {
+    if (!resumeText.trim() || !jobDescription.trim()) {
+      alert("Please provide both your resume and job description");
       return;
     }
-    // For now, redirect to signup
-    onAuthModalOpen?.('signup');
+    
+    setIsGenerating(true);
+    
+    try {
+      // Generate the resume and get the session data
+      const result = await applications.generateAnonymousResume(resumeText, jobDescription);
+      
+      // Store the PDF data in sessionStorage for the preview page
+      sessionStorage.setItem(`resume_pdf_${result.session_id}`, result.pdf_base64);
+      sessionStorage.setItem(`resume_info_${result.session_id}`, JSON.stringify({
+        company_name: result.company_name,
+        generated_at: result.generated_at,
+        filename: result.filename
+      }));
+      
+      // Redirect to the preview page
+      router.push(`/resume/${result.session_id}`);
+      
+    } catch (error) {
+      console.error('Error generating resume:', error);
+      alert('Failed to generate resume. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -204,9 +230,17 @@ BENEFITS:
                   <Button
                     size="lg"
                     onClick={handleGetTailoredResume}
-                    className="bg-gradient-to-r from-blue-600 via-blue-700 to-violet-600 hover:from-blue-700 hover:via-blue-800 hover:to-violet-700 hover:scale-105 active:scale-95 shadow-xl hover:shadow-2xl h-auto py-6 px-10 text-lg font-bold w-full lg:w-auto transition-all duration-300 rounded-2xl border border-white/20"
+                    disabled={isGenerating}
+                    className="bg-gradient-to-r from-blue-600 via-blue-700 to-violet-600 hover:from-blue-700 hover:via-blue-800 hover:to-violet-700 hover:scale-105 active:scale-95 shadow-xl hover:shadow-2xl h-auto py-6 px-10 text-lg font-bold w-full lg:w-auto transition-all duration-300 rounded-2xl border border-white/20 disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    Free Tailored Resume
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Generating Resume...
+                      </>
+                    ) : (
+                      "Free Tailored Resume"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -225,7 +259,7 @@ BENEFITS:
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                  <span>No signup required</span>
+                  <span>Try it free - no signup needed</span>
                 </div>
               </div>
             </div>
