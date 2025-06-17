@@ -7,7 +7,7 @@ import { applications, preferences } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import PreferencesPrompt from "@/components/ui/preferences-prompt"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2, FileCode, ExternalLink, AlertCircle, MessageSquare } from "lucide-react"
+import { Download, Loader2, FileCode, ExternalLink, AlertCircle, MessageSquare, Copy as CopyIcon } from "lucide-react"
 import Link from "next/link"
 
 export default function Dashboard() {
@@ -37,6 +37,9 @@ export default function Dashboard() {
   // Preferences prompt state
   const [showPreferencesPrompt, setShowPreferencesPrompt] = useState(false)
   const [currentEditInstruction, setCurrentEditInstruction] = useState("")
+
+  // State to provide feedback after copying the cover letter (optional future use)
+  const [isCoverLetterCopied, setIsCoverLetterCopied] = useState(false)
 
   // Load user data on mount
   useEffect(() => {
@@ -260,6 +263,22 @@ export default function Dashboard() {
       "Failed to download cover letter PDF. Make sure you have generated a cover letter first.",
       () => !coverLetter ? "Please generate a cover letter first" : null
     )
+  }
+
+  // Copies the generated cover letter to the clipboard
+  const handleCopyCoverLetter = () => {
+    if (!coverLetter) return
+
+    navigator.clipboard
+      .writeText(coverLetter)
+      .then(() => {
+        // Provide quick visual feedback by toggling state for a short duration
+        setIsCoverLetterCopied(true)
+        setTimeout(() => setIsCoverLetterCopied(false), 2000)
+      })
+      .catch(() => {
+        setError("Failed to copy cover letter to clipboard")
+      })
   }
 
   const handleEditResume = () => {
@@ -635,20 +654,35 @@ export default function Dashboard() {
                 </Button>
                 
                 {coverLetter && (
-                  <Button
-                    variant="outline"
-                    onClick={handleDownloadCoverLetter}
-                    disabled={isDownloadingCoverLetter}
-                  >
-                    {isDownloadingCoverLetter ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4 mr-1" />
-                        Download PDF
-                      </>
-                    )}
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleCopyCoverLetter}
+                    >
+                      {isCoverLetterCopied ? (
+                        "Copied!"
+                      ) : (
+                        <>
+                          <CopyIcon className="h-4 w-4 mr-1" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleDownloadCoverLetter}
+                      disabled={isDownloadingCoverLetter}
+                    >
+                      {isDownloadingCoverLetter ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-1" />
+                          Download PDF
+                        </>
+                      )}
+                    </Button>
+                  </>
                 )}
               </div>
             </div>

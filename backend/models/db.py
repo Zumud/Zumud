@@ -1,15 +1,24 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
+from backend.config.envs import DATABASE_URL
+import logging
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./user_database.db"
+# Configure logging
+logger = logging.getLogger(__name__)
 
-os.makedirs(os.path.dirname(SQLALCHEMY_DATABASE_URL.replace("sqlite:///", "")), exist_ok=True)
+# Use Supabase PostgreSQL database URL
+SQLALCHEMY_DATABASE_URL = DATABASE_URL
 
+# Create engine for PostgreSQL (no SQLite-specific args needed)
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, 
-    connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL,
+    # PostgreSQL connection pool settings
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    echo=False  # Set to True for SQL query logging in development
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -22,4 +31,17 @@ def get_db():
     try:
         yield db
     finally:
-        db.close() 
+        db.close()
+
+# Health check function
+def check_db_connection():
+    """Check if database connection is healthy."""
+    try:
+        with engine.connect() as connection:
+            result = connection.execute(text("SELECT 1"))
+            result.fetchone()
+        logger.info("Database connection is healthy")
+        return True
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        return False 
