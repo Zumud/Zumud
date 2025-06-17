@@ -276,7 +276,14 @@ export const applications = {
     apiCall('applications/cover-letter/edit', 'GET', { 
       edit_instruction: editInstruction, 
       job_description: jobDescription 
-    }, false)
+    }, false),
+    
+  // Anonymous resume generation (no authentication required)
+  generateAnonymousResume: (resumeText: string, jobDescription: string) =>
+    apiCall('applications/resume/anonymous', 'POST', {
+      resume_text: resumeText,
+      job_description: jobDescription
+    }),
 };
 
 export default {
