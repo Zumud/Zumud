@@ -15,6 +15,20 @@ ADD_GDRIVE_ZAP_URL = getenv("ADD_GDRIVE_ZAP_URL")  # Put zappier webhook workflo
 LaTeX_COMPILER_URL_TEXT = "https://texlive2020.latexonline.cc/compile?command=pdflatex&text="
 LaTeX_COMPILER_URL_DATA = "https://texlive2020.latexonline.cc/data?target={tex_folder_path}&force=true&command={compiler}"
 
+# Supabase Configuration
+SUPABASE_URL = getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = getenv("SUPABASE_ANON_KEY")
+SUPABASE_SERVICE_ROLE_KEY = getenv("SUPABASE_SERVICE_ROLE_KEY")
+DATABASE_URL = getenv("DATABASE_URL")  # PostgreSQL connection string
+
+# Validate required Supabase environment variables
+if not DATABASE_URL:
+    logger.error("DATABASE_URL is required for Supabase connection")
+    raise ValueError("DATABASE_URL environment variable is required")
+
+if not SUPABASE_URL:
+    logger.warning("SUPABASE_URL not found in environment variables")
+
 # If SECRET_KEY is not provided in environment, generate a secure random one
 # Note: This will cause all JWTs to be invalidated when the server restarts
 # For production use, set a permanent SECRET_KEY in your .env file
