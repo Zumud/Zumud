@@ -253,6 +253,13 @@ Use both inputs to write a tailored resume that:
 {job_description}
 """
 
+extract_company_name = """
+Extract the company name from the following job description. Return only the company name without any additional text.
+
+Job Description:
+{job_description}
+"""
+
 format_user_preferences_prompt = """You are an expert career coach specializing in resume and cover letter optimization. 
 
 Your task is to take user-provided career preferences and format them into clean, professional bullet points that can be effectively used in resumes and cover letters.
