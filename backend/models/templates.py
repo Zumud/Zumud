@@ -817,3 +817,143 @@ remote_work: Yes
 in_person_work: No
 open_to_relocation: No
 """
+
+# Default template for users to start with
+default_user_template = r"""
+\documentclass[letterpaper,10pt]{article}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec,enumitem,hyperref,fancyhdr,multicol,xcolor,lastpage}
+\usepackage{CormorantGaramond,charter}
+
+\definecolor{accentTitle}{HTML}{2C3E50}
+\definecolor{accentText}{HTML}{2C3E50}
+\definecolor{accentLine}{HTML}{3498DB}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\oddsidemargin}{-0.7in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1.19in}
+\addtolength{\topmargin}{-0.7in}
+\addtolength{\textheight}{1.4in}
+
+\setlength{\multicolsep}{-3pt}
+\setlength{\footskip}{3.7pt}
+\raggedbottom
+\raggedright
+
+\titleformat{\section}{
+  \vspace{-5pt}
+  \color{accentText}\raggedright\large\bfseries
+}{}{0em}{}[\color{accentLine}\titlerule]
+
+\newcommand{\documentTitle}[2]{
+  \begin{center}
+    {\Huge\color{accentTitle} #1}
+    \vspace{10pt}
+    {\color{accentLine}\hrule}
+    \vspace{2pt}
+    \footnotesize{#2}
+    \vspace{2pt}
+    {\color{accentLine}\hrule}
+  \end{center}
+}
+
+\newcommand{\heading}[2]{\hspace{10pt}#1\hfill#2\\}
+\newcommand{\headingBf}[2]{\heading{\textbf{#1}}{\textbf{#2}}}
+\newcommand{\headingIt}[2]{\heading{\textit{#1}}{\textit{#2}}}
+
+\newenvironment{resume_list}{
+  \vspace{-7pt}
+  \begin{itemize}[itemsep=-2px, parsep=1pt, leftmargin=30pt]
+}{\end{itemize}}
+
+\renewcommand\labelitemi{--}
+
+\begin{document}
+
+\documentTitle{ {{ personal_info.name|default('Your Name') }} }{
+    {% if personal_info %}
+    {% set contact_parts = [] %}
+    
+    {% if personal_info.phone and personal_info.phone != 'None' %}
+      {% set contact_parts = contact_parts + [personal_info.phone] %}
+    {% endif %}
+    
+    {% if personal_info.email and personal_info.email != 'None' %}
+      {% set contact_parts = contact_parts + [personal_info.email] %}
+    {% endif %}
+    
+    {% if personal_info.location and personal_info.location != 'None' %}
+      {% set contact_parts = contact_parts + [personal_info.location] %}
+    {% endif %}
+    
+    {% if personal_info.linkedin and personal_info.linkedin != 'None' %}
+      {% set contact_parts = contact_parts + ['linkedin.com/in/' ~ personal_info.linkedin] %}
+    {% endif %}
+    
+    {% if personal_info.github and personal_info.github != 'None' %}
+      {% set contact_parts = contact_parts + ['github.com/' ~ personal_info.github] %}
+    {% endif %}
+    
+    {{ contact_parts|join(' | ') }}
+    {% endif %}
+}
+
+{% if summary and summary != 'None' %}
+\section{Summary}
+{{ summary }}
+{% endif %}
+
+{% if skills and skills|length > 0 %}
+\section{Skills}
+\begin{multicols}{2}
+  \begin{itemize}[itemsep=-2px, parsep=1pt, leftmargin=10pt, label={}]
+    {% for skill in skills %}
+    \item \textbf{ {{ skill.category }} :} {{ skill['items'] | join(', ') }}
+    {% endfor %}
+  \end{itemize}
+\end{multicols}
+{% endif %}
+
+{% if experience and experience|length > 0 %}
+\section{Experience}
+{% for exp in experience %}
+\headingBf{ {{ exp.company }} }{ {{ exp.date_range if exp.date_range and exp.date_range != 'None' else '' }} }
+\headingIt{ {{ exp.role if exp.role and exp.role != 'None' else '' }} }{ {{ exp.location if exp.location and exp.location != 'None' else '' }} }
+{% if exp.achievements and exp.achievements|length > 0 %}
+\begin{resume_list}
+  {% for achievement in exp.achievements %}
+  \item {{ achievement }}
+  {% endfor %}
+\end{resume_list}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if education and education|length > 0 %}
+\section{Education}
+{% for edu in education %}
+\headingBf{ {{ edu.degree if edu.degree and edu.degree != 'None' else '' }} }{ {{ edu.date_range if edu.date_range and edu.date_range != 'None' else '' }} }
+\headingIt{ {{ edu.institution if edu.institution and edu.institution != 'None' else '' }} }{ {{ edu.location if edu.location and edu.location != 'None' else '' }} }
+{% endfor %}
+{% endif %}
+
+{% if projects and projects|length > 0 %}
+\section{Projects}
+{% for project in projects %}
+\headingBf{ {{ project.name if project.name and project.name != 'None' else '' }} }{ {{ project.date_range if project.date_range and project.date_range != 'None' else '' }} }
+{% if project.achievements and project.achievements|length > 0 %}
+\begin{resume_list}
+  {% for achievement in project.achievements %}
+  \item {{ achievement }}
+  {% endfor %}
+\end{resume_list}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+\end{document}
+"""

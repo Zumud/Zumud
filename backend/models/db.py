@@ -44,4 +44,8 @@ def check_db_connection():
         return True
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
-        return False 
+        return False
+
+def create_tables():
+    """Create all database tables"""
+    Base.metadata.create_all(bind=engine) 
