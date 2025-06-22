@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from backend.api import api_router
-from backend.models.db import Base, engine, check_db_connection
+from backend.models.db import Base, engine, check_db_connection, create_tables
 from backend.utils.log import logger
 import os
+import uvicorn
 
 logger.info("Starting FastAPI application")
 
@@ -51,6 +52,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# # Create tables on startup
+# @app.on_event("startup")
+# async def startup_event():
+#     create_tables()
+
 # Include API router
 app.include_router(api_router)
 
@@ -86,3 +92,6 @@ def health_check():
         )
     
     return health_status
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

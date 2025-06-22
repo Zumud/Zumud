@@ -9,6 +9,7 @@ from backend.api.auth import get_current_user
 from backend.core import ai_service
 from backend.models.ai_models import AIModel
 from backend.models.tailoring_options import TailoringOptionsBase
+from backend.models.user_models import UserTemplate, UserTemplateCreate, UserTemplateUpdate
 from backend.utils.file_ops import PDFGenerator, save_pdf, extract_text_from_pdf
 from backend.utils.path_ops import create_new_application_path, get_current_application_path
 from backend.models import db_models
@@ -163,7 +164,9 @@ def generate_and_save_pdf_resume(
         job_description,
         tailoring_options.ai_model,
         tailoring_options.resume_template,
-        user_preferences
+        user_preferences,
+        current_user.id,
+        db
     )
     
     pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, current_user.username)
@@ -381,15 +384,15 @@ async def edit_resume_with_instructions(
     
     try:
         # Process the edit and generate PDF using the new service function
-        latex_compiler_response, updated_resume_json = ai_service.edit_resume_and_generate_pdf(
-            str(new_save_path),
+        latex_compiler_response, updated_resume_json = ai_service.update_resume_with_instructions(
             last_resume_json,
-            original_resume_content,  # Pass the original resume content
             job_description,
             edit_instruction,
+            str(new_save_path),
             AIModel.gpt_4_1_nano,  # Use GPT-4.1 Nano model
             tailoring_options.resume_template,  # Use user's template preference
-            user_preferences  # Pass user preferences for context
+            current_user.id,
+            db
         )
         
         # Save the updated JSON to the new path
@@ -604,4 +607,176 @@ def edit_answer_with_instructions(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update answer: {str(e)}"
-        ) 
+        )
+
+# Template Management Endpoints
+
+@router.post("/templates", response_model=UserTemplate)
+def create_user_template(
+    template: UserTemplateCreate,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new personalized LaTeX template for the user"""
+    
+    # Validate LaTeX compiler
+    valid_compilers = ["pdflatex", "xelatex", "lualatex"]
+    if template.compiler not in valid_compilers:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid compiler. Must be one of: {valid_compilers}"
+        )
+    
+    # Optional: Validate LaTeX template by testing compilation
+    # This would require a more complex validation system
+    
+    # Create the template
+    db_template = db_models.UserTemplate(
+        user_id=current_user.id,
+        name=template.name,
+        latex_content=template.latex_content,
+        compiler=template.compiler,
+        is_active=template.is_active
+    )
+    
+    # If this template is set as active, deactivate others
+    if template.is_active:
+        db.query(db_models.UserTemplate).filter(
+            db_models.UserTemplate.user_id == current_user.id,
+            db_models.UserTemplate.id != db_template.id
+        ).update({"is_active": False})
+    
+    db.add(db_template)
+    db.commit()
+    db.refresh(db_template)
+    
+    return db_template
+
+@router.get("/templates", response_model=list[UserTemplate])
+def get_user_templates(
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all templates for the current user"""
+    templates = db.query(db_models.UserTemplate).filter(
+        db_models.UserTemplate.user_id == current_user.id
+    ).order_by(db_models.UserTemplate.created_at.desc()).all()
+    
+    return templates
+
+@router.get("/templates/{template_id}", response_model=UserTemplate)
+def get_user_template(
+    template_id: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get a specific template by ID"""
+    template = db.query(db_models.UserTemplate).filter(
+        db_models.UserTemplate.id == template_id,
+        db_models.UserTemplate.user_id == current_user.id
+    ).first()
+    
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+    
+    return template
+
+@router.put("/templates/{template_id}", response_model=UserTemplate)
+def update_user_template(
+    template_id: int,
+    template_update: UserTemplateUpdate,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a specific template"""
+    template = db.query(db_models.UserTemplate).filter(
+        db_models.UserTemplate.id == template_id,
+        db_models.UserTemplate.user_id == current_user.id
+    ).first()
+    
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+    
+    # Validate compiler if provided
+    if template_update.compiler:
+        valid_compilers = ["pdflatex", "xelatex", "lualatex"]
+        if template_update.compiler not in valid_compilers:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid compiler. Must be one of: {valid_compilers}"
+            )
+    
+    # Update fields
+    update_data = template_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(template, field, value)
+    
+    # If this template is being set as active, deactivate others
+    if template_update.is_active:
+        db.query(db_models.UserTemplate).filter(
+            db_models.UserTemplate.user_id == current_user.id,
+            db_models.UserTemplate.id != template_id
+        ).update({"is_active": False})
+    
+    db.commit()
+    db.refresh(template)
+    
+    return template
+
+@router.delete("/templates/{template_id}")
+def delete_user_template(
+    template_id: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a specific template"""
+    template = db.query(db_models.UserTemplate).filter(
+        db_models.UserTemplate.id == template_id,
+        db_models.UserTemplate.user_id == current_user.id
+    ).first()
+    
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+    
+    db.delete(template)
+    db.commit()
+    
+    return {"message": "Template deleted successfully"}
+
+@router.post("/templates/{template_id}/activate")
+def activate_user_template(
+    template_id: int,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Activate a specific template (deactivates all others)"""
+    template = db.query(db_models.UserTemplate).filter(
+        db_models.UserTemplate.id == template_id,
+        db_models.UserTemplate.user_id == current_user.id
+    ).first()
+    
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found"
+        )
+    
+    # Deactivate all other templates
+    db.query(db_models.UserTemplate).filter(
+        db_models.UserTemplate.user_id == current_user.id
+    ).update({"is_active": False})
+    
+    # Activate the selected template
+    template.is_active = True
+    db.commit()
+    
+    return {"message": "Template activated successfully"} 
