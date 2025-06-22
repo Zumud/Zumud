@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from backend.models.db import Base
@@ -19,6 +19,7 @@ class User(Base):
     legal_authorization = relationship("LegalAuthorization", back_populates="user", uselist=False)
     tailoring_options = relationship("TailoringOptions", back_populates="user", uselist=False)
     preferences = relationship("UserPreferences", back_populates="user", uselist=False)
+    templates = relationship("UserTemplate", back_populates="user")
 
 class Resume(Base):
     __tablename__ = "resumes"
@@ -64,4 +65,19 @@ class UserPreferences(Base):
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Establish relationship with User
-    user = relationship("User", back_populates="preferences") 
+    user = relationship("User", back_populates="preferences")
+
+class UserTemplate(Base):
+    __tablename__ = "user_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    name = Column(String, nullable=False)  # User-friendly name for the template
+    latex_content = Column(Text, nullable=False)  # The actual LaTeX template content
+    compiler = Column(String, nullable=False, default="pdflatex")  # LaTeX compiler to use
+    is_active = Column(Boolean, nullable=False, default=True)  # Whether this template is currently active
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Establish relationship with User
+    user = relationship("User", back_populates="templates") 

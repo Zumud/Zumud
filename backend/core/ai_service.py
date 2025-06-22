@@ -3,16 +3,47 @@ import json
 from loguru import logger
 from openai import OpenAI
 from jinja2 import Template
+from sqlalchemy.orm import Session
 
 import backend.utils.prompts as prompts
 from backend.config.envs import OPEN_AI_KEY
 from backend.models.ai_models import AIModel
 from backend.models.templates import ResumeTemplate, Template_Details
+from backend.models import db_models
 from backend.utils.file_ops import generate_pdf_from_latex, save_application_qa, escape_latex
 from backend.utils.log import logger
-from backend.models.resume_models import TailoredResume, TailoredCoverLetter, TailoredAnswer, StructuredResume
+from backend.models.resume_models import TailoredResume, TailoredCoverLetter, TailoredAnswer, StructuredResume, CompanyName
 
 client = OpenAI(api_key=OPEN_AI_KEY)
+
+def get_user_template(user_id: int, db: Session) -> dict:
+    """
+    Get the active template for a user. Returns user's custom template if available,
+    otherwise returns the default template from their tailoring options.
+    
+    Returns:
+        dict: Template data with 'structure' and 'compiler' keys
+    """
+    # First, check for user's custom template
+    user_template = db.query(db_models.UserTemplate).filter(
+        db_models.UserTemplate.user_id == user_id,
+        db_models.UserTemplate.is_active == True
+    ).first()
+    
+    if user_template:
+        return {
+            'structure': user_template.latex_content,
+            'compiler': user_template.compiler
+        }
+    
+    # Fallback to user's default template preference
+    user = db.query(db_models.User).filter(db_models.User.id == user_id).first()
+    if user and user.tailoring_options:
+        template_enum = user.tailoring_options.resume_template
+        return Template_Details[template_enum]
+    
+    # Final fallback to system default
+    return Template_Details[ResumeTemplate.MTeck_resume]
 
 def ai_prompt(prompt: str, model=AIModel.gpt_4_1_nano) -> str:
     completion = client.chat.completions.create(
@@ -64,9 +95,10 @@ def generate_tailored_resume_text(resume: str, job_description: str, model=AIMod
     logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-def generate_structured_latex_resume(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None):
+def generate_structured_latex_resume(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None, user_id: int = None, db: Session = None):
     """
     Convert a plain resume to LaTeX using structured output and Jinja2 templating.
+    Now supports user templates when user_id and db are provided.
     
     Returns:
         tuple: (latex_compiler_response, rendered_latex, structured_resume_json)
@@ -101,8 +133,18 @@ def generate_structured_latex_resume(save_folder: str, resume: str, job_descript
     escaped_resume = escape_latex(structured_resume)
     logger.debug(f"Escaped resume: {escaped_resume}")
     
-    # Get the LaTeX template
-    latex_template = Template_Details[template]['structure']
+    # Get the LaTeX template - use user template if available
+    if user_id and db:
+        template_data = get_user_template(user_id, db)
+        latex_template = template_data['structure']
+        compiler = template_data['compiler']
+        logger.debug(f"Using user template for user {user_id}")
+    else:
+        template_data = Template_Details[template]
+        latex_template = template_data['structure']
+        compiler = template_data['compiler']
+        logger.debug(f"Using default template: {template}")
+    
     logger.debug(f"LaTeX template: {latex_template}")
     
     # Create Jinja2 template and render
@@ -112,7 +154,6 @@ def generate_structured_latex_resume(save_folder: str, resume: str, job_descript
     logger.debug(f"Rendered LaTeX: {rendered_latex}")
     
     # Try to compile
-    compiler = Template_Details[template]['compiler']
     latex_compiler_response = generate_pdf_from_latex(save_folder, rendered_latex, compiler)
     
     if b"error: " in latex_compiler_response.content:
@@ -163,86 +204,45 @@ def generate_answer_questions(resume: str, job_description: str, question: str, 
     
     return answer
 
-def update_resume_with_instructions(resume_json: str, original_resume_content: str, job_description: str, instructions: str, model=AIModel.gpt_4_1_nano) -> str:
+def update_resume_with_instructions(original_structured_resume: str, job_description: str, instructions: str, save_path: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_id: int = None, db: Session = None):
     """
-    Update a JSON resume based on free-form text instructions.
+    Update a structured resume based on free-form text instructions and regenerate the PDF.
+    Now supports user templates when user_id and db are provided.
     
     Args:
-        resume_json (str): The original resume JSON
-        original_resume_content (str): The user's full resume content from their profile
-        job_description (str): The job description to tailor the resume for
+        original_structured_resume (str): The original structured resume JSON
+        job_description (str): The job description for context
         instructions (str): Free-form text instructions describing changes to make
+        save_path (str): Path to save the updated resume
         model: The AI model to use
+        template: The template to use (ignored if user has custom template)
+        user_id: User ID for custom template lookup
+        db: Database session for template lookup
         
     Returns:
-        str: The updated resume JSON
+        tuple: (latex_compiler_response, updated_resume_json)
     """
     prompt = (
-        f"You are an expert resume tailoring specialist who helps job seekers make strategic updates to their resumes. "
-        f"Your goal is to help candidates create resumes that effectively highlight relevant skills and experiences for specific job opportunities.\n\n"
-        f"When updating a resume based on instructions, please:\n\n"
-        f"1. Make only the changes requested in the instructions\n"
-        f"2. Keep the overall structure and JSON format intact\n"
-        f"3. Focus on emphasizing experiences and skills that match the job description\n"
-        f"4. Ensure all achievements are specific, measurable, and impactful\n"
-        f"5. Maintain professional language throughout\n"
-        f"6. You can reference information from the original resume content if it's not in the JSON but relevant to the instructions\n"
-        f"7. Prioritize keywords and phrases from the job description when appropriate\n"
-        f"8. Preserve the chronological order of experiences and education\n\n"
-        f"Return the modified resume that conforms to the provided schema. "
-        f"Ensure all fields match the expected types and formats.\n\n"
-        f"Original Resume Content (for reference):\n{original_resume_content}\n\n"
+        f"You are an expert resume writer helping to refine a resume based on specific feedback. "
+        f"I have a structured resume in JSON format and need you to update it according to the provided instructions.\n\n"
+        f"When making changes:\n"
+        f"1. Follow the instructions precisely while maintaining the JSON structure\n"
+        f"2. Ensure all modifications align with the job description requirements\n"
+        f"3. Keep the resume professional, accurate, and ATS-friendly\n"
+        f"4. Maintain consistency in formatting, dates, and style\n"
+        f"5. Only modify the fields that need to be changed based on the instructions\n"
+        f"6. Preserve all other information exactly as provided\n"
+        f"7. Ensure the final JSON is valid and complete\n\n"
         f"Job Description:\n{job_description}\n\n"
-        f"Original Resume JSON (to be modified):\n{resume_json}\n\n"
-        f"Instructions:\n{instructions}"
+        f"Original Structured Resume JSON:\n{original_structured_resume}\n\n"
+        f"Instructions for changes:\n{instructions}\n\n"
+        f"Please provide the updated structured resume JSON."
     )
     
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a resume editor assistant. Provide the updated resume in the specified format."},
-            {"role": "user", "content": prompt}
-        ],
-        response_format=StructuredResume
-    )
-    
-    updated_resume = completion.choices[0].message.content
-    return updated_resume
-
-def edit_resume_and_generate_pdf(save_path: str, resume_json: str, original_resume_content: str, job_description: str, edit_instructions: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None):
-    """
-    Process edit instructions on a resume JSON and generate a PDF.
-    
-    Args:
-        save_path (str): Path to save the updated resume files
-        resume_json (str): Original resume JSON
-        original_resume_content (str): The user's full resume content from their profile
-        job_description (str): The job description to tailor the resume for
-        edit_instructions (str): Free-form text instructions for editing
-        model: AI model to use
-        template: LaTeX template to use
-        user_preferences (str, optional): User preferences to incorporate in the edits
-        
-    Returns:
-        tuple: (pdf_compiler_response, updated_resume_json)
-    """
-    # Use standard system content
-    system_content = "You are a resume editor assistant. Provide the updated resume in the specified format."
-    
-    # Format the prompt with user preferences using the template from prompts.py
-    prompt = prompts.edit_resume_instructions_prompt.format(
-        user_preferences=user_preferences if user_preferences else "No specific preferences provided.",
-        original_resume_content=original_resume_content,
-        job_description=job_description,
-        resume_json=resume_json,
-        edit_instructions=edit_instructions
-    )
-    
-    # Update the resume JSON using AI
-    completion = client.beta.chat.completions.parse(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_content},
+            {"role": "system", "content": "You are a professional resume editor. Update the provided structured resume JSON according to the instructions while maintaining proper JSON structure and professional quality."},
             {"role": "user", "content": prompt}
         ],
         response_format=StructuredResume
@@ -256,15 +256,21 @@ def edit_resume_and_generate_pdf(save_path: str, resume_json: str, original_resu
     # Escape LaTeX special characters
     escaped_resume = escape_latex(structured_resume)
     
-    # Get the LaTeX template
-    latex_template = Template_Details[template]['structure']
+    # Get the LaTeX template - use user template if available
+    if user_id and db:
+        template_data = get_user_template(user_id, db)
+        latex_template = template_data['structure']
+        compiler = template_data['compiler']
+    else:
+        template_data = Template_Details[template]
+        latex_template = template_data['structure']
+        compiler = template_data['compiler']
     
     # Create Jinja2 template and render
     jinjatex_template = Template(latex_template)
     rendered_latex = jinjatex_template.render(escaped_resume)
     
     # Compile LaTeX to PDF
-    compiler = Template_Details[template]['compiler']
     latex_compiler_response = generate_pdf_from_latex(save_path, rendered_latex, compiler)
     
     if b"error: " in latex_compiler_response.content:
