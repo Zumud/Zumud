@@ -57,12 +57,28 @@ def ai_prompt(prompt: str, model=AIModel.gpt_4_1_nano) -> str:
 
 def get_company_name(job_description):
     """
-    Identifying the name of the company based on the job description
+    Identifying the name of the company based on the job description.
+    Returns None if the company name cannot be determined.
     """
-    company_name = ai_prompt(
-        f"Give the name of the company that this job description is for. As the output just give the name, nothing else. Job description: {job_description}"
-    )  # Since this is a simple task we use the cheapest ai
-    return company_name
+    prompt = (
+        f"Analyze the following job description and extract the company name. "
+        f"If the company name is clearly mentioned or can be reliably determined, provide it. "
+        f"If the company name is not mentioned, unclear, or cannot be determined with confidence, "
+        f"set the company_name to null.\n\n"
+        f"Job description: {job_description}"
+    )
+    
+    completion = client.beta.chat.completions.parse(
+        model=AIModel.gpt_4_1_nano,  # Using the cheapest AI as per original comment
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts company names from job descriptions. Only provide a company name if it's clearly identifiable."},
+            {"role": "user", "content": prompt}
+        ],
+        response_format=CompanyName
+    )
+    
+    result = json.loads(completion.choices[0].message.content)
+    return result.get("company_name")
 
 def generate_tailored_resume_text(resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None) -> str:
     # Format the user preferences section
