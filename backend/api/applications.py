@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 import uuid
 import os
+import json
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
@@ -120,7 +121,7 @@ def download_cover_letter_pdf(
         )
     
     # Return the PDF file
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M")
     return FileResponse(
         path=pdf_file_path,
         filename=f"{current_user.username}_{timestamp}_{company_name}_cover_letter.pdf",
@@ -154,7 +155,7 @@ def generate_and_save_pdf_resume(
         user_preferences = preferences.preferences_text
     
     company_name = ai_service.get_company_name(job_description)
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M")
     save_path = create_new_application_path(current_user.username, company_name, timestamp)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     
@@ -177,10 +178,12 @@ def generate_and_save_pdf_resume(
     with open(json_file_path, 'w') as f:
         f.write(structured_resume_json)
     
+    structured_resume = json.loads(structured_resume_json)
+    name = structured_resume.get('personal_info', {}).get('name', '') if structured_resume.get('personal_info', {}).get('name') else ''
     # Return the PDF file directly
     return FileResponse(
         path=pdf_file_path,
-        filename=f"{current_user.username}_{timestamp}_{company_name}_tailored_resume.pdf",
+        filename=f"{name}_{timestamp}_{company_name}.pdf",
         media_type="application/pdf",
         # Note: We cannot include custom headers with FileResponse easily
         # A better approach would be to create a custom endpoint to retrieve the JSON separately
@@ -213,7 +216,7 @@ def get_resume_tex_file(
         )
     
     # Return the .tex file
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M")
     return FileResponse(
         path=tex_file_path,
         filename=f"{current_user.username}_{timestamp}_{company_name}_resume.tex",
@@ -302,7 +305,7 @@ async def improve_resume_pdf(
         )
     
     # Generate a random username for anonymous users
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M")
     anonymous_username = f"anonymous_{timestamp}_{uuid.uuid4().hex[:8]}"
     
     # Create a save path
@@ -370,7 +373,7 @@ async def edit_resume_with_instructions(
     
     # Create a new path for the updated resume with a timestamp
     company_name = os.path.basename(current_save_path).split('_')[-1]
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M")
     new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
     
     # Get user's tailoring options
@@ -489,7 +492,7 @@ async def edit_cover_letter_with_instructions(
     
     # Create a new path for the updated cover letter with a timestamp
     company_name = os.path.basename(current_save_path).split('_')[-1]
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M")
     new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
     
     try:
@@ -597,7 +600,7 @@ def edit_answer_with_instructions(
         save_path = get_current_application_path(current_user.username)
         
         # Save the Q&A pair in the application folder
-        qa_file_path = os.path.join(save_path, f"question_updated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+        qa_file_path = os.path.join(save_path, f"question_updated_{datetime.now().strftime('%m%d_%H%M')}.txt")
         with open(qa_file_path, 'w') as f:
             f.write(f"Question: {question}\n\nAnswer: {updated_answer}\n\nEdit Instructions: {edit_instruction}")
         
