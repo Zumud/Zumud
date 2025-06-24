@@ -25,7 +25,7 @@ class TailoredCL(BaseModel):
     customized_cover_letter: str
 
 class CompanyName(BaseModel):
-    company_name: str
+    company_name: Optional[str] = None
 
 class TailoredAnswer(BaseModel):
     tailored_answer: str
