@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false)
   const [isGeneratingAnswer, setIsGeneratingAnswer] = useState(false)
   const [generatedResumePdf, setGeneratedResumePdf] = useState<string | null>(null)
+  const [generatedResumeFilename, setGeneratedResumeFilename] = useState<string | null>(null)
   const [isDownloadingTeX, setIsDownloadingTeX] = useState(false)
   const [isDownloadingCoverLetter, setIsDownloadingCoverLetter] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [coverLetterEditInstruction, setCoverLetterEditInstruction] = useState('')
   const [isEditingCoverLetter, setIsEditingCoverLetter] = useState(false)
   const [downloadCoverLetterUrl, setDownloadCoverLetterUrl] = useState<string | null>(null)
+  const [downloadCoverLetterFilename, setDownloadCoverLetterFilename] = useState<string | null>(null)
   const [answerEditInstruction, setAnswerEditInstruction] = useState('')
   const [isEditingAnswer, setIsEditingAnswer] = useState(false)
   
@@ -142,8 +144,13 @@ export default function Dashboard() {
       "Generating resume...",
       // Success handler
       (result) => {
-        const pdfUrl = URL.createObjectURL(result)
+        // Handle new response format with blob and filename
+        const blob = result.blob || result; // fallback to result if it's just a blob
+        const filename = result.filename || null;
+        
+        const pdfUrl = URL.createObjectURL(blob)
         setGeneratedResumePdf(pdfUrl)
+        setGeneratedResumeFilename(filename)
       },
       // Default error message
       "Failed to generate resume",
@@ -180,12 +187,19 @@ export default function Dashboard() {
     )
   }
 
-  const handleDownloadResume = () => {
+  const handleDownloadResume = async () => {
     if (generatedResumePdf) {
       const link = document.createElement("a")
       link.href = generatedResumePdf
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-      link.download = `tailored_resume_${timestamp}.pdf`
+      
+      // Use the filename from backend if available, otherwise fallback to timestamp-based name
+      if (generatedResumeFilename) {
+        link.download = generatedResumeFilename
+      } else {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+        link.download = `tailored_resume_${timestamp}.pdf`
+      }
+      
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -202,8 +216,18 @@ export default function Dashboard() {
         if (!result) {
           throw new Error("Received empty response from server")
         }
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-        downloadBlob(result, `tailored_resume_${timestamp}.tex`)
+        
+        // Handle response format - TeX files might not have the same structure as PDFs
+        const blob = result.blob || result; // fallback to result if it's just a blob
+        const filename = result.filename || null;
+        
+        // Use the filename from backend if available, otherwise fallback to timestamp-based name
+        if (filename) {
+          downloadBlob(blob, filename)
+        } else {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+          downloadBlob(blob, `tailored_resume_${timestamp}.tex`)
+        }
       },
       "Failed to download .tex file. Make sure you have generated a resume first."
     )
@@ -257,8 +281,18 @@ export default function Dashboard() {
         if (!result) {
           throw new Error("Received empty response from server")
         }
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-        downloadBlob(result, `cover_letter_${timestamp}.pdf`)
+        
+        // Handle new response format with blob and filename
+        const blob = result.blob || result; // fallback to result if it's just a blob
+        const filename = result.filename || downloadCoverLetterFilename || null;
+        
+        // Use the filename from backend if available, otherwise fallback to timestamp-based name
+        if (filename) {
+          downloadBlob(blob, filename)
+        } else {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+          downloadBlob(blob, `cover_letter_${timestamp}.pdf`)
+        }
       },
       "Failed to download cover letter PDF. Make sure you have generated a cover letter first.",
       () => !coverLetter ? "Please generate a cover letter first" : null
@@ -297,9 +331,14 @@ export default function Dashboard() {
       "resume editing",
       "Updating resume...",
       (result) => {
+        // Handle new response format with blob and filename for edited resumes
+        const blob = result.blob || result; // fallback to result if it's just a blob
+        const filename = result.filename || null;
+        
         // The result is now a PDF blob
-        const pdfUrl = URL.createObjectURL(result)
+        const pdfUrl = URL.createObjectURL(blob)
         setGeneratedResumePdf(pdfUrl)
+        setGeneratedResumeFilename(filename)
         setEditInstruction("") // Clear the edit instruction field
       },
       "Failed to update resume with instructions. Please check your input.",
@@ -331,9 +370,14 @@ export default function Dashboard() {
       "cover letter editing",
       "Updating cover letter...",
       async (result) => {
+        // Handle new response format with blob and filename for cover letters
+        const blob = result.blob || result; // fallback to result if it's just a blob
+        const filename = result.filename || null;
+        
         // Create a URL for the PDF
-        const pdfUrl = URL.createObjectURL(result)
+        const pdfUrl = URL.createObjectURL(blob)
         setDownloadCoverLetterUrl(pdfUrl)
+        setDownloadCoverLetterFilename(filename)
         
         // Fetch the updated cover letter text
         try {

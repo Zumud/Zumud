@@ -106,7 +106,60 @@ async function apiCall(
       contentType.includes('application/x-tex') ||
       contentType.includes('application/octet-stream')
     )) {
-      return await response.blob();
+      const blob = await response.blob();
+      
+      // For PDF responses, also extract filename from Content-Disposition header
+      if (contentType.includes('application/pdf')) {
+        const contentDisposition = response.headers.get('content-disposition');
+        
+        let filename = null;
+        
+        if (contentDisposition) {
+          // Try RFC 5987 format first (filename*=utf-8''name.pdf)
+          const rfc5987Match = contentDisposition.match(/filename\*=utf-8''([^;]+)/i);
+          if (rfc5987Match) {
+            // Decode the URL-encoded filename
+            filename = decodeURIComponent(rfc5987Match[1]);
+          } else {
+            // Fallback to standard format (filename="name.pdf" or filename=name.pdf)
+            const standardMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (standardMatch) {
+              filename = standardMatch[1].replace(/['"]/g, '');
+            }
+          }
+        }
+        
+        // Return an object with both blob and filename for PDFs
+        return { blob, filename };
+      }
+      
+      // For .tex files, also extract filename from Content-Disposition header
+      if (contentType.includes('application/x-tex')) {
+        const contentDisposition = response.headers.get('content-disposition');
+        
+        let filename = null;
+        
+        if (contentDisposition) {
+          // Try RFC 5987 format first (filename*=utf-8''name.tex)
+          const rfc5987Match = contentDisposition.match(/filename\*=utf-8''([^;]+)/i);
+          if (rfc5987Match) {
+            // Decode the URL-encoded filename
+            filename = decodeURIComponent(rfc5987Match[1]);
+          } else {
+            // Fallback to standard format (filename="name.tex" or filename=name.tex)
+            const standardMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (standardMatch) {
+              filename = standardMatch[1].replace(/['"]/g, '');
+            }
+          }
+        }
+        
+        // Return an object with both blob and filename for .tex files
+        return { blob, filename };
+      }
+      
+      // For non-PDF binary files, return just the blob
+      return blob;
     }
     
     // Default to text
