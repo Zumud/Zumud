@@ -63,6 +63,13 @@ export default function Dashboard() {
     
     if (err.name === 'AbortError' || (err.message && err.message.includes("took too long to complete"))) {
       setError("Timeout: The request took too long to complete. Try again with a shorter job description.")
+    } else if (err.message && (
+      err.message.includes("414") || 
+      err.message.includes("Request-URI Too Large") || 
+      err.message.includes("too large") ||
+      err.message.toLowerCase().includes("request too large")
+    )) {
+      setError("The job description you provided is too long to process. Please try shortening it.")
     } else {
       setError(err.message || defaultMessage)
     }

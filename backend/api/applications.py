@@ -129,7 +129,7 @@ def download_cover_letter_pdf(
     )
 
 @router.get("/resume/pdf", response_class=FileResponse)
-def generate_and_save_pdf_resume(
+async def generate_and_save_pdf_resume(
     job_description: str = Query(..., description="The job description to tailor the resume for"),
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -159,7 +159,7 @@ def generate_and_save_pdf_resume(
     save_path = create_new_application_path(current_user.username, company_name, timestamp)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     
-    latex_compiler_response, _, structured_resume_json = ai_service.generate_structured_latex_resume(
+    latex_compiler_response, _, structured_resume_json = await ai_service.generate_structured_latex_resume_async(
         str(save_path),
         current_user.resumes.resume_content,
         job_description,
@@ -314,7 +314,7 @@ async def improve_resume_pdf(
     tailoring_options = TailoringOptionsBase()
     
     # Generate improved resume using AI with default options
-    latex_compiler_response, _, _ = ai_service.generate_structured_latex_resume(
+    latex_compiler_response, _, _ = await ai_service.generate_structured_latex_resume_async(
         str(save_path),
         resume_text,
         "There is no specific job description for general improvement",  # No specific job description for general improvement
