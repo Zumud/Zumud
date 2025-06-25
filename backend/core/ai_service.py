@@ -1,7 +1,7 @@
 import json
 
 from loguru import logger
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 from jinja2 import Template
 from sqlalchemy.orm import Session
 
@@ -15,6 +15,9 @@ from backend.utils.log import logger
 from backend.models.resume_models import TailoredResume, TailoredCoverLetter, TailoredAnswer, StructuredResume, CompanyName
 
 client = OpenAI(api_key=OPEN_AI_KEY)
+
+# Async client for async operations
+async_client = AsyncOpenAI(api_key=OPEN_AI_KEY)
 
 def get_user_template(user_id: int, db: Session) -> dict:
     """
@@ -111,8 +114,9 @@ def generate_tailored_resume_text(resume: str, job_description: str, model=AIMod
     logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-def generate_structured_latex_resume(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None, user_id: int = None, db: Session = None):
+async def generate_structured_latex_resume_async(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None, user_id: int = None, db: Session = None):
     """
+    Async version of generate_structured_latex_resume with better timeout handling.
     Convert a plain resume to LaTeX using structured output and Jinja2 templating.
     Now supports user templates when user_id and db are provided.
     
@@ -130,8 +134,8 @@ def generate_structured_latex_resume(save_folder: str, resume: str, job_descript
         user_preferences= user_preferences if user_preferences else "No specific preferences provided."
     )
     
-    # First, get structured resume data from GPT
-    completion = client.beta.chat.completions.parse(
+    # First, get structured resume data from GPT using async client
+    completion = await async_client.beta.chat.completions.parse(
         model=model,
         messages=[
             {"role": "system", "content": system_content},
