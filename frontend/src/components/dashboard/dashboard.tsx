@@ -7,10 +7,12 @@ import { applications, preferences } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import PreferencesPrompt from "@/components/ui/preferences-prompt"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2, FileCode, ExternalLink, AlertCircle, MessageSquare, Copy as CopyIcon } from "lucide-react"
+import { Download, Loader2, FileCode, ExternalLink, AlertCircle, MessageSquare, Copy as CopyIcon, LogIn } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function Dashboard() {
+  const router = useRouter()
   const [userData, setUserData] = useState<any>(null)
   const [jobDescription, setJobDescription] = useState("")
   const [question, setQuestion] = useState("")
@@ -24,6 +26,7 @@ export default function Dashboard() {
   const [isDownloadingTeX, setIsDownloadingTeX] = useState(false)
   const [isDownloadingCoverLetter, setIsDownloadingCoverLetter] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isAuthError, setIsAuthError] = useState(false)
   const [isPreparingOverleaf, setIsPreparingOverleaf] = useState(false)
   const [editInstruction, setEditInstruction] = useState("")
   const [isEditingResume, setIsEditingResume] = useState(false)
@@ -57,12 +60,33 @@ export default function Dashboard() {
     window.location.reload()
   }
 
+  // Function to redirect to login page
+  const redirectToLogin = () => {
+    // Clear auth data
+    removeAccessToken()
+    removeUserData()
+    // Redirect to home/login page
+    router.push('/')
+  }
+
   // Reusable function to handle errors, especially timeouts
   const handleError = (err: any, defaultMessage: string) => {
     console.error(defaultMessage, err)
     
-    if (err.name === 'AbortError' || (err.message && err.message.includes("took too long to complete"))) {
+    // Check if this is an authentication error
+    if (err.message && (
+        err.message.includes('session has expired') || 
+        err.message.includes('login') || 
+        err.message.includes('token') || 
+        err.message.includes('unauthorized') ||
+        err.message.includes('authentication')
+    )) {
+      // Show authentication error message with login option
+      setError('Your session has expired. Please log in again to continue.')
+      setIsAuthError(true)
+    } else if (err.name === 'AbortError' || (err.message && err.message.includes("took too long to complete"))) {
       setError("Timeout: The request took too long to complete. Try again with a shorter job description.")
+      setIsAuthError(false)
     } else if (err.message && (
       err.message.includes("414") || 
       err.message.includes("Request-URI Too Large") || 
@@ -70,8 +94,10 @@ export default function Dashboard() {
       err.message.toLowerCase().includes("request too large")
     )) {
       setError("The job description you provided is too long to process. Please try shortening it.")
+      setIsAuthError(false)
     } else {
       setError(err.message || defaultMessage)
+      setIsAuthError(false)
     }
   }
 
@@ -105,16 +131,19 @@ export default function Dashboard() {
       const validationError = validationFn()
       if (validationError) {
         setError(validationError)
+        setIsAuthError(false)
         return
       }
     }
 
     setLoading(true)
     setError(null)
+    setIsAuthError(false)
     
     try {
       const result = await operation()
       setError(null)
+      setIsAuthError(false)
       onSuccess(result)
     } catch (err: any) {
       handleError(err, defaultErrorMessage)
@@ -319,12 +348,14 @@ export default function Dashboard() {
       })
       .catch(() => {
         setError("Failed to copy cover letter to clipboard")
+        setIsAuthError(false)
       })
   }
 
   const handleEditResume = () => {
     if (!generatedResumePdf) {
       setError("Please generate a resume first before editing.")
+      setIsAuthError(false)
       return
     }
     
@@ -364,6 +395,7 @@ export default function Dashboard() {
   const handleEditCoverLetter = () => {
     if (!coverLetter) {
       setError("Please generate a cover letter first before editing.")
+      setIsAuthError(false)
       return
     }
     
@@ -415,6 +447,7 @@ export default function Dashboard() {
   const handleEditAnswer = () => {
     if (!answer) {
       setError("Please generate an answer first before editing.")
+      setIsAuthError(false)
       return
     }
     
@@ -452,6 +485,7 @@ export default function Dashboard() {
     }).catch((error) => {
       console.error('Failed to save preference:', error)
       setError('Failed to save preference. Please try again.')
+      setIsAuthError(false)
     })
     
     // Return immediately - don't await the API call
@@ -484,9 +518,22 @@ export default function Dashboard() {
       {/* Error message */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2" />
-            <span className="block sm:inline">{error}</span>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              <span className="block sm:inline">{error}</span>
+            </div>
+            {isAuthError && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={redirectToLogin}
+                className="ml-4 bg-red-100 hover:bg-red-200 text-red-800 border-red-300"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Log In
+              </Button>
+            )}
           </div>
         </div>
       )}
