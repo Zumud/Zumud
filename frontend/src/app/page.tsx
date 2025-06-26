@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import InterviewReadyResume from "@/components/interview-ready-resume"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import AuthModal from "@/components/auth/auth-modal"
 import { isAuthenticated } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -15,10 +14,19 @@ import PricingSection from "@/components/landing/pricing-section"
 import CallToActionSection from "@/components/landing/call-to-action-section"
 import Footer from "@/components/landing/footer"
 
-export default function LandingPage() {
+function LandingPageContent() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    // Check if we should open the signup modal from query params
+    if (searchParams.get('signup') === 'true') {
+      setAuthMode('signup')
+      setShowAuthModal(true)
+    }
+  }, [searchParams])
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false)
@@ -50,5 +58,13 @@ export default function LandingPage() {
         defaultTab={authMode}
       />
     </div>
+  )
+}
+
+export default function LandingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LandingPageContent />
+    </Suspense>
   )
 }
