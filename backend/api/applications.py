@@ -173,7 +173,8 @@ async def generate_and_save_pdf_resume(
         tailoring_options.resume_template,
         user_preferences,
         current_user.id,
-        db
+        db,
+        is_anonymous=False  # Authenticated users get no watermark
     )
     
     pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, current_user.username)
@@ -319,13 +320,17 @@ async def improve_resume_pdf(
 
     tailoring_options = TailoringOptionsBase()
     
-    # Generate improved resume using AI with default options
+    # Generate improved resume using AI with default options (with watermark for anonymous users)
     latex_compiler_response, _, _ = await ai_service.generate_structured_latex_resume_async(
         str(save_path),
         resume_text,
         "There is no specific job description for general improvement",  # No specific job description for general improvement
         tailoring_options.ai_model,  # Default AI model
-        tailoring_options.resume_template  # Default template
+        tailoring_options.resume_template,  # Default template
+        None,  # No user preferences 
+        None,  # No user ID
+        None,  # No database session
+        is_anonymous=True  # Anonymous resume improvement gets watermark
     )
     
     # Save the improved PDF
@@ -806,12 +811,11 @@ async def generate_anonymous_resume(request: AnonymousResumeRequest):
         save_path = create_new_application_path(anonymous_username, company_name, timestamp)
         
         # Use default AI model and template for anonymous users
-        from backend.models.ai_models import AIModel
         from backend.models.tailoring_options import TailoringOptionsBase
         
         tailoring_options = TailoringOptionsBase()
         
-        # Generate the resume PDF
+        # Generate the resume PDF with watermark for anonymous users
         latex_compiler_response, _, structured_resume_json = await ai_service.generate_structured_latex_resume_async(
             str(save_path),
             request.resume_text,
@@ -820,7 +824,8 @@ async def generate_anonymous_resume(request: AnonymousResumeRequest):
             tailoring_options.resume_template,
             None,  # No user preferences for anonymous users
             None,  # No user ID for anonymous users
-            None   # No database session for anonymous users
+            None,  # No database session for anonymous users
+            is_anonymous=True  # Add watermark for anonymous users
         )
         
         # Convert PDF to base64 for frontend
