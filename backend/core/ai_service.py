@@ -113,7 +113,7 @@ def generate_tailored_resume_text(resume: str, job_description: str, model=AIMod
     logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-async def generate_structured_latex_resume_async(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None, user_id: int = None, db: Session = None):
+async def generate_structured_latex_resume_async(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None, user_id: int = None, db: Session = None, is_anonymous: bool = False):
     """
     Async version of generate_structured_latex_resume with better timeout handling.
     Convert a plain resume to LaTeX using structured output and Jinja2 templating.
@@ -163,9 +163,25 @@ async def generate_structured_latex_resume_async(save_folder: str, resume: str, 
         latex_template = template_data['structure']
         compiler = template_data['compiler']
         logger.debug(f"Using default template: {template}")
+
     
-    logger.debug(f"LaTeX template: {latex_template}")
-    
+    # Add watermark for anonymous users
+    if is_anonymous:
+        # Add watermark package and commands before \begin{document}
+        watermark_packages = r"""
+\usepackage{draftwatermark}
+\SetWatermarkText{Created by Zumud}
+\SetWatermarkScale{0.4}
+\SetWatermarkColor[gray]{0.8}
+\begin{document}
+"""
+        # Insert watermark packages after the last \usepackage line but before \begin{document}
+        if '\\begin{document}' in latex_template:
+            latex_template = latex_template.replace('\\begin{document}', watermark_packages)
+        else:
+            logger.warning("Could not find \\begin{document} in template, watermark may not be added correctly")
+
+    logger.debug(f"LaTeX template: {latex_template}") 
     # Create Jinja2 template and render
     jinjatex_template = Template(latex_template)
     logger.debug(f"Jinjatex Template: {jinjatex_template}")
