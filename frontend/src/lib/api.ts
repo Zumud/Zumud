@@ -280,10 +280,13 @@ export const applications = {
     
   // Anonymous resume generation (no authentication required)
   generateAnonymousResume: (resumeText: string, jobDescription: string) =>
-    apiCall('applications/resume/anonymous', 'POST', {
-      resume_text: resumeText,
-      job_description: jobDescription
-    }),
+    apiCall('applications/resume/anonymous', 'POST', { 
+      resume_text: resumeText, 
+      job_description: jobDescription 
+    }, false),
+
+  getAnonymousResume: (sessionId: string) =>
+    apiCall(`applications/resume/anonymous/${sessionId}`, 'GET', undefined, false),
 };
 
 export default {
