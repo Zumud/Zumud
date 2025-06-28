@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -7,6 +7,7 @@ import uuid
 import os
 import json
 import base64
+import tempfile
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
@@ -795,8 +796,40 @@ def activate_user_template(
     
     return {"message": "Template activated successfully"}
 
+@router.get("/resume/anonymous/{session_id}")
+async def get_anonymous_resume(session_id: str, db: Session = Depends(get_db)):
+    """Retrieve an anonymous resume by session ID"""
+    # Query the database for the session
+    session_record = db.query(db_models.AnonymousResumeSession).filter(
+        db_models.AnonymousResumeSession.session_id == session_id
+    ).first()
+    
+    if not session_record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+    
+    # Check if session is expired
+    if datetime.now() > session_record.expires_at:
+        # Delete expired session
+        db.delete(session_record)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session expired"
+        )
+    
+    return {
+        "session_id": session_record.session_id,
+        "pdf_base64": session_record.pdf_base64,
+        "company_name": session_record.company_name,
+        "generated_at": session_record.generated_at,
+        "filename": session_record.filename
+    }
+
 @router.post("/resume/anonymous")
-async def generate_anonymous_resume(request: AnonymousResumeRequest):
+async def generate_anonymous_resume(request: AnonymousResumeRequest, db: Session = Depends(get_db)):
     """Generate a tailored resume without authentication for landing page demo"""
     try:
         # Generate a session ID for tracking
@@ -835,6 +868,35 @@ async def generate_anonymous_resume(request: AnonymousResumeRequest):
         structured_resume = json.loads(structured_resume_json)
         name = structured_resume.get('personal_info', {}).get('name', 'Resume') if structured_resume.get('personal_info', {}).get('name') else 'Resume'
         filename = f"{name}_{timestamp}_{company_name}.pdf"
+        
+        # Store session data in database with 24-hour expiration
+        expires_at = datetime.now() + timedelta(hours=24)
+        session_record = db_models.AnonymousResumeSession(
+            session_id=session_id,
+            pdf_base64=pdf_base64,
+            company_name=company_name,
+            generated_at=timestamp,
+            filename=filename,
+            expires_at=expires_at
+        )
+        
+        db.add(session_record)
+        db.commit()
+        
+        # Clean up old expired sessions (run occasionally)
+        try:
+            expired_sessions = db.query(db_models.AnonymousResumeSession).filter(
+                db_models.AnonymousResumeSession.expires_at < datetime.now()
+            ).all()
+            
+            for expired_session in expired_sessions:
+                db.delete(expired_session)
+            
+            if expired_sessions:
+                db.commit()
+        except Exception as cleanup_error:
+            # Don't fail the main request if cleanup fails
+            print(f"Warning: Failed to clean up expired sessions: {cleanup_error}")
         
         return {
             "session_id": session_id,
