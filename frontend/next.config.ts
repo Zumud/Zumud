@@ -11,12 +11,17 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Make environment variables available to the client
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.API_URL,
+  },
   // Increase the proxy timeout for API requests to 120 seconds (default is 30s)
   experimental: {
     proxyTimeout: 120000, // 120 seconds in milliseconds
   },
   async rewrites() {
     const apiUrl = process.env.API_URL || 'http://localhost:8000';
+    console.log('Next.js rewrites configured with API_URL:', apiUrl);
     return [
       {
         source: '/applications/:path*',
