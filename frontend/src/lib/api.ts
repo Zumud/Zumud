@@ -1,13 +1,26 @@
 import { getAccessToken } from './utils';
 
-// Base API URL - adjust as needed for your environment
-let API_BASE_URL = typeof window !== 'undefined' 
-  ? window.location.origin.replace(/:\d+$/, ':8000')  // In production, use same origin but port 8000
-  : 'http://localhost:8000';  // Fallback for SSR
+// Base API URL - Use relative URLs in production to leverage Next.js rewrites
+let API_BASE_URL: string;
 
-// For development fallback
+if (typeof window !== 'undefined') {
+  // Client-side: use relative URLs to leverage Next.js rewrites in production
+  API_BASE_URL = process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:8000'  // Direct backend call in development
+    : '';  // Relative URLs in production (Next.js will proxy)
+} else {
+  // Server-side: always use the backend URL directly
+  API_BASE_URL = process.env.API_URL || 'http://localhost:8000';
+}
+
+// Debug logging (only in development)
 if (process.env.NODE_ENV === 'development') {
-  API_BASE_URL = 'http://localhost:8000';
+  console.log('API Configuration:', {
+    NODE_ENV: process.env.NODE_ENV,
+    isClient: typeof window !== 'undefined',
+    API_BASE_URL,
+    API_URL_ENV: process.env.API_URL
+  });
 }
 
 // Default timeout for API calls (in milliseconds)
@@ -56,7 +69,17 @@ async function apiCall(
   }
   
   try {
-    console.log(`Calling ${method} ${url}`, options);
+    // Debug logging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Making API call:`, {
+        method,
+        url,
+        API_BASE_URL,
+        endpoint,
+        hasData: !!data,
+        isFormData
+      });
+    }
     
     // Use AbortController for timeout handling
     const controller = new AbortController();
