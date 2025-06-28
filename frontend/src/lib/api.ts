@@ -1,39 +1,44 @@
 import { getAccessToken } from './utils';
 
-// Base API URL - Use relative URLs in production to leverage Next.js rewrites
-let API_BASE_URL: string;
-
-if (typeof window !== 'undefined') {
-  // Client-side: use relative URLs to leverage Next.js rewrites in production
-  API_BASE_URL = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:8000'  // Direct backend call in development
-    : '';  // Relative URLs in production (Next.js will proxy)
-} else {
-  // Server-side: always use the backend URL directly
-  API_BASE_URL = process.env.API_URL || 'http://localhost:8000';
-}
-
-// Debug logging (only in development)
-if (process.env.NODE_ENV === 'development') {
-  console.log('API Configuration:', {
-    NODE_ENV: process.env.NODE_ENV,
-    isClient: typeof window !== 'undefined',
-    API_BASE_URL,
-    API_URL_ENV: process.env.API_URL
-  });
-}
+// Get the backend URL from environment or use fallback
+const getBackendUrl = () => {
+  // For server-side rendering, always use the backend URL directly
+  if (typeof window === 'undefined') {
+    return process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  }
+  
+  // For client-side, use environment variable if available
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // Fallback for client-side when no env var is set
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:8000';
+  }
+  
+  // In production, try to infer backend URL from current domain
+  const currentOrigin = window.location.origin;
+  // Try common backend URL patterns
+  const possibleUrls = [
+    currentOrigin.replace(/:\d+$/, ':8000'), // Same domain, port 8000
+    currentOrigin.replace('www.', 'api.'), // api subdomain
+    `${currentOrigin}/api`, // /api path
+  ];
+  
+  return possibleUrls[0]; // Use the first one as default
+};
 
 // Default timeout for API calls (in milliseconds)
 const DEFAULT_TIMEOUT = 60000; // 1 minute for all operations
 
-// Generic API call function
+// Generic API call function with fallback mechanism
 async function apiCall(
   endpoint: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
   data?: any,
   isFormData = false
 ) {
-  let url = `${API_BASE_URL}/${endpoint}`;
   const token = getAccessToken();
   
   const headers: Record<string, string> = {};
@@ -51,6 +56,7 @@ async function apiCall(
     headers,
   };
   
+  // Prepare the request body
   if (data) {
     if (method === 'GET') {
       // For GET requests, append data as query parameters
@@ -58,145 +64,163 @@ async function apiCall(
       Object.entries(data).forEach(([key, value]) => {
         params.append(key, String(value));
       });
-      url = `${url}?${params.toString()}`;
+      endpoint = `${endpoint}?${params.toString()}`;
     } else if (isFormData) {
-      // For FormData, don't manually set Content-Type - browser will set it with boundary
       options.body = data;
     } else {
-      // For JSON data
       options.body = JSON.stringify(data);
     }
   }
   
-  try {
-    // Debug logging (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`Making API call:`, {
-        method,
-        url,
-        API_BASE_URL,
-        endpoint,
-        hasData: !!data,
-        isFormData
-      });
-    }
-    
-    // Use AbortController for timeout handling
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
-    
-    // Add signal to options
-    options.signal = controller.signal;
-    
-    const response = await fetch(url, options);
-    
-    // Clear the timeout since the request completed
-    clearTimeout(timeoutId);
-    
-    // Handle non-2xx responses
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMessage = `Request failed with status ${response.status}`;
-      
-      try {
-        // Try to parse as JSON
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.detail || errorMessage;
-      } catch (e) {
-        // If not JSON, use the text
-        if (errorText) errorMessage = errorText;
-      }
-      
-      throw new Error(errorMessage);
-    }
-    
-    // For 204 No Content
-    if (response.status === 204) {
-      return null;
-    }
-    
-    // Try to parse as JSON
-    const contentType = response.headers.get('content-type');
-    console.log(`Response content type: ${contentType}`);
-    
-    if (contentType && contentType.includes('application/json')) {
-      return await response.json();
-    }
-    
-    // Handle binary responses (like PDFs or .tex files)
-    if (contentType && (
-      contentType.includes('application/pdf') || 
-      contentType.includes('application/x-tex') ||
-      contentType.includes('application/octet-stream')
-    )) {
-      const blob = await response.blob();
-      
-      // For PDF responses, also extract filename from Content-Disposition header
-      if (contentType.includes('application/pdf')) {
-        const contentDisposition = response.headers.get('content-disposition');
-        
-        let filename = null;
-        
-        if (contentDisposition) {
-          // Try RFC 5987 format first (filename*=utf-8''name.pdf)
-          const rfc5987Match = contentDisposition.match(/filename\*=utf-8''([^;]+)/i);
-          if (rfc5987Match) {
-            // Decode the URL-encoded filename
-            filename = decodeURIComponent(rfc5987Match[1]);
-          } else {
-            // Fallback to standard format (filename="name.pdf" or filename=name.pdf)
-            const standardMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-            if (standardMatch) {
-              filename = standardMatch[1].replace(/['"]/g, '');
-            }
-          }
-        }
-        
-        // Return an object with both blob and filename for PDFs
-        return { blob, filename };
-      }
-      
-      // For .tex files, also extract filename from Content-Disposition header
-      if (contentType.includes('application/x-tex')) {
-        const contentDisposition = response.headers.get('content-disposition');
-        
-        let filename = null;
-        
-        if (contentDisposition) {
-          // Try RFC 5987 format first (filename*=utf-8''name.tex)
-          const rfc5987Match = contentDisposition.match(/filename\*=utf-8''([^;]+)/i);
-          if (rfc5987Match) {
-            // Decode the URL-encoded filename
-            filename = decodeURIComponent(rfc5987Match[1]);
-          } else {
-            // Fallback to standard format (filename="name.tex" or filename=name.tex)
-            const standardMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-            if (standardMatch) {
-              filename = standardMatch[1].replace(/['"]/g, '');
-            }
-          }
-        }
-        
-        // Return an object with both blob and filename for .tex files
-        return { blob, filename };
-      }
-      
-      // For non-PDF binary files, return just the blob
-      return blob;
-    }
-    
-    // Default to text
-    return await response.text();
-  } catch (error: any) {
-    console.error('API call failed:', error);
-    
-    // Handle timeout errors with more meaningful messages
-    if (error.name === 'AbortError') {
-      throw new Error('The request took too long to complete. This typically happens when generating complex resumes. Please try again or use a shorter job description.');
-    }
-    
-    throw error;
+  // Use AbortController for timeout handling
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+  options.signal = controller.signal;
+  
+  // Strategy: Try relative URL first (for Next.js rewrites), then try direct backend URL
+  const urlsToTry = [];
+  
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    // In production client-side, try relative URL first (for rewrites)
+    urlsToTry.push(`/${endpoint}`);
   }
+  
+  // Always add the direct backend URL as fallback
+  const backendUrl = getBackendUrl();
+  urlsToTry.push(`${backendUrl}/${endpoint}`);
+  
+  let lastError: Error | null = null;
+  
+  for (let i = 0; i < urlsToTry.length; i++) {
+    const url = urlsToTry[i];
+    
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Attempting API call ${i + 1}/${urlsToTry.length}:`, {
+          method,
+          url,
+          endpoint,
+          hasData: !!data,
+          isFormData
+        });
+      }
+      
+      const response = await fetch(url, options);
+      
+      // Clear the timeout since the request completed
+      clearTimeout(timeoutId);
+      
+      // Handle non-2xx responses
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Request failed with status ${response.status}`;
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.detail || errorMessage;
+        } catch (e) {
+          if (errorText) errorMessage = errorText;
+        }
+        
+        // If this is a 404 and we have more URLs to try, continue to next URL
+        if (response.status === 404 && i < urlsToTry.length - 1) {
+          console.warn(`URL ${url} returned 404, trying next URL...`);
+          continue;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      // Success! Process the response
+      if (response.status === 204) {
+        return null;
+      }
+      
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      
+      // Handle binary responses (like PDFs or .tex files)
+      if (contentType && (
+        contentType.includes('application/pdf') || 
+        contentType.includes('application/x-tex') ||
+        contentType.includes('application/octet-stream')
+      )) {
+        const blob = await response.blob();
+        
+        // For PDF responses, also extract filename from Content-Disposition header
+        if (contentType.includes('application/pdf')) {
+          const contentDisposition = response.headers.get('content-disposition');
+          
+          let filename = null;
+          
+          if (contentDisposition) {
+            const rfc5987Match = contentDisposition.match(/filename\*=utf-8''([^;]+)/i);
+            if (rfc5987Match) {
+              filename = decodeURIComponent(rfc5987Match[1]);
+            } else {
+              const standardMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+              if (standardMatch) {
+                filename = standardMatch[1].replace(/['"]/g, '');
+              }
+            }
+          }
+          
+          return { blob, filename };
+        }
+        
+        // For .tex files, also extract filename from Content-Disposition header
+        if (contentType.includes('application/x-tex')) {
+          const contentDisposition = response.headers.get('content-disposition');
+          
+          let filename = null;
+          
+          if (contentDisposition) {
+            const rfc5987Match = contentDisposition.match(/filename\*=utf-8''([^;]+)/i);
+            if (rfc5987Match) {
+              filename = decodeURIComponent(rfc5987Match[1]);
+            } else {
+              const standardMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+              if (standardMatch) {
+                filename = standardMatch[1].replace(/['"]/g, '');
+              }
+            }
+          }
+          
+          return { blob, filename };
+        }
+        
+        return blob;
+      }
+      
+      return await response.text();
+      
+    } catch (error: any) {
+      lastError = error;
+      
+      // Handle timeout errors
+      if (error.name === 'AbortError') {
+        clearTimeout(timeoutId);
+        throw new Error('The request took too long to complete. This typically happens when generating complex resumes. Please try again or use a shorter job description.');
+      }
+      
+      // If this is the last URL to try, throw the error
+      if (i === urlsToTry.length - 1) {
+        clearTimeout(timeoutId);
+        console.error('All API call attempts failed:', error);
+        throw error;
+      }
+      
+      // Otherwise, log the error and try the next URL
+      console.warn(`API call to ${url} failed, trying next URL:`, error.message);
+    }
+  }
+  
+  // This should never be reached, but just in case
+  clearTimeout(timeoutId);
+  throw lastError || new Error('All API call attempts failed');
 }
 
 // Auth endpoints
