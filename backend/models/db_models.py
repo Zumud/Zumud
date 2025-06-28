@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from backend.models.db import Base
 from backend.models.ai_models import AIModel
 from backend.models.templates import ResumeTemplate
+from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -60,11 +61,11 @@ class UserPreferences(Base):
     __tablename__ = "user_preferences"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
-    preferences_text = Column(Text, nullable=False, default="")
-    last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    preferences_text = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Establish relationship with User
     user = relationship("User", back_populates="preferences")
 
 class UserTemplate(Base):
@@ -80,4 +81,16 @@ class UserTemplate(Base):
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Establish relationship with User
-    user = relationship("User", back_populates="templates") 
+    user = relationship("User", back_populates="templates")
+
+class AnonymousResumeSession(Base):
+    __tablename__ = "anonymous_resume_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(36), unique=True, index=True)  # UUID string
+    pdf_base64 = Column(Text)  # Store the PDF as base64
+    company_name = Column(String(255))
+    generated_at = Column(String(50))  # Timestamp string
+    filename = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime)  # Explicit expiration time 
