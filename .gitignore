@@ -3,10 +3,9 @@
 .venv/
 .env
 CVs/
-Resumes/
 __pycache__/
 log/
-resume/
+uploads/resumes/
 resume.tar
 Application
 Applications
