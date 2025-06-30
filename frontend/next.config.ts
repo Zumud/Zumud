@@ -11,8 +11,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Configure output for dynamic routes
-  output: 'standalone',
   // Make environment variables available to the client
   env: {
     NEXT_PUBLIC_API_URL: process.env.API_URL,
