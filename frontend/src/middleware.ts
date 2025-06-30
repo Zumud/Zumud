@@ -27,10 +27,10 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Configure middleware on specific paths - add more paths as needed
+// Temporarily disable middleware to test if it's causing 404 issues
 export const config = {
   matcher: [
-    // Only match resume routes specifically
-    '/resume/:sessionId*',
+    // Commenting out to disable middleware
+    // '/resume/:path*',
   ],
 }; 
