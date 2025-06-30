@@ -3,27 +3,34 @@ import type { NextRequest } from 'next/server';
 
 // This middleware runs for all requests
 export function middleware(request: NextRequest) {
-  // Get the origin from the request
-  const origin = request.headers.get('origin') || '';
+  const pathname = request.nextUrl.pathname;
   
-  // Clone the response before modifying it
-  const response = NextResponse.next();
-
-  // Add CORS headers when the origin matches our domain or for all origins with '*'
-  if (origin.includes('zumud.com') || request.nextUrl.pathname.startsWith('/_next/')) {
-    response.headers.set('Access-Control-Allow-Origin', '*');
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
+  // Handle resume routes specifically
+  if (pathname.startsWith('/resume/')) {
+    const sessionId = pathname.split('/resume/')[1];
+    
+    // Validate sessionId format (should be a UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (sessionId && uuidRegex.test(sessionId)) {
+      // Valid sessionId - allow the request to proceed to the dynamic route
+      console.log(`[Middleware] Valid resume route: ${pathname}`);
+      return NextResponse.next();
+    } else {
+      // Invalid sessionId - redirect to home
+      console.log(`[Middleware] Invalid sessionId, redirecting: ${sessionId}`);
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
-
-  return response;
+  
+  // Handle other routes normally
+  return NextResponse.next();
 }
 
 // Configure middleware on specific paths - add more paths as needed
 export const config = {
   matcher: [
-    '/_next/:path*',
-    '/api/:path*',
-    '/applications/:path*',
+    // Only match resume routes specifically
+    '/resume/:sessionId*',
   ],
 }; 
