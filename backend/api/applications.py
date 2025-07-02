@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile, Form
 from datetime import datetime, timedelta
 from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 import uuid
 import os
 import json
@@ -21,9 +22,7 @@ from backend.models.db import get_db
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
-class AnonymousResumeRequest(BaseModel):
-    resume_text: str
-    job_description: str
+
 
 @router.get("/resume/plain")
 def generate_tailored_plain_resume(
@@ -829,14 +828,57 @@ async def get_anonymous_resume(session_id: str, db: Session = Depends(get_db)):
     }
 
 @router.post("/resume/anonymous")
-async def generate_anonymous_resume(request: AnonymousResumeRequest, db: Session = Depends(get_db)):
+async def generate_anonymous_resume(
+    job_description: str = Form(...),
+    resume_text: Optional[str] = Form(None),
+    resume_file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
     """Generate a tailored resume without authentication for landing page demo"""
     try:
+        # Validate input - must have either text or file
+        if not resume_text and not resume_file:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Either resume_text or resume_file must be provided"
+            )
+        
+        # If file is provided, extract text from it
+        if resume_file:
+            # Validate file type
+            if not resume_file.filename.endswith('.pdf'):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Only PDF files are supported"
+                )
+            
+            # Validate file size (5MB limit)
+            contents = await resume_file.read()
+            if len(contents) > 5 * 1024 * 1024:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="File size exceeds 5MB limit"
+                )
+            
+            # Extract text from PDF
+            try:
+                resume_text = await extract_text_from_pdf(contents)
+                if not resume_text.strip():
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Could not extract text from the PDF"
+                    )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error processing PDF: {str(e)}"
+                )
+        
         # Generate a session ID for tracking
         session_id = str(uuid.uuid4())
         
         # Extract company name from job description
-        company_name = ai_service.get_company_name(request.job_description)
+        company_name = ai_service.get_company_name(job_description)
         
         # Create a temporary path for anonymous user
         timestamp = datetime.now().strftime("%m-%d_%H-%M")
@@ -851,8 +893,8 @@ async def generate_anonymous_resume(request: AnonymousResumeRequest, db: Session
         # Generate the resume PDF with watermark for anonymous users
         latex_compiler_response, _, structured_resume_json = await ai_service.generate_structured_latex_resume_async(
             str(save_path),
-            request.resume_text,
-            request.job_description,
+            resume_text,
+            job_description,
             tailoring_options.ai_model,
             tailoring_options.resume_template,
             None,  # No user preferences for anonymous users
@@ -910,4 +952,6 @@ async def generate_anonymous_resume(request: AnonymousResumeRequest, db: Session
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate anonymous resume: {str(e)}"
-        ) 
+        )
+
+ 

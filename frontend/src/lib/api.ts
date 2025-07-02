@@ -326,11 +326,18 @@ export const applications = {
     }, false),
     
   // Anonymous resume generation (no authentication required)
-  generateAnonymousResume: (resumeText: string, jobDescription: string) =>
-    apiCall('applications/resume/anonymous', 'POST', { 
-      resume_text: resumeText, 
-      job_description: jobDescription 
-    }, false),
+  generateAnonymousResume: (resumeText: string | null, jobDescription: string, resumeFile?: File) => {
+    const formData = new FormData();
+    formData.append('job_description', jobDescription);
+    
+    if (resumeFile) {
+      formData.append('resume_file', resumeFile);
+    } else if (resumeText) {
+      formData.append('resume_text', resumeText);
+    }
+    
+    return apiCall('applications/resume/anonymous', 'POST', formData, true);
+  },
 
   getAnonymousResume: (sessionId: string) =>
     apiCall(`applications/resume/anonymous/${sessionId}`, 'GET', undefined, false),
