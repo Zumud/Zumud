@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRightIcon, PlayIcon, Upload, FileText, Loader2 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { applications } from "@/lib/api";
 
@@ -9,14 +9,8 @@ interface HeroSectionProps {
   onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
 }
 
-export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
-  const router = useRouter();
-  const [resumeText, setResumeText] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const sampleResume = `John Smith
+// Move large constants outside component to prevent recreation on every render
+const SAMPLE_RESUME = `John Smith
 Software Developer | john.smith@email.com | (555) 123-4567 | LinkedIn: linkedin.com/in/johnsmith
 
 EXPERIENCE
@@ -44,7 +38,7 @@ Bachelor of Science in Computer Science | State University | 2019
 • GPA: 3.7/4.0, Dean's List (3 semesters)
 • Relevant coursework: Data Structures, Algorithms, Software Engineering`;
 
-  const sampleJobDescription = `Senior Frontend Developer - Remote
+const SAMPLE_JOB_DESCRIPTION = `Senior Frontend Developer - Remote
 TechForward Solutions | $90,000 - $120,000
 
 We're looking for a Senior Frontend Developer to join our growing team and help build the next generation of our SaaS platform.
@@ -80,6 +74,13 @@ BENEFITS:
 • Professional development budget
 • Latest MacBook Pro and equipment budget`;
 
+export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
+  const router = useRouter();
+  const [resumeText, setResumeText] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type === 'application/pdf') {
@@ -89,11 +90,11 @@ BENEFITS:
   };
 
   const handleUseSampleResume = () => {
-    setResumeText(sampleResume);
+    setResumeText(SAMPLE_RESUME);
   };
 
   const handleUseSampleJob = () => {
-    setJobDescription(sampleJobDescription);
+    setJobDescription(SAMPLE_JOB_DESCRIPTION);
   };
 
   const handleGetTailoredResume = async () => {
@@ -129,10 +130,10 @@ BENEFITS:
 
   return (
     <section className="relative overflow-hidden py-16 md:py-24 lg:py-32 bg-gradient-to-b from-white to-blue-50 dark:from-gray-950 dark:to-blue-950">
-      {/* Decorative elements */}
+      {/* Decorative elements - reduced blur intensity for better performance */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/4 top-1/4 h-48 w-48 md:h-64 md:w-64 rounded-full bg-blue-200/30 blur-3xl dark:bg-blue-900/30"></div>
-        <div className="absolute right-1/4 bottom-1/3 h-64 w-64 md:h-96 md:w-96 rounded-full bg-purple-200/30 blur-3xl dark:bg-purple-900/30"></div>
+        <div className="absolute left-1/4 top-1/4 h-48 w-48 md:h-64 md:w-64 rounded-full bg-blue-200/20 blur-xl dark:bg-blue-900/20"></div>
+        <div className="absolute right-1/4 bottom-1/3 h-64 w-64 md:h-96 md:w-96 rounded-full bg-purple-200/20 blur-xl dark:bg-purple-900/20"></div>
       </div>
 
       <div className="mx-auto max-w-7xl px-4 md:px-6">
@@ -148,9 +149,9 @@ BENEFITS:
           </div>
         </div>
 
-                {/* Action form */}
+        {/* Action form - reduced backdrop blur for better performance */}
         <div className="max-w-5xl mx-auto">
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 p-8 md:p-10">
+          <div className="bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 p-8 md:p-10">
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Resume Input */}
               <div className="flex-1">
@@ -246,19 +247,19 @@ BENEFITS:
               </div>
             </div>
             
-            {/* Trust indicators */}
+            {/* Trust indicators - removed continuous animations for better performance */}
             <div className="mt-8 pt-6 border-t border-gray-200/30 dark:border-gray-700/30">
               <div className="flex flex-wrap justify-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-400">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span>Instant results</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span>ATS-friendly</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                   <span>Try it free - no signup needed</span>
                 </div>
               </div>
