@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import AuthModal from "@/components/auth/auth-modal"
 import { isAuthenticated } from "@/lib/utils"
@@ -28,15 +28,19 @@ function LandingPageContent() {
     }
   }, [searchParams])
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = useCallback(() => {
     setShowAuthModal(false)
     router.push('/dashboard')
-  }
+  }, [router])
 
-  const handleAuthModalOpen = (mode: 'login' | 'signup' = 'login') => {
+  const handleAuthModalOpen = useCallback((mode: 'login' | 'signup' = 'login') => {
     setAuthMode(mode)
     setShowAuthModal(true)
-  }
+  }, [])
+
+  const handleAuthModalClose = useCallback(() => {
+    setShowAuthModal(false)
+  }, [])
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden">
@@ -53,7 +57,7 @@ function LandingPageContent() {
       
       <AuthModal 
         isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
+        onClose={handleAuthModalClose}
         onSuccess={handleAuthSuccess}
         defaultTab={authMode}
       />

@@ -1,31 +1,33 @@
+import React from "react";
 import { 
   BrainIcon, 
   FileTextIcon, 
   ClockIcon 
 } from "lucide-react";
 
-export default function FeaturesSection() {
-  const features = [
-    {
-      icon: <BrainIcon className="h-8 w-8 text-blue-500" />,
-      title: "AI-Powered Tailoring",
-      description:
-        "Our advanced AI analyzes job descriptions and optimizes your resume to match specific requirements and keywords.",
-    },
-    {
-      icon: <FileTextIcon className="h-8 w-8 text-violet-500" />,
-      title: "ATS Optimization",
-      description:
-        "Get past Applicant Tracking Systems with resumes formatted and optimized for maximum compatibility.",
-    },
-    {
-      icon: <ClockIcon className="h-8 w-8 text-red-500" />,
-      title: "Lightning Fast",
-      description:
-        "Generate a perfectly tailored resume in 30 seconds. No more hours spent customizing applications.",
-    },
-  ];
+// Move features array outside component to prevent recreation on every render
+const FEATURES = [
+  {
+    icon: <BrainIcon className="h-8 w-8 text-blue-500" />,
+    title: "AI-Powered Tailoring",
+    description:
+      "Our advanced AI analyzes job descriptions and optimizes your resume to match specific requirements and keywords.",
+  },
+  {
+    icon: <FileTextIcon className="h-8 w-8 text-violet-500" />,
+    title: "ATS Optimization",
+    description:
+      "Get past Applicant Tracking Systems with resumes formatted and optimized for maximum compatibility.",
+  },
+  {
+    icon: <ClockIcon className="h-8 w-8 text-red-500" />,
+    title: "Lightning Fast",
+    description:
+      "Generate a perfectly tailored resume in 30 seconds. No more hours spent customizing applications.",
+  },
+];
 
+function FeaturesSection() {
   return (
     <section id="features" className="py-20 bg-white dark:bg-gray-950">
       <div className="mx-auto max-w-7xl px-4 md:px-6">
@@ -40,7 +42,7 @@ export default function FeaturesSection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
+          {FEATURES.map((feature, index) => (
             <div
               key={index}
               className="group relative p-6 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:shadow-lg transition-all duration-300 hover:border-blue-200 dark:hover:border-blue-800"
@@ -57,9 +59,10 @@ export default function FeaturesSection() {
             </div>
           ))}
         </div>
-
-
       </div>
     </section>
   );
-} 
+}
+
+// Memoize the component to prevent unnecessary re-renders
+export default React.memo(FeaturesSection); 
