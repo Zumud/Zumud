@@ -6,6 +6,7 @@ import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
 import { applications, preferences } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import PreferencesPrompt from "@/components/ui/preferences-prompt"
+import InlineResumeProgress from "@/components/ui/inline-resume-progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Download, Loader2, FileCode, ExternalLink, AlertCircle, MessageSquare, Copy as CopyIcon, LogIn } from "lucide-react"
 import Link from "next/link"
@@ -19,6 +20,8 @@ export default function Dashboard() {
   const [answer, setAnswer] = useState("")
   const [coverLetter, setCoverLetter] = useState("")
   const [isGeneratingResume, setIsGeneratingResume] = useState(false)
+  const [showResumeProgress, setShowResumeProgress] = useState(false)
+  const [forceCompleteProgress, setForceCompleteProgress] = useState(false)
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false)
   const [isGeneratingAnswer, setIsGeneratingAnswer] = useState(false)
   const [generatedResumePdf, setGeneratedResumePdf] = useState<string | null>(null)
@@ -146,6 +149,12 @@ export default function Dashboard() {
       setIsAuthError(false)
       onSuccess(result)
     } catch (err: any) {
+      // Hide progress immediately on any error for resume generation
+      if (operationName === "resume generation") {
+        setShowResumeProgress(false)
+        setForceCompleteProgress(false)
+      }
+      
       handleError(err, defaultErrorMessage)
     } finally {
       setLoading(false)
@@ -153,6 +162,10 @@ export default function Dashboard() {
   }
 
   const handleGenerateResume = () => {
+    // Show inline progress (not blocking modal)
+    setShowResumeProgress(true)
+    setForceCompleteProgress(false) // Reset force complete flag
+    
     asyncOperation(
       // Operation to perform
       async () => {
@@ -187,12 +200,21 @@ export default function Dashboard() {
         const pdfUrl = URL.createObjectURL(blob)
         setGeneratedResumePdf(pdfUrl)
         setGeneratedResumeFilename(filename)
+        
+        // Trigger progress completion animation
+        setForceCompleteProgress(true)
       },
       // Default error message
       "Failed to generate resume",
       // Validation
       () => !jobDescription.trim() ? "Please enter a job description" : null
     )
+  }
+
+  const handleResumeProgressComplete = () => {
+    // This will be called when progress animation completes
+    setShowResumeProgress(false)
+    setForceCompleteProgress(false)
   }
 
   const handleGenerateCoverLetter = () => {
@@ -562,10 +584,10 @@ export default function Dashboard() {
                 onClick={handleGenerateResume}
                   disabled={isGeneratingResume}
               >
-                {isGeneratingResume ? (
+                {isGeneratingResume && !showResumeProgress ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating Resume...
+                      Starting...
                   </>
                 ) : (
                   "Generate Resume"
@@ -625,7 +647,17 @@ export default function Dashboard() {
 
                 {/* Resume Workspace with PDF and Chat-style editing */}
                 <div className="flex-grow flex flex-col">
-                  {generatedResumePdf ? (
+                  {showResumeProgress ? (
+                    <div className="flex-grow flex items-center justify-center p-8">
+                      <div className="w-full max-w-lg">
+                        <InlineResumeProgress 
+                          isVisible={showResumeProgress} 
+                          onComplete={handleResumeProgressComplete}
+                          forceComplete={forceCompleteProgress}
+                        />
+                      </div>
+                    </div>
+                  ) : generatedResumePdf ? (
                     <>
                       {/* PDF Preview Area */}
                       <div className="h-96 border border-gray-300 rounded-t-md overflow-hidden">
@@ -1053,6 +1085,8 @@ export default function Dashboard() {
               </div>
             </TabsContent>
           </Tabs>
+
+
     </div>
   )
 } 
