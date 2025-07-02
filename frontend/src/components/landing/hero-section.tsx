@@ -4,6 +4,7 @@ import { ArrowRightIcon, PlayIcon, Upload, FileText, Loader2 } from "lucide-reac
 import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { applications } from "@/lib/api";
+import ResumeProgress from "@/components/ui/resume-progress";
 
 interface HeroSectionProps {
   onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
@@ -79,6 +80,7 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,6 +121,8 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
       return;
     }
     
+    // Show progress modal and start generation in background
+    setShowProgress(true);
     setIsGenerating(true);
     
     try {
@@ -137,14 +141,27 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
         filename: result.filename
       }));
       
-      // Redirect to the preview page
-      router.push(`/resume/${result.session_id}`);
+      // Wait for progress animation to complete before redirecting
+      // The progress component will call handleProgressComplete when done
       
     } catch (error) {
       console.error('Error generating resume:', error);
-      alert('Failed to generate resume. Please try again.');
-    } finally {
+      setShowProgress(false);
       setIsGenerating(false);
+      alert('Failed to generate resume. Please try again.');
+    }
+  };
+
+  const handleProgressComplete = () => {
+    setShowProgress(false);
+    setIsGenerating(false);
+    
+    // Find the stored session data and redirect
+    const keys = Object.keys(sessionStorage);
+    const resumePdfKey = keys.find(key => key.startsWith('resume_pdf_'));
+    if (resumePdfKey) {
+      const sessionId = resumePdfKey.replace('resume_pdf_', '');
+      router.push(`/resume/${sessionId}`);
     }
   };
 
@@ -172,7 +189,7 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
         {/* Action form - reduced backdrop blur for better performance */}
         <div className="max-w-5xl mx-auto">
           <div className="bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 p-8 md:p-10">
-            <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
               {/* Resume Input */}
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-4">
@@ -263,24 +280,24 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
                 </div>
               </div>
 
-              {/* Action Button */}
-              <div className="lg:w-auto w-full flex flex-col">
-                {/* Match exact label structure and spacing */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="h-6"></div> {/* Invisible spacer matching label height */}
-                </div>
-                {/* Center button in textarea area */}
-                <div className="relative flex items-center justify-center" style={{height: '165px'}}>
+                              {/* Action Button */}
+                <div className="lg:w-auto w-full flex flex-col">
+                  {/* Match exact label structure and spacing */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-6"></div> {/* Invisible spacer matching label height */}
+                  </div>
+                  {/* Center button in textarea area */}
+                  <div className="relative flex items-center justify-center h-auto lg:h-[165px] pt-2 lg:pt-0">
                   <Button
                     size="lg"
                     onClick={handleGetTailoredResume}
                     disabled={isGenerating}
                     className="bg-gradient-to-r from-blue-600 via-blue-700 to-violet-600 hover:from-blue-700 hover:via-blue-800 hover:to-violet-700 hover:scale-105 active:scale-95 shadow-xl hover:shadow-2xl h-auto py-6 px-10 text-lg font-bold w-full lg:w-auto transition-all duration-300 rounded-2xl border border-white/20 disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    {isGenerating ? (
+                    {isGenerating && !showProgress ? (
                       <>
                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Generating Resume...
+                        Starting...
                       </>
                     ) : (
                       "Free Tailored Resume"
@@ -310,6 +327,12 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
           </div>
         </div>
       </div>
+
+      {/* Progress Modal */}
+      <ResumeProgress 
+        isVisible={showProgress} 
+        onComplete={handleProgressComplete} 
+      />
     </section>
   );
 } 

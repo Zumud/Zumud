@@ -30,7 +30,21 @@ const getBackendUrl = () => {
 };
 
 // Default timeout for API calls (in milliseconds)
-const DEFAULT_TIMEOUT = 60000; // 1 minute for all operations
+const DEFAULT_TIMEOUT = 60000; // 1 minute for most operations
+const RESUME_GENERATION_TIMEOUT = 120000; // 2 minutes for AI resume generation
+
+// Get appropriate timeout based on endpoint
+const getTimeoutForEndpoint = (endpoint: string): number => {
+  // Resume generation operations need longer timeout due to AI processing
+  if (endpoint.includes('resume/pdf') || 
+      endpoint.includes('resume/anonymous') || 
+      endpoint.includes('cover-letter') ||
+      endpoint.includes('resume/edit') ||
+      endpoint.includes('cover-letter/edit')) {
+    return RESUME_GENERATION_TIMEOUT;
+  }
+  return DEFAULT_TIMEOUT;
+};
 
 // Generic API call function with fallback mechanism
 async function apiCall(
@@ -72,9 +86,10 @@ async function apiCall(
     }
   }
   
-  // Use AbortController for timeout handling
+  // Use AbortController for timeout handling with dynamic timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+  const timeoutMs = getTimeoutForEndpoint(endpoint);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   options.signal = controller.signal;
   
   // Strategy: Try relative URL first (for Next.js rewrites), then try direct backend URL
@@ -203,7 +218,8 @@ async function apiCall(
       // Handle timeout errors
       if (error.name === 'AbortError') {
         clearTimeout(timeoutId);
-        throw new Error('The request took too long to complete. This typically happens when generating complex resumes. Please try again or use a shorter job description.');
+        const timeoutSeconds = Math.floor(timeoutMs / 1000);
+        throw new Error(`The request took too long to complete (over ${timeoutSeconds} seconds). This typically happens when generating complex resumes. Please try again or use a shorter job description.`);
       }
       
       // If this is the last URL to try, throw the error
