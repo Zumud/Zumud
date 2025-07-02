@@ -79,14 +79,27 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      // For now, just set a placeholder text
-      setResumeText(`${file.name} uploaded`);
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a PDF file');
+      return;
     }
+
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds 5MB limit');
+      return;
+    }
+
+    // Store the file and clear any existing text
+    setResumeFile(file);
+    setResumeText("");
   };
 
   const handleUseSampleResume = () => {
@@ -98,7 +111,10 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
   };
 
   const handleGetTailoredResume = async () => {
-    if (!resumeText.trim() || !jobDescription.trim()) {
+    // Check if we have either text or file
+    const hasResumeContent = resumeText.trim() || resumeFile;
+    
+    if (!hasResumeContent || !jobDescription.trim()) {
       alert("Please provide both your resume and job description");
       return;
     }
@@ -107,7 +123,11 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
     
     try {
       // Generate the resume and get the session data
-      const result = await applications.generateAnonymousResume(resumeText, jobDescription);
+      const result = await applications.generateAnonymousResume(
+        resumeText.trim() || null, 
+        jobDescription, 
+        resumeFile || undefined
+      );
       
       // Store the PDF data in sessionStorage for the preview page
       sessionStorage.setItem(`resume_pdf_${result.session_id}`, result.pdf_base64);
@@ -170,20 +190,43 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
                 </div>
                 <div className="relative group">
                   <textarea
-                    value={resumeText}
-                    onChange={(e) => setResumeText(e.target.value)}
-                    placeholder="Paste / upload your resume"
+                    value={resumeFile ? `📄 ${resumeFile.name} uploaded` : resumeText}
+                    onChange={(e) => {
+                      setResumeText(e.target.value);
+                      // Clear file if user starts typing
+                      if (resumeFile) {
+                        setResumeFile(null);
+                      }
+                    }}
+                    placeholder="Paste your resume text here or upload a resume PDF"
                     rows={5}
                     className="w-full px-6 py-5 text-base border-2 border-gray-200/60 dark:border-gray-700/60 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-500 resize-none transition-all duration-300 shadow-sm hover:shadow-md group-hover:border-blue-300 dark:group-hover:border-blue-700"
+                    disabled={!!resumeFile}
                   />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-5 right-5 p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 rounded-xl transition-all duration-200 hover:scale-110 shadow-lg hover:shadow-xl"
-                    title="Upload PDF Resume"
-                  >
-                    <Upload className="h-5 w-5" />
-                  </button>
+                  {resumeFile ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResumeFile(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }}
+                      className="absolute bottom-5 right-5 p-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all duration-200 hover:scale-110 shadow-lg hover:shadow-xl"
+                      title="Remove PDF and switch to text input"
+                    >
+                      ✕
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-5 right-5 p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 rounded-xl transition-all duration-200 hover:scale-110 shadow-lg hover:shadow-xl"
+                      title="Upload PDF Resume"
+                    >
+                      <Upload className="h-5 w-5" />
+                    </button>
+                  )}
                   <input
                     ref={fileInputRef}
                     type="file"
