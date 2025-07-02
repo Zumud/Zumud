@@ -22,14 +22,22 @@ interface NavbarProps {
 export default function Navbar({ onAuthModalOpen }: NavbarProps) {
   const [theme, setTheme] = React.useState<"light" | "dark">("light");
 
-  const toggleTheme = () => {
+  const toggleTheme = React.useCallback(() => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
     document.documentElement.classList.toggle("dark");
-  };
+  }, [theme]);
+
+  const handleLogin = React.useCallback(() => {
+    onAuthModalOpen?.('login');
+  }, [onAuthModalOpen]);
+
+  const handleSignup = React.useCallback(() => {
+    onAuthModalOpen?.('signup');
+  }, [onAuthModalOpen]);
 
   return (
-    <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+    <div className="border-b bg-background sticky top-0 z-50 shadow-sm">
       <div className="mx-auto max-w-7xl flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
@@ -103,10 +111,10 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
               <MoonIcon className="h-5 w-5" />
             )}
           </Button>
-          <Button variant="ghost" onClick={() => onAuthModalOpen?.('login')}>
+          <Button variant="ghost" onClick={handleLogin}>
             Log in
           </Button>
-          <Button onClick={() => onAuthModalOpen?.('signup')}>
+          <Button onClick={handleSignup}>
             Get Started Free
           </Button>
         </div>
@@ -115,7 +123,7 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
   );
 }
 
-const ListItem = React.forwardRef<
+const ListItem = React.memo(React.forwardRef<
   React.ElementRef<typeof Link>,
   React.ComponentPropsWithoutRef<typeof Link> & {
     title: string;
@@ -140,5 +148,5 @@ const ListItem = React.forwardRef<
       </NavigationMenuLink>
     </li>
   );
-});
+}));
 ListItem.displayName = "ListItem"; 
