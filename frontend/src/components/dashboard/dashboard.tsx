@@ -7,8 +7,22 @@ import { applications, preferences } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import PreferencesPrompt from "@/components/ui/preferences-prompt"
 import InlineResumeProgress from "@/components/ui/inline-resume-progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2, FileCode, ExternalLink, AlertCircle, MessageSquare, Copy as CopyIcon, LogIn } from "lucide-react"
+import Sidebar from "@/components/ui/sidebar"
+import { 
+  Download, 
+  Loader2, 
+  FileCode, 
+  ExternalLink, 
+  AlertCircle, 
+  MessageSquare, 
+  Copy as CopyIcon, 
+  LogIn,
+  FileText,
+  Mail,
+  HelpCircle,
+  Send,
+  Sparkles
+} from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -41,6 +55,8 @@ export default function Dashboard() {
   const [downloadCoverLetterFilename, setDownloadCoverLetterFilename] = useState<string | null>(null)
   const [answerEditInstruction, setAnswerEditInstruction] = useState('')
   const [isEditingAnswer, setIsEditingAnswer] = useState(false)
+  const [activeTab, setActiveTab] = useState<'resume' | 'cover-letter' | 'question' | null>(null)
+  const [followUpInstruction, setFollowUpInstruction] = useState('')
   
   // Preferences prompt state
   const [showPreferencesPrompt, setShowPreferencesPrompt] = useState(false)
@@ -48,6 +64,7 @@ export default function Dashboard() {
 
   // State to provide feedback after copying the cover letter (optional future use)
   const [isCoverLetterCopied, setIsCoverLetterCopied] = useState(false)
+  const [isAnswerCopied, setIsAnswerCopied] = useState(false)
 
   // Load user data on mount
   useEffect(() => {
@@ -162,6 +179,10 @@ export default function Dashboard() {
   }
 
   const handleGenerateResume = () => {
+    setActiveTab('resume')
+    // Clear previous resume immediately for better UX
+    setGeneratedResumePdf(null)
+    setGeneratedResumeFilename(null)
     // Show inline progress (not blocking modal)
     setShowResumeProgress(true)
     setForceCompleteProgress(false) // Reset force complete flag
@@ -218,6 +239,11 @@ export default function Dashboard() {
   }
 
   const handleGenerateCoverLetter = () => {
+    setActiveTab('cover-letter')
+    // Clear previous cover letter immediately for better UX
+    setCoverLetter('')
+    setDownloadCoverLetterUrl(null)
+    setDownloadCoverLetterFilename(null)
     asyncOperation(
       () => applications.generateCoverLetter(jobDescription),
       setIsGeneratingCoverLetter,
@@ -230,6 +256,9 @@ export default function Dashboard() {
   }
 
   const handleAnswerQuestion = () => {
+    setActiveTab('question')
+    // Clear previous answer immediately for better UX
+    setAnswer('')
     asyncOperation(
       () => applications.answerQuestion(jobDescription, question),
       setIsGeneratingAnswer,
@@ -245,19 +274,25 @@ export default function Dashboard() {
     )
   }
 
+  const handleFollowUpSubmit = () => {
+    if (!followUpInstruction.trim()) return
+
+    if (activeTab === 'resume') {
+      handleEditResume(followUpInstruction)
+    } else if (activeTab === 'cover-letter') {
+      handleEditCoverLetter(followUpInstruction)
+    } else if (activeTab === 'question') {
+      handleEditAnswer(followUpInstruction)
+    }
+    
+    setFollowUpInstruction('')
+  }
+
   const handleDownloadResume = async () => {
     if (generatedResumePdf) {
       const link = document.createElement("a")
       link.href = generatedResumePdf
-      
-      // Use the filename from backend if available, otherwise fallback to timestamp-based name
-      if (generatedResumeFilename) {
-        link.download = generatedResumeFilename
-      } else {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-        link.download = `tailored_resume_${timestamp}.pdf`
-      }
-      
+      link.download = generatedResumeFilename || "resume.pdf"
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -268,26 +303,10 @@ export default function Dashboard() {
     asyncOperation(
       () => applications.getResumeTeX(),
       setIsDownloadingTeX,
-      "tex file download",
-      "Preparing TeX file...",
-      (result) => {
-        if (!result) {
-          throw new Error("Received empty response from server")
-        }
-        
-        // Handle response format - TeX files might not have the same structure as PDFs
-        const blob = result.blob || result; // fallback to result if it's just a blob
-        const filename = result.filename || null;
-        
-        // Use the filename from backend if available, otherwise fallback to timestamp-based name
-        if (filename) {
-          downloadBlob(blob, filename)
-        } else {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-          downloadBlob(blob, `tailored_resume_${timestamp}.tex`)
-        }
-      },
-      "Failed to download .tex file. Make sure you have generated a resume first."
+      "TeX download",
+      "Downloading TeX...",
+      (blob) => downloadBlob(blob, "resume.tex"),
+      "Failed to download TeX file"
     )
   }
 
@@ -296,7 +315,7 @@ export default function Dashboard() {
       () => applications.getResumeTeXContent(),
       setIsPreparingOverleaf,
       "Overleaf preparation",
-      "Preparing for Overleaf...",
+      "Preparing Overleaf...",
       (texContent) => {
         // Create a form to POST to Overleaf
         const form = document.createElement('form')
@@ -317,123 +336,80 @@ export default function Dashboard() {
         form.submit()
         document.body.removeChild(form)
       },
-      "Failed to open in Overleaf. Make sure you have generated a resume first."
+      "Failed to edit in Overleaf"
     )
   }
 
   const handleDownloadCoverLetter = () => {
     asyncOperation(
-      async () => {
-        // If we have a downloadCoverLetterUrl from a recent edit, use that
-        if (downloadCoverLetterUrl) {
-          const response = await fetch(downloadCoverLetterUrl);
-          return await response.blob();
-        }
-        // Otherwise fetch from the API
-        return applications.getCoverLetterPDF();
-      },
+      () => applications.getCoverLetterPDF(),
       setIsDownloadingCoverLetter,
-      "cover letter PDF download",
-      "Preparing PDF...",
+      "cover letter download",
+      "Downloading cover letter...",
       (result) => {
-        if (!result) {
-          throw new Error("Received empty response from server")
-        }
-        
-        // Handle new response format with blob and filename
-        const blob = result.blob || result; // fallback to result if it's just a blob
-        const filename = result.filename || downloadCoverLetterFilename || null;
-        
-        // Use the filename from backend if available, otherwise fallback to timestamp-based name
-        if (filename) {
-          downloadBlob(blob, filename)
-        } else {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-          downloadBlob(blob, `cover_letter_${timestamp}.pdf`)
-        }
+        const blob = result.blob || result
+        const filename = result.filename || "cover_letter.pdf"
+        const url = downloadBlob(blob, filename)
+        setDownloadCoverLetterUrl(url)
+        setDownloadCoverLetterFilename(filename)
       },
-      "Failed to download cover letter PDF. Make sure you have generated a cover letter first.",
-      () => !coverLetter ? "Please generate a cover letter first" : null
+      "Failed to download cover letter"
     )
   }
 
-  // Copies the generated cover letter to the clipboard
   const handleCopyCoverLetter = () => {
-    if (!coverLetter) return
-
-    navigator.clipboard
-      .writeText(coverLetter)
-      .then(() => {
-        // Provide quick visual feedback by toggling state for a short duration
-        setIsCoverLetterCopied(true)
-        setTimeout(() => setIsCoverLetterCopied(false), 2000)
-      })
-      .catch(() => {
-        setError("Failed to copy cover letter to clipboard")
-        setIsAuthError(false)
-      })
+    if (coverLetter) {
+      navigator.clipboard.writeText(coverLetter)
+      setIsCoverLetterCopied(true)
+      setTimeout(() => setIsCoverLetterCopied(false), 2000)
+    }
   }
 
-  const handleEditResume = () => {
-    if (!generatedResumePdf) {
-      setError("Please generate a resume first before editing.")
-      setIsAuthError(false)
-      return
+  const handleCopyAnswer = () => {
+    if (answer) {
+      navigator.clipboard.writeText(answer)
+      setIsAnswerCopied(true)
+      setTimeout(() => setIsAnswerCopied(false), 2000)
     }
-    
-    // Start the edit operation immediately - no waiting for preferences
+  }
+
+  const handleEditResume = (instruction?: string) => {
+    const instructionToUse = instruction || editInstruction
     asyncOperation(
-      () => applications.editResumeWithInstructions(
-        editInstruction,
-        jobDescription
-      ),
+      () => applications.editResumeWithInstructions(instructionToUse, jobDescription),
       setIsEditingResume,
       "resume editing",
-      "Updating resume...",
+      "Editing resume...",
       (result) => {
-        // Handle new response format with blob and filename for edited resumes
-        const blob = result.blob || result; // fallback to result if it's just a blob
-        const filename = result.filename || null;
+        const blob = result.blob || result
+        const filename = result.filename || null
         
-        // The result is now a PDF blob
         const pdfUrl = URL.createObjectURL(blob)
         setGeneratedResumePdf(pdfUrl)
         setGeneratedResumeFilename(filename)
-        setEditInstruction("") // Clear the edit instruction field
+        
+        if (result.updated_json) {
+          setLastGeneratedResumeJson(result.updated_json)
+        }
+        
+        setEditInstruction("")
       },
-      "Failed to update resume with instructions. Please check your input.",
-      () => {
-        if (!editInstruction.trim()) return "Please enter edit instructions"
-        if (!jobDescription.trim()) return "Please ensure there is a job description"
-        return null
-      }
+      "Failed to edit resume",
+      () => !instructionToUse.trim() ? "Please enter an edit instruction" : null
     )
-    
-    // Show preferences prompt immediately and independently - no blocking the edit
-    setCurrentEditInstruction(editInstruction)
-    setShowPreferencesPrompt(true)
   }
 
-  const handleEditCoverLetter = () => {
-    if (!coverLetter) {
-      setError("Please generate a cover letter first before editing.")
-      setIsAuthError(false)
-      return
-    }
-    
-    // Start the edit operation immediately - no waiting for preferences
+  const handleEditCoverLetter = (instruction?: string) => {
+    const instructionToUse = instruction || coverLetterEditInstruction
     asyncOperation(
-      () => applications.editCoverLetterWithInstructions(
-        coverLetterEditInstruction,
-        jobDescription
-      ),
+      () => applications.editCoverLetterWithInstructions(instructionToUse, jobDescription),
       setIsEditingCoverLetter,
       "cover letter editing",
-      "Updating cover letter...",
+      "Editing cover letter...",
       async (result) => {
         // Handle new response format with blob and filename for cover letters
-        const blob = result.blob || result; // fallback to result if it's just a blob
-        const filename = result.filename || null;
+        const blob = result.blob || result
+        const filename = result.filename || null
         
         // Create a URL for the PDF
         const pdfUrl = URL.createObjectURL(blob)
@@ -448,330 +424,135 @@ export default function Dashboard() {
           }
         } catch (err) {
           console.error("Error fetching updated cover letter text:", err)
-          // Continue even if text fetch fails
         }
         
-        setCoverLetterEditInstruction("") // Clear the edit instruction field
+        setCoverLetterEditInstruction('')
       },
-      "Failed to update cover letter with instructions. Please check your input.",
-      () => {
-        if (!coverLetterEditInstruction.trim()) return "Please enter edit instructions"
-        if (!jobDescription.trim()) return "Please ensure there is a job description"
-        return null
-      }
+      "Failed to edit cover letter",
+      () => !instructionToUse.trim() ? "Please enter an edit instruction" : null
     )
-    
-    // Show preferences prompt immediately and independently - no blocking the edit
-    setCurrentEditInstruction(coverLetterEditInstruction)
-    setShowPreferencesPrompt(true)
   }
 
-  const handleEditAnswer = () => {
-    if (!answer) {
-      setError("Please generate an answer first before editing.")
-      setIsAuthError(false)
-      return
-    }
-    
-    // Start the edit operation immediately - no waiting for preferences
+  const handleEditAnswer = (instruction?: string) => {
+    const instructionToUse = instruction || answerEditInstruction
     asyncOperation(
-      () => applications.editAnswerWithInstructions(
-        answerEditInstruction,
-        answer,
-        question,
-        jobDescription
-      ),
+      () => applications.editAnswerWithInstructions(instructionToUse, answer, question, jobDescription),
       setIsEditingAnswer,
       "answer editing",
-      "Updating answer...",
+      "Editing answer...",
       (result) => {
-        // Update the answer with the result from the API (now a plain string)
         if (result) {
           setAnswer(result)
         }
-        setAnswerEditInstruction("") // Clear the edit instruction field
+        setAnswerEditInstruction('')
       },
-      "Failed to update answer with instructions. Please check your input.",
-      () => !answerEditInstruction.trim() ? "Please enter edit instructions" : null
+      "Failed to edit answer",
+      () => !instructionToUse.trim() ? "Please enter an edit instruction" : null
     )
-    
-    // Show preferences prompt immediately and independently - no blocking the edit
-    setCurrentEditInstruction(answerEditInstruction)
-    setShowPreferencesPrompt(true)
   }
 
   const handleSavePreference = async (preference: string) => {
-    // Fire and forget - don't block any other operations
-    preferences.addUserPreference(preference).then(() => {
-      console.log('Preference saved successfully:', preference)
-    }).catch((error) => {
-      console.error('Failed to save preference:', error)
-      setError('Failed to save preference. Please try again.')
-      setIsAuthError(false)
-    })
-    
-    // Return immediately - don't await the API call
+    try {
+      await preferences.addUserPreference(preference)
+      setShowPreferencesPrompt(false)
+    } catch (err) {
+      console.error("Error saving preference:", err)
+    }
   }
 
   const handleDismissPreferencesPrompt = () => {
     setShowPreferencesPrompt(false)
-    setCurrentEditInstruction("")
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <header className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Welcome, {userData?.username || 'User'}!</h1>
-        <div className="flex space-x-4">
-          <Link href="/profile">
-            <Button variant="outline">
-              Profile Settings
-            </Button>
-          </Link>
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-          >
-            Logout
-          </Button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-b from-white to-blue-50/30 dark:from-gray-950 dark:to-blue-950/30 relative">
+      {/* Sidebar */}
+      <Sidebar onLogout={handleLogout} />
 
-      {/* Error message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 mr-2" />
-              <span className="block sm:inline">{error}</span>
-            </div>
-            {isAuthError && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={redirectToLogin}
-                className="ml-4 bg-red-100 hover:bg-red-200 text-red-800 border-red-300"
-              >
-                <LogIn className="h-4 w-4 mr-2" />
-                Log In
-              </Button>
-            )}
+      {/* Main Content */}
+      <div className="relative">
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute left-1/4 top-1/4 h-48 w-48 md:h-64 md:w-64 rounded-full bg-blue-200/10 blur-3xl dark:bg-blue-900/10"></div>
+          <div className="absolute right-1/4 bottom-1/3 h-64 w-64 md:h-96 md:w-96 rounded-full bg-purple-200/10 blur-3xl dark:bg-purple-900/10"></div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="px-4 py-8 md:px-8 md:py-12 max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8 md:mb-12">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent mb-2">
+              {userData?.first_name ? `Good ${getGreeting()}, ${userData.first_name}` : "Welcome back"}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+              Ready to create a tailored document for your next opportunity?
+            </p>
           </div>
-        </div>
-      )}
 
-      <Tabs defaultValue="generate" className="w-full">
-        <TabsList className="grid grid-cols-3 mb-8">
-          <TabsTrigger value="generate">Generate Resume</TabsTrigger>
-          <TabsTrigger value="cover">Cover Letter</TabsTrigger>
-          <TabsTrigger value="questions">Application Questions</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="generate" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
-            {/* Left panel - Job Description (reduced width) */}
-            <div className="lg:col-span-2">
-              <div className="bg-white p-6 rounded-lg shadow h-full flex flex-col">
-          <h2 className="text-xl font-semibold mb-4">Job Description</h2>
-          <textarea
-                  className="w-full flex-grow p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4"
-                  placeholder="Paste the job description here..."
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-                />
-              <Button
-                  className="w-full bg-emerald-600 hover:bg-emerald-700" 
-                onClick={handleGenerateResume}
-                  disabled={isGeneratingResume}
-              >
-                {isGeneratingResume && !showResumeProgress ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Starting...
-                  </>
-                ) : (
-                  "Generate Resume"
-                )}
-              </Button>
-              </div>
-            </div>
-
-            {/* Right panel - Resume Preview & Chat-like Edit Interface (increased width) */}
-            <div className="lg:col-span-4">
-              <div className="bg-white p-6 rounded-lg shadow h-full flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Your Resume</h2>
-              {generatedResumePdf && (
-                    <div className="flex space-x-2">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+                  {isAuthError && (
                     <Button
-                        size="sm"
-                        variant="outline"
-                      onClick={handleDownloadResume}
+                      variant="outline"
+                      size="sm"
+                      onClick={redirectToLogin}
+                      className="mt-2 text-red-600 border-red-300 hover:bg-red-50"
                     >
-                        <Download className="h-4 w-4 mr-1" />
-                        PDF
+                      <LogIn className="h-4 w-4 mr-2" />
+                      Log in again
                     </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                      onClick={handleDownloadTeX}
-                      disabled={isDownloadingTeX}
-                    >
-                      {isDownloadingTeX ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                            <FileCode className="h-4 w-4 mr-1" />
-                            TEX
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                      onClick={handleOpenInOverleaf}
-                      disabled={isPreparingOverleaf}
-                    >
-                      {isPreparingOverleaf ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                            <ExternalLink className="h-4 w-4 mr-1" />
-                          Edit in Overleaf
-                        </>
-                      )}
-                    </Button>
-                  </div>
                   )}
                 </div>
-
-                {/* Resume Workspace with PDF and Chat-style editing */}
-                <div className="flex-grow flex flex-col">
-                  {showResumeProgress ? (
-                    <div className="flex-grow flex items-center justify-center p-8">
-                      <div className="w-full max-w-lg">
-                        <InlineResumeProgress 
-                          isVisible={showResumeProgress} 
-                          onComplete={handleResumeProgressComplete}
-                          forceComplete={forceCompleteProgress}
-                        />
-                      </div>
-                    </div>
-                  ) : generatedResumePdf ? (
-                    <>
-                      {/* PDF Preview Area */}
-                      <div className="h-96 border border-gray-300 rounded-t-md overflow-hidden">
-                        <PdfViewer pdfUrl={generatedResumePdf} />
-                      </div>
-                      
-                      {/* AI Resume Editor */}
-                      <div className="border border-t-0 border-gray-300 rounded-b-md bg-gray-50 p-4">
-                        <div className="flex items-start mb-3">
-                          <div className="bg-emerald-100 p-2 rounded-full mr-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-700">
-                              <path d="M12 8V16M8 12H16" />
-                            </svg>
-                          </div>
-                          <div className="bg-emerald-50 text-emerald-800 p-3 rounded-lg rounded-tl-none max-w-[85%]">
-                            <p className="text-sm">
-                              I can help you refine your resume with AI. Simply tell me what you'd like to change, such as:
-                            </p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <span 
-                                className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
-                                onClick={() => setEditInstruction("Add AWS to my skills section")}
-                              >
-                                Add AWS to skills
-                              </span>
-                              <span 
-                                className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
-                                onClick={() => setEditInstruction("Update my job title to Senior Developer")}
-                              >
-                                Update job title
-                              </span>
-                              <span 
-                                className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
-                                onClick={() => setEditInstruction("Add a new project with React and TypeScript")}
-                              >
-                                Add a project
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Preferences Prompt for Resume */}
-                        {showPreferencesPrompt && (
-                          <PreferencesPrompt
-                            isVisible={showPreferencesPrompt}
-                            editInstruction={currentEditInstruction}
-                            onSavePreference={handleSavePreference}
-                            onDismiss={handleDismissPreferencesPrompt}
-                          />
-                        )}
-                        
-                        <div className="flex items-end mt-3">
-                          <input
-                            type="text"
-                            className="flex-grow p-3 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            placeholder="Describe what you want to change..."
-                            value={editInstruction}
-                            onChange={(e) => setEditInstruction(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && editInstruction.trim() && !isEditingResume) {
-                                handleEditResume();
-                              }
-                            }}
-                            style={{ height: '44px' }}
-                          />
-                          <Button 
-                            onClick={handleEditResume}
-                            disabled={isEditingResume || !editInstruction.trim()}
-                            className="bg-emerald-600 hover:bg-emerald-700 rounded-l-none h-[44px] flex items-center justify-center"
-                          >
-                            {isEditingResume ? (
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                                <path d="m5 11 4 4L19 7" />
-                              </svg>
-                            )}
-                          </Button>
-                        </div>
-                        {isEditingResume && (
-                          <p className="text-xs text-gray-500 mt-2 flex items-center">
-                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            Updating your resume...
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex-grow border border-gray-300 rounded-md flex flex-col items-center justify-center bg-gray-50 text-center p-8">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 mb-4">
-                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                        <polyline points="14 2 14 8 20 8" />
-                      </svg>
-                      <h3 className="text-lg font-medium text-gray-700 mb-2">No Resume Generated Yet</h3>
-                      <p className="text-gray-500 max-w-md">
-                        Paste a job description in the left panel and click "Generate Resume" to create a tailored resume for your application.
-                      </p>
-                </div>
-              )}
-                </div>
               </div>
             </div>
-          </div>
-            </TabsContent>
+          )}
 
-        <TabsContent value="cover" className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Your Cover Letter</h2>
-              <div className="flex space-x-3">
+          {/* Main Input Area */}
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8 mb-8">
+            <div className="space-y-6">
+              {/* Job Description Input */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                  Job Description
+                </label>
+                <textarea
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste the job description here to instantly generate a tailored document..."
+                  rows={6}
+                  className="w-full px-4 py-3 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-400 resize-none transition-all"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button
+                  onClick={handleGenerateResume}
+                  disabled={isGeneratingResume || !jobDescription.trim()}
+                  className="h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                >
+                  {isGeneratingResume ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate Resume
+                    </>
+                  )}
+                </Button>
+
                 <Button
                   onClick={handleGenerateCoverLetter}
                   disabled={isGeneratingCoverLetter || !jobDescription.trim()}
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className="h-14 bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
                 >
                   {isGeneratingCoverLetter ? (
                     <>
@@ -779,314 +560,287 @@ export default function Dashboard() {
                       Generating...
                     </>
                   ) : (
-                    "Generate Cover Letter"
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Generate Cover Letter
+                    </>
                   )}
                 </Button>
-                
-                {coverLetter && (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={handleCopyCoverLetter}
-                    >
-                      {isCoverLetterCopied ? (
-                        "Copied!"
-                      ) : (
-                        <>
-                          <CopyIcon className="h-4 w-4 mr-1" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleDownloadCoverLetter}
-                      disabled={isDownloadingCoverLetter}
-                    >
-                      {isDownloadingCoverLetter ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Download className="h-4 w-4 mr-1" />
-                          Download PDF
-                        </>
-                      )}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
 
-            {!jobDescription.trim() && (
-              <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded relative">
-                <div className="flex items-center">
-                  <AlertCircle className="h-5 w-5 mr-2" />
-                  <span className="block sm:inline">Please enter a job description in the "Generate Resume" tab first.</span>
+                <Button
+                  onClick={() => setActiveTab('question')}
+                  disabled={isGeneratingAnswer || !jobDescription.trim()}
+                  className="h-14 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                >
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Answer Question
+                </Button>
+              </div>
+
+              {/* Resume Progress - Inline */}
+              {showResumeProgress && (
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <InlineResumeProgress 
+                    isVisible={showResumeProgress}
+                    forceComplete={forceCompleteProgress}
+                    onComplete={handleResumeProgressComplete}
+                  />
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Cover Letter Content Area */}
-            <div className="flex-grow flex flex-col">
-              {coverLetter ? (
-                <>
-                  {/* Cover Letter Text Area */}
-                  <div className="flex-grow border border-gray-300 rounded-t-md bg-gray-50 p-4">
+              {/* Question Input (shown when Answer Question is selected) */}
+              {activeTab === 'question' && (
+                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    Application Question
+                  </label>
+                  <div className="relative">
                     <textarea
-                      value={coverLetter}
-                      onChange={(e) => setCoverLetter(e.target.value)}
-                      className="w-full h-full p-3 border border-gray-300 rounded-md resize-none"
-                      style={{ minHeight: "300px" }}
-                    />
-                  </div>
-                  
-                  {/* AI Cover Letter Editor */}
-                  <div className="border border-t-0 border-gray-300 rounded-b-md bg-gray-50 p-4">
-                    <div className="flex items-start mb-3">
-                      <div className="bg-emerald-100 p-2 rounded-full mr-3">
-                        <MessageSquare className="h-5 w-5 text-emerald-700" />
-                      </div>
-                      <div className="bg-emerald-50 text-emerald-800 p-3 rounded-lg rounded-tl-none max-w-[85%]">
-                        <p className="text-sm">
-                          I can help you refine your cover letter with AI. Simply tell me what you'd like to change:
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <span 
-                            className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
-                            onClick={() => setCoverLetterEditInstruction("Make the tone more professional")}
-                          >
-                            More professional tone
-                          </span>
-                          <span 
-                            className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
-                            onClick={() => setCoverLetterEditInstruction("Highlight my leadership experience")}
-                          >
-                            Highlight leadership
-                          </span>
-                          <span 
-                            className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
-                            onClick={() => setCoverLetterEditInstruction("Make it more concise")}
-                          >
-                            More concise
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Preferences Prompt for Cover Letter */}
-                    {showPreferencesPrompt && (
-                      <PreferencesPrompt
-                        isVisible={showPreferencesPrompt}
-                        editInstruction={currentEditInstruction}
-                        onSavePreference={handleSavePreference}
-                        onDismiss={handleDismissPreferencesPrompt}
-                      />
-                    )}
-                    
-                    <div className="flex items-end mt-3">
-                      <input
-                        type="text"
-                        className="flex-grow p-3 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="Describe what you want to change..."
-                        value={coverLetterEditInstruction}
-                        onChange={(e) => setCoverLetterEditInstruction(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && coverLetterEditInstruction.trim() && !isEditingCoverLetter) {
-                            handleEditCoverLetter();
+                      value={question}
+                      onChange={(e) => setQuestion(e.target.value)}
+                      placeholder="Enter the application question you need to answer..."
+                      rows={3}
+                      className="w-full px-4 py-3 pr-24 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-400 resize-none transition-all"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          if (!isGeneratingAnswer && jobDescription.trim() && question.trim()) {
+                            handleAnswerQuestion()
                           }
-                        }}
-                        style={{ height: '44px' }}
-                      />
-                      <Button 
-                        onClick={handleEditCoverLetter}
-                        disabled={isEditingCoverLetter || !coverLetterEditInstruction.trim()}
-                        className="bg-emerald-600 hover:bg-emerald-700 rounded-l-none h-[44px] flex items-center justify-center"
-                      >
-                        {isEditingCoverLetter ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                            <path d="m5 11 4 4L19 7" />
-                          </svg>
-                        )}
-                      </Button>
+                        }
+                      }}
+                    />
+                    <div className="absolute right-3 top-3 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                      <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-xs flex items-center gap-1">
+                        <span>Enter</span>
+                        <span>↵</span>
+                      </kbd>
+                      <span>to generate</span>
                     </div>
-                    {isEditingCoverLetter && (
-                      <p className="text-xs text-gray-500 mt-2 flex items-center">
-                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        Updating your cover letter...
-                      </p>
-                    )}
                   </div>
-                </>
-              ) : (
-                <div className="flex-grow border border-gray-300 rounded-md flex flex-col items-center justify-center bg-gray-50 text-center p-8">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 mb-4">
-                    <path d="M21 14h-8a2 2 0 0 0-2 2v.5A2.5 2.5 0 0 0 13.5 19h1a2.5 2.5 0 0 0 2.5-2.5V16a2 2 0 0 0-2-2h-8M3 8h18M3 12h18M3 16h6M3 20h6" />
-                  </svg>
-                  <h3 className="text-lg font-medium text-gray-700 mb-2">No Cover Letter Generated Yet</h3>
-                  <p className="text-gray-500 max-w-md">
-                    Click "Generate Cover Letter" to create a tailored letter based on your job description from the Resume tab.
-                  </p>
+                  <Button
+                    onClick={handleAnswerQuestion}
+                    disabled={isGeneratingAnswer || !jobDescription.trim() || !question.trim()}
+                    className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                  >
+                    {isGeneratingAnswer ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating Answer...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Generate Your Tailored Answer
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
             </div>
           </div>
-        </TabsContent>
 
-            <TabsContent value="questions" className="bg-white p-6 rounded-lg shadow">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Application Questions</h2>
-                <Button
-                  onClick={handleAnswerQuestion}
-                  disabled={isGeneratingAnswer || !jobDescription.trim() || !question.trim()}
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                >
-                  {isGeneratingAnswer ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating Answer...
-                    </>
-                  ) : (
-                    "Generate Answer"
-                  )}
-                </Button>
-              </div>
-
-              {!jobDescription.trim() && (
-                <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded relative">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-5 w-5 mr-2" />
-                    <span className="block sm:inline">Please enter a job description in the "Generate Resume" tab first.</span>
+          {/* Results Section */}
+          {(generatedResumePdf || coverLetter || answer) && (
+            <div className="space-y-6">
+              {/* Resume Results */}
+              {generatedResumePdf && activeTab === 'resume' && (
+                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                      Your Tailored Resume
+                    </h3>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleDownloadResume}
+                        variant="outline"
+                        size="sm"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download PDF
+                      </Button>
+                      <Button
+                        onClick={handleDownloadTeX}
+                        disabled={isDownloadingTeX}
+                        variant="outline"
+                        size="sm"
+                        className="text-green-600 border-green-200 hover:bg-green-50"
+                      >
+                        {isDownloadingTeX ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <FileCode className="h-4 w-4 mr-2" />
+                        )}
+                        Download TeX
+                      </Button>
+                      <Button
+                        onClick={handleOpenInOverleaf}
+                        disabled={isPreparingOverleaf}
+                        variant="outline"
+                        size="sm"
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                      >
+                        {isPreparingOverleaf ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                        )}
+                        Edit in Overleaf
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                    <PdfViewer pdfUrl={generatedResumePdf} />
                   </div>
                 </div>
               )}
 
-              <div className="mb-4">
-                <label htmlFor="question" className="block text-sm font-medium text-gray-700 mb-1">
-                  Question
-                </label>
-                <textarea
-                  id="question"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Enter the application question..."
-                  className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  rows={3}
-                />
-              </div>
-              
-              {/* Answer Content Area */}
-              <div className="flex-grow flex flex-col">
-                {answer ? (
-                  <>
-                    <div className="border border-gray-300 rounded-t-md bg-gray-50 p-4">
-                      <textarea
-                        value={answer}
-                        onChange={(e) => setAnswer(e.target.value)}
-                        className="w-full h-full p-3 border border-gray-300 rounded-md resize-none"
-                        style={{ minHeight: "200px" }}
-                        placeholder="Your generated answer will appear here..."
-                      />
+              {/* Cover Letter Results */}
+              {coverLetter && activeTab === 'cover-letter' && (
+                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                      Your Cover Letter
+                    </h3>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleCopyCoverLetter}
+                        variant="outline"
+                        size="sm"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      >
+                        <CopyIcon className="h-4 w-4 mr-2" />
+                        {isCoverLetterCopied ? 'Copied!' : 'Copy'}
+                      </Button>
+                      <Button
+                        onClick={handleDownloadCoverLetter}
+                        disabled={isDownloadingCoverLetter}
+                        variant="outline"
+                        size="sm"
+                        className="text-green-600 border-green-200 hover:bg-green-50"
+                      >
+                        {isDownloadingCoverLetter ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-2" />
+                        )}
+                        Download PDF
+                      </Button>
                     </div>
-                    
-                    {/* AI Answer Editor */}
-                    <div className="border border-t-0 border-gray-300 rounded-b-md bg-gray-50 p-4">
-                      <div className="flex items-start mb-3">
-                        <div className="bg-emerald-100 p-2 rounded-full mr-3">
-                          <MessageSquare className="h-5 w-5 text-emerald-700" />
-                        </div>
-                        <div className="bg-emerald-50 text-emerald-800 p-3 rounded-lg rounded-tl-none max-w-[85%]">
-                          <p className="text-sm">
-                            I can help you refine your answer with AI. Simply tell me what you'd like to change:
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <span 
-                              className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
-                              onClick={() => setAnswerEditInstruction("Make the answer more detailed")}
-                            >
-                              More detailed
-                            </span>
-                            <span 
-                              className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
-                              onClick={() => setAnswerEditInstruction("Highlight specific achievements")}
-                            >
-                              Highlight achievements
-                            </span>
-                            <span 
-                              className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs cursor-pointer hover:bg-emerald-200"
-                              onClick={() => setAnswerEditInstruction("Make it more concise")}
-                            >
-                              More concise
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Preferences Prompt for Answer */}
-                      {showPreferencesPrompt && (
-                        <PreferencesPrompt
-                          isVisible={showPreferencesPrompt}
-                          editInstruction={currentEditInstruction}
-                          onSavePreference={handleSavePreference}
-                          onDismiss={handleDismissPreferencesPrompt}
-                        />
-                      )}
-                      
-                      <div className="flex items-end mt-3">
-                        <input
-                          type="text"
-                          className="flex-grow p-3 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          placeholder="Describe what you want to change..."
-                          value={answerEditInstruction}
-                          onChange={(e) => setAnswerEditInstruction(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && answerEditInstruction.trim() && !isEditingAnswer) {
-                              handleEditAnswer();
-                            }
-                          }}
-                          style={{ height: '44px' }}
-                        />
-                        <Button 
-                          onClick={handleEditAnswer}
-                          disabled={isEditingAnswer || !answerEditInstruction.trim()}
-                          className="bg-emerald-600 hover:bg-emerald-700 rounded-l-none h-[44px] flex items-center justify-center"
-                        >
-                          {isEditingAnswer ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                          ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                              <path d="m5 11 4 4L19 7" />
-                            </svg>
-                          )}
-                        </Button>
-                      </div>
-                      {isEditingAnswer && (
-                        <p className="text-xs text-gray-500 mt-2 flex items-center">
-                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                          Updating your answer...
-                        </p>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex-grow border border-gray-300 rounded-md flex flex-col items-center justify-center bg-gray-50 text-center p-8">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 mb-4">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                      <path d="M12 17h.01" />
-                    </svg>
-                    <h3 className="text-lg font-medium text-gray-700 mb-2">No Answer Generated Yet</h3>
-                    <p className="text-gray-500 max-w-md">
-                      Enter an application question above and click "Generate Answer" to create a tailored response based on your job description.
-                    </p>
                   </div>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">
+                      {coverLetter}
+                    </pre>
+                  </div>
+                </div>
+              )}
 
+              {/* Answer Results */}
+              {answer && activeTab === 'question' && (
+                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                      Your Answer
+                    </h3>
+                    <Button
+                      onClick={handleCopyAnswer}
+                      variant="outline"
+                      size="sm"
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      <CopyIcon className="h-4 w-4 mr-2" />
+                      {isAnswerCopied ? 'Copied!' : 'Copy Answer'}
+                    </Button>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">
+                      {answer}
+                    </pre>
+                  </div>
+                </div>
+              )}
 
+              {/* Follow-up Input */}
+              {((activeTab === 'resume' && generatedResumePdf) || 
+                (activeTab === 'cover-letter' && coverLetter) || 
+                (activeTab === 'question' && answer)) && (
+                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                      Make it better
+                    </h3>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1 relative">
+                      <input
+                        type="text"
+                        value={followUpInstruction}
+                        onChange={(e) => setFollowUpInstruction(e.target.value)}
+                        placeholder="Make it shorter, add more achievements, change the tone..."
+                        className="w-full h-12 px-4 pr-20 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-400 transition-all"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleFollowUpSubmit()
+                          }
+                        }}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-xs flex items-center gap-1">
+                          <span>Enter</span>
+                          <span>↵</span>
+                        </kbd>
+                        <span>to update</span>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleFollowUpSubmit}
+                      disabled={!followUpInstruction.trim() || isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                      className="h-12 px-6 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                    >
+                      {(isEditingResume || isEditingCoverLetter || isEditingAnswer) ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Update
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          
+
+           {/* Preferences Prompt */}
+           {showPreferencesPrompt && (
+             <PreferencesPrompt
+               isVisible={showPreferencesPrompt}
+               onSavePreference={handleSavePreference}
+               onDismiss={handleDismissPreferencesPrompt}
+               editInstruction={currentEditInstruction}
+             />
+           )}
+        </div>
+      </div>
     </div>
   )
+}
+
+// Helper function to get greeting based on time of day
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'morning'
+  if (hour < 17) return 'afternoon'
+  return 'evening'
 } 

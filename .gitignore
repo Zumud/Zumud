@@ -11,3 +11,4 @@ Application
 Applications
 user_database*.db
 production_server*.db
+database_backup*.sql
