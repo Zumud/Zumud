@@ -6,6 +6,25 @@ from backend.utils.log import logger
 import os
 import uvicorn
 
+# Sentry setup for API monitoring
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+
+# Initialize Sentry
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),  # You'll need to set this in your environment
+    integrations=[
+        FastApiIntegration(),
+        StarletteIntegration(),
+    ],
+    traces_sample_rate=1.0,  # Capture 100% of transactions for performance monitoring
+    profiles_sample_rate=1.0,  # Capture 100% of profiles for performance monitoring
+    environment=os.getenv("ENVIRONMENT", "development"),
+    # Set this to False in production to avoid sending PII
+    send_default_pii=True,
+)
+
 logger.info("Starting FastAPI application")
 
 # Check database connection and create tables on startup
