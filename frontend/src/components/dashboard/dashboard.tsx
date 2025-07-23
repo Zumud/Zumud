@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
 import { applications, preferences } from "@/lib/api"
@@ -66,6 +66,14 @@ export default function Dashboard() {
   const [isCoverLetterCopied, setIsCoverLetterCopied] = useState(false)
   const [isAnswerCopied, setIsAnswerCopied] = useState(false)
 
+    // Ref for the main input area to scroll to
+  const inputAreaRef = useRef<HTMLDivElement>(null)
+  
+  // State to track if user has made their first generation
+  const [hasGenerated, setHasGenerated] = useState(false)
+
+ 
+
   // Load user data on mount
   useEffect(() => {
     const storedUserData = getUserData()
@@ -73,6 +81,8 @@ export default function Dashboard() {
       setUserData(storedUserData)
     }
   }, [])
+
+
 
   const handleLogout = () => {
     removeAccessToken()
@@ -172,6 +182,8 @@ export default function Dashboard() {
         setForceCompleteProgress(false)
       }
       
+
+      
       handleError(err, defaultErrorMessage)
     } finally {
       setLoading(false)
@@ -186,6 +198,8 @@ export default function Dashboard() {
     // Show inline progress (not blocking modal)
     setShowResumeProgress(true)
     setForceCompleteProgress(false) // Reset force complete flag
+    // Mark as first generation to hide welcome section
+    setHasGenerated(true)
     
     asyncOperation(
       // Operation to perform
@@ -244,6 +258,8 @@ export default function Dashboard() {
     setCoverLetter('')
     setDownloadCoverLetterUrl(null)
     setDownloadCoverLetterFilename(null)
+    // Mark as first generation to hide welcome section
+    setHasGenerated(true)
     asyncOperation(
       () => applications.generateCoverLetter(jobDescription),
       setIsGeneratingCoverLetter,
@@ -259,6 +275,8 @@ export default function Dashboard() {
     setActiveTab('question')
     // Clear previous answer immediately for better UX
     setAnswer('')
+    // Mark as first generation to hide welcome section
+    setHasGenerated(true)
     asyncOperation(
       () => applications.answerQuestion(jobDescription, question),
       setIsGeneratingAnswer,
@@ -286,6 +304,17 @@ export default function Dashboard() {
     }
     
     setFollowUpInstruction('')
+  }
+
+  // Helper function for quick actions
+  const handleQuickAction = (instruction: string) => {
+    if (activeTab === 'resume') {
+      handleEditResume(instruction)
+    } else if (activeTab === 'cover-letter') {
+      handleEditCoverLetter(instruction)
+    } else if (activeTab === 'question') {
+      handleEditAnswer(instruction)
+    }
   }
 
   const handleDownloadResume = async () => {
@@ -465,7 +494,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-blue-50/30 dark:from-gray-950 dark:to-blue-950/30 relative">
+    <div className="bg-gradient-to-b from-white to-blue-50/30 dark:from-gray-950 dark:to-blue-950/30 relative" style={{ minHeight: 'max(100vh, 200vh)' }}>
       {/* Sidebar */}
       <Sidebar onLogout={handleLogout} />
 
@@ -479,15 +508,17 @@ export default function Dashboard() {
 
         {/* Main Content Area */}
         <div className="px-4 py-8 md:px-8 md:py-12 max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8 md:mb-12">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent mb-2">
-              {userData?.first_name ? `Good ${getGreeting()}, ${userData.first_name}` : "Welcome back"}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
-              Ready to create a tailored document for your next opportunity?
-            </p>
-          </div>
+          {/* Header - hide after first generation */}
+          {!hasGenerated && (
+            <div className="text-center mb-8 md:mb-12 transition-all duration-500 ease-out">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent mb-2">
+                {userData?.first_name ? `Good ${getGreeting()}, ${userData.first_name}` : "Welcome back"}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+                Ready to create a tailored document for your next opportunity?
+              </p>
+            </div>
+          )}
 
           {/* Error Display */}
           {error && (
@@ -513,7 +544,7 @@ export default function Dashboard() {
           )}
 
           {/* Main Input Area */}
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8 mb-8">
+          <div ref={inputAreaRef} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8 mb-8">
             <div className="space-y-6">
               {/* Job Description Input */}
               <div>
@@ -762,58 +793,95 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Follow-up Input */}
+              {/* Enhanced Glassmorphism Make it Better Section */}
               {((activeTab === 'resume' && generatedResumePdf) || 
                 (activeTab === 'cover-letter' && coverLetter) || 
                 (activeTab === 'question' && answer)) && (
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <MessageSquare className="h-5 w-5 text-blue-600" />
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                      Make it better
-                    </h3>
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="flex-1 relative">
-                      <input
-                        type="text"
-                        value={followUpInstruction}
-                        onChange={(e) => setFollowUpInstruction(e.target.value)}
-                        placeholder="Make it shorter, add more achievements, change the tone..."
-                        className="w-full h-12 px-4 pr-20 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-400 transition-all"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            handleFollowUpSubmit()
-                          }
-                        }}
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-xs flex items-center gap-1">
-                          <span>Enter</span>
-                          <span>↵</span>
-                        </kbd>
-                        <span>to update</span>
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4 md:px-8 z-40 animate-in slide-in-from-bottom-4 fade-in duration-500">
+                  <div className="bg-white/15 dark:bg-gray-900/15 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/30 dark:border-gray-700/30 p-4">
+                    {/* Single line: title first, then quick actions */}
+                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5 text-blue-600" />
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                          Make it better
+                        </h3>
                       </div>
+                      
+                      <button
+                        onClick={() => handleQuickAction("Make it shorter and more concise")}
+                        disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                        className="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ✂️ Make shorter
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction("Make the tone more formal and professional")}
+                        disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                        className="px-2.5 py-1 text-xs font-medium rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        👔 More formal
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction("Make the tone more casual and approachable")}
+                        disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                        className="px-2.5 py-1 text-xs font-medium rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-200/50 dark:border-orange-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        😊 More casual
+                      </button>
+                      <button
+                        onClick={() => handleQuickAction("Add more technical skills and keywords relevant to the job")}
+                        disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                        className="px-2.5 py-1 text-xs font-medium rounded-full bg-violet-500/10 hover:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        🔑 Add keywords
+                      </button>
                     </div>
-                    <Button
-                      type="button"
-                      onClick={handleFollowUpSubmit}
-                      disabled={!followUpInstruction.trim() || isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                      className="h-12 px-6 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
-                    >
-                      {(isEditingResume || isEditingCoverLetter || isEditingAnswer) ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Updating...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="mr-2 h-4 w-4" />
-                          Update
-                        </>
-                      )}
-                    </Button>
+
+                    {/* Compact Custom Input */}
+                    <div className="flex gap-3">
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          value={followUpInstruction}
+                          onChange={(e) => setFollowUpInstruction(e.target.value)}
+                          placeholder="Or describe what you want to improve..."
+                          className="w-full h-12 px-4 pr-16 text-sm bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white dark:placeholder-gray-400 transition-all"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleFollowUpSubmit()
+                            }
+                          }}
+                          disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                          <kbd className="px-2 py-1 bg-gray-100/70 dark:bg-gray-700/70 rounded border border-gray-300/50 dark:border-gray-600/50 font-mono text-xs flex items-center gap-1 backdrop-blur-sm">
+                            <span>Enter</span>
+                            <span>↵</span>
+                          </kbd>
+                          <span>to update</span>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={handleFollowUpSubmit}
+                        disabled={!followUpInstruction.trim() || isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                        className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                      >
+                        {(isEditingResume || isEditingCoverLetter || isEditingAnswer) ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Update
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -821,6 +889,8 @@ export default function Dashboard() {
           )}
 
           
+
+
 
            {/* Preferences Prompt */}
            {showPreferencesPrompt && (
