@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Zumud Logo](https://img.shields.io/badge/Zumud-blue?style=for-the-badge)
+![Zumud Logo](/frontend/public/logos/zumud/combined.svg)
 ![Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg?style=for-the-badge)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg?style=for-the-badge)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
