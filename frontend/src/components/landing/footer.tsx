@@ -7,9 +7,11 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
           <div className="col-span-2 lg:col-span-2">
             <Link href="/" className="inline-block">
-              <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                Zumud
-              </span>
+              <img 
+                src="/logos/zumud/combined.svg" 
+                alt="Zumud" 
+                className="h-8 w-auto hover:opacity-90 transition-opacity duration-200"
+              />
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
               AI-powered resume tailoring to help you land more interviews and

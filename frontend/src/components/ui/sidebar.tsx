@@ -106,9 +106,11 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
           <div className="flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50">
             {!isCollapsed && (
               <div className="flex items-center space-x-2">
-                <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                  Zumud
-                </span>
+                <img 
+                  src="/logos/zumud/combined.svg" 
+                  alt="Zumud" 
+                  className="h-6 w-auto"
+                />
               </div>
             )}
             <Button

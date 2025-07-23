@@ -14,6 +14,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { MoonIcon, SunIcon } from "lucide-react";
+import { isAuthenticated } from "@/lib/utils";
 
 interface NavbarProps {
   onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
@@ -21,6 +22,23 @@ interface NavbarProps {
 
 export default function Navbar({ onAuthModalOpen }: NavbarProps) {
   const [theme, setTheme] = React.useState<"light" | "dark">("light");
+  const [userAuthenticated, setUserAuthenticated] = React.useState(false);
+
+  // Check authentication status on mount and when localStorage changes
+  React.useEffect(() => {
+    const checkAuthStatus = () => {
+      setUserAuthenticated(isAuthenticated());
+    };
+    
+    checkAuthStatus();
+    
+    // Listen for storage changes to update auth state
+    window.addEventListener('storage', checkAuthStatus);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuthStatus);
+    };
+  }, []);
 
   const toggleTheme = React.useCallback(() => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -41,9 +59,11 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
       <div className="mx-auto max-w-7xl flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-              Zumud
-            </span>
+            <img 
+              src="/logos/zumud/combined.svg" 
+              alt="Zumud" 
+              className="h-8 w-auto hover:opacity-90 transition-opacity duration-200"
+            />
           </Link>
           <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
@@ -111,12 +131,17 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
               <MoonIcon className="h-5 w-5" />
             )}
           </Button>
-          <Button variant="ghost" onClick={handleLogin}>
-            Log in
-          </Button>
-          <Button onClick={handleSignup}>
-            Get Started Free
-          </Button>
+          {userAuthenticated ? (
+            <Button asChild>
+              <Link href="/dashboard">
+                Dashboard
+              </Link>
+            </Button>
+          ) : (
+            <Button onClick={handleSignup}>
+              Get Started Free
+            </Button>
+          )}
         </div>
       </div>
     </div>

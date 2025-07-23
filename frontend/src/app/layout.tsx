@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/images/og-image.jpg",
+        url: "/og-image.svg",
         width: 1200,
         height: 630,
         alt: "Zumud AI Resume Builder - Instant job-specific resumes"
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Instant job-specific resumes | Zumud",
     description: "Tailored resume and cover letter for any job in seconds. Our users report 3× more interviews — and save 15+ minutes per application.",
-    images: ["/images/twitter-image.jpg"],
+    images: ["/twitter-image.svg"],
     creator: "@zumudapp",
   },
   alternates: {
@@ -81,6 +81,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Favicon and App Icons */}
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon-16x16.svg" sizes="16x16" type="image/svg+xml" />
+        <link rel="icon" href="/favicon-32x32.svg" sizes="32x32" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+        <link rel="manifest" href="/site.webmanifest" />
+        
         {/* Crisp Chat Integration */}
         <script
           dangerouslySetInnerHTML={{
