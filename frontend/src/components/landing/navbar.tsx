@@ -14,6 +14,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { MoonIcon, SunIcon } from "lucide-react";
+import { isAuthenticated } from "@/lib/utils";
 
 interface NavbarProps {
   onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
@@ -21,6 +22,23 @@ interface NavbarProps {
 
 export default function Navbar({ onAuthModalOpen }: NavbarProps) {
   const [theme, setTheme] = React.useState<"light" | "dark">("light");
+  const [userAuthenticated, setUserAuthenticated] = React.useState(false);
+
+  // Check authentication status on mount and when localStorage changes
+  React.useEffect(() => {
+    const checkAuthStatus = () => {
+      setUserAuthenticated(isAuthenticated());
+    };
+    
+    checkAuthStatus();
+    
+    // Listen for storage changes to update auth state
+    window.addEventListener('storage', checkAuthStatus);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuthStatus);
+    };
+  }, []);
 
   const toggleTheme = React.useCallback(() => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -111,12 +129,17 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
               <MoonIcon className="h-5 w-5" />
             )}
           </Button>
-          <Button variant="ghost" onClick={handleLogin}>
-            Log in
-          </Button>
-          <Button onClick={handleSignup}>
-            Get Started Free
-          </Button>
+          {userAuthenticated ? (
+            <Button asChild>
+              <Link href="/dashboard">
+                Dashboard
+              </Link>
+            </Button>
+          ) : (
+            <Button onClick={handleSignup}>
+              Get Started Free
+            </Button>
+          )}
         </div>
       </div>
     </div>
