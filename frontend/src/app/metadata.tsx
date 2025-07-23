@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     siteName: "Zumud",
     images: [
       {
-        url: "https://zumud.com/og-image.jpg",
+        url: "https://zumud.com/og-image.svg",
         width: 1200,
         height: 630,
         alt: "Zumud AI Resume Builder - Get 3× More Interviews",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     title: "Get 3× More Interviews with AI-Tailored Resumes | Zumud",
     description: "Create custom resumes and cover letters in seconds. Our users report 3× more callbacks and save 15+ minutes per application with our AI-powered resume tool.",
     creator: "@zumudapp",
-    images: ["https://zumud.com/twitter-image.jpg"],
+    images: ["https://zumud.com/twitter-image.svg"],
   },
   robots: {
     index: true,
