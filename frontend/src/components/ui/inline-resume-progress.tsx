@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { CheckCircle, Clock, FileText, Sparkles, Zap, Loader2 } from "lucide-react"
 
 interface InlineResumeProgressProps {
@@ -53,6 +53,8 @@ export default function InlineResumeProgress({ isVisible, onComplete, forceCompl
   const [progress, setProgress] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState(30)
   const [isWaitingForBackend, setIsWaitingForBackend] = useState(false)
+  const [isCompleted, setIsCompleted] = useState(false)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!isVisible) {
@@ -60,13 +62,28 @@ export default function InlineResumeProgress({ isVisible, onComplete, forceCompl
       setProgress(0)
       setTimeRemaining(30)
       setIsWaitingForBackend(false)
+      setIsCompleted(false)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      return
+    }
+
+    // Don't start timer if already completed
+    if (isCompleted) {
       return
     }
 
     const totalDuration = progressSteps.reduce((sum, step) => sum + step.duration, 0)
     let elapsed = 0
     
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
+      // Stop updating if we're completed
+      if (isCompleted) {
+        return
+      }
+
       elapsed += 0.5
       
       // Calculate which step we're in
@@ -99,7 +116,7 @@ export default function InlineResumeProgress({ isVisible, onComplete, forceCompl
         setTimeRemaining(Math.ceil(remaining))
       }
       
-      if (!isWaitingForBackend) {
+      if (!isWaitingForBackend && !isCompleted) {
         setProgress(newProgress)
       }
       
@@ -109,18 +126,30 @@ export default function InlineResumeProgress({ isVisible, onComplete, forceCompl
       }
     }, 500)
 
-    return () => clearInterval(interval)
-  }, [isVisible, onComplete])
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [isVisible, isCompleted])
 
   // Handle external completion trigger
   useEffect(() => {
-    if (forceComplete && isWaitingForBackend) {
+    if (forceComplete && (isWaitingForBackend || progress > 0) && !isCompleted) {
+      // Clear the timer immediately to prevent further updates
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      
+      setIsCompleted(true)
       setProgress(100)
       setTimeout(() => {
         onComplete?.()
       }, 500) // Small delay to show 100% completion
     }
-  }, [forceComplete, isWaitingForBackend, onComplete])
+  }, [forceComplete, isWaitingForBackend, progress, isCompleted, onComplete])
 
   if (!isVisible) return null
 
@@ -147,7 +176,9 @@ export default function InlineResumeProgress({ isVisible, onComplete, forceCompl
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
             <Clock className="h-3 w-3 mr-1" />
-            {isWaitingForBackend 
+            {isCompleted
+              ? "Complete!"
+              : isWaitingForBackend 
               ? "Almost ready..."
               : `~${timeRemaining}s`
             }
@@ -165,62 +196,64 @@ export default function InlineResumeProgress({ isVisible, onComplete, forceCompl
         </div>
       </div>
 
-              {/* Current Step */}
-        <div className="space-y-2">
-          {progressSteps.map((step, index) => {
-            const isActive = index === currentStepIndex
-            const isCompleted = index < currentStepIndex
-            const isFinalStepWaiting = isActive && index === progressSteps.length - 1 && isWaitingForBackend
-            
-            if (!isActive && !isCompleted) return null
-            
-            return (
-              <div 
-                key={step.id}
-                className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-300 ${
-                  isActive 
-                    ? 'bg-blue-100/50 dark:bg-blue-900/20' 
-                    : 'bg-green-100/50 dark:bg-green-900/20'
-                }`}
-              >
-                <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  isCompleted
-                    ? 'bg-green-500 text-white'
-                    : 'bg-blue-500 text-white'
-                }`}>
-                  {isCompleted ? (
-                    <CheckCircle className="h-3 w-3" />
-                  ) : isActive ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    step.icon
-                  )}
-                </div>
-                <div className="flex-grow">
-                  <h4 className={`font-medium text-xs transition-colors duration-300 ${
-                    isActive 
-                      ? 'text-blue-700 dark:text-blue-300' 
-                      : 'text-green-700 dark:text-green-300'
-                  }`}>
-                    {isFinalStepWaiting ? "Processing Final Details" : step.title}
-                  </h4>
-                  <p className={`text-xs mt-0.5 transition-colors duration-300 ${
-                    isActive 
-                      ? 'text-blue-600 dark:text-blue-400' 
-                      : 'text-green-600 dark:text-green-400'
-                  }`}>
-                    {isFinalStepWaiting ? "Almost ready! Compiling your perfect resume..." : step.description}
-                  </p>
-                </div>
+      {/* Current Step */}
+      <div className="space-y-2">
+        {progressSteps.map((step, index) => {
+          const isActive = index === currentStepIndex && !isCompleted
+          const isStepCompleted = index < currentStepIndex || (index === currentStepIndex && isCompleted)
+          const isFinalStepWaiting = isActive && index === progressSteps.length - 1 && isWaitingForBackend
+          
+          if (!isActive && !isStepCompleted) return null
+          
+          return (
+            <div 
+              key={step.id}
+              className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-300 ${
+                isActive 
+                  ? 'bg-blue-100/50 dark:bg-blue-900/20' 
+                  : 'bg-green-100/50 dark:bg-green-900/20'
+              }`}
+            >
+              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
+                isStepCompleted
+                  ? 'bg-green-500 text-white'
+                  : 'bg-blue-500 text-white'
+              }`}>
+                {isStepCompleted ? (
+                  <CheckCircle className="h-3 w-3" />
+                ) : isActive ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  step.icon
+                )}
               </div>
-            )
-          })}
-        </div>
+              <div className="flex-grow">
+                <h4 className={`font-medium text-xs transition-colors duration-300 ${
+                  isActive 
+                    ? 'text-blue-700 dark:text-blue-300' 
+                    : 'text-green-700 dark:text-green-300'
+                }`}>
+                  {isFinalStepWaiting ? "Processing Final Details" : step.title}
+                </h4>
+                <p className={`text-xs mt-0.5 transition-colors duration-300 ${
+                  isActive 
+                    ? 'text-blue-600 dark:text-blue-400' 
+                    : 'text-green-600 dark:text-green-400'
+                }`}>
+                  {isFinalStepWaiting ? "Almost ready! Compiling your perfect resume..." : step.description}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
 
       {/* Footer */}
       <div className="mt-3 text-center">
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {isWaitingForBackend 
+          {isCompleted
+            ? "🎉 Your tailored resume is ready!"
+            : isWaitingForBackend 
             ? "🔥 Your tailored resume is almost ready!"
             : "✨ Creating a resume that gets you noticed"
           }
