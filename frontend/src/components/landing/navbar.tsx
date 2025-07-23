@@ -59,9 +59,11 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
       <div className="mx-auto max-w-7xl flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
-            <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-              Zumud
-            </span>
+            <img 
+              src="/logos/zumud/combined.svg" 
+              alt="Zumud" 
+              className="h-8 w-auto hover:opacity-90 transition-opacity duration-200"
+            />
           </Link>
           <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
