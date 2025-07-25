@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CheckCircle, Clock, FileText, Sparkles, Zap } from "lucide-react"
+import { CheckCircle, Clock, FileText, Sparkles, Zap, X } from "lucide-react"
 
 interface ResumeProgressProps {
   isVisible: boolean
   onComplete?: () => void
+  onClose?: () => void
 }
 
 interface ProgressStep {
@@ -47,7 +48,7 @@ const progressSteps: ProgressStep[] = [
   }
 ]
 
-export default function ResumeProgress({ isVisible, onComplete }: ResumeProgressProps) {
+export default function ResumeProgress({ isVisible, onComplete, onClose }: ResumeProgressProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState(42)
@@ -101,11 +102,46 @@ export default function ResumeProgress({ isVisible, onComplete }: ResumeProgress
     return () => clearInterval(interval)
   }, [isVisible, onComplete])
 
+  // Add escape key functionality
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isVisible) {
+        onClose?.()
+      }
+    }
+
+    if (isVisible) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isVisible, onClose])
+
+  // Handle backdrop click
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      onClose?.()
+    }
+  }
+
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-white/20 p-8 max-w-2xl w-full mx-4">
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={handleBackdropClick}
+    >
+      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-white/20 p-8 max-w-2xl w-full mx-4 relative">
+        {/* Close button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 group"
+            aria-label="Close progress modal"
+          >
+            <X className="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200" />
+          </button>
+        )}
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-violet-500 rounded-full mb-4">
