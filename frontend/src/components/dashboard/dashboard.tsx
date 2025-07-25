@@ -317,6 +317,8 @@ export default function Dashboard() {
     }
   }
 
+
+
   const handleDownloadResume = async () => {
     if (generatedResumePdf) {
       const link = document.createElement("a")
@@ -494,7 +496,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="bg-gradient-to-b from-white to-blue-50/30 dark:from-gray-950 dark:to-blue-950/30 relative" style={{ minHeight: 'max(100vh, 200vh)' }}>
+    <div className="bg-gradient-to-b from-white to-blue-50/30 dark:from-gray-950 dark:to-blue-950/30 relative pb-32 md:pb-8" style={{ minHeight: 'max(100vh, 200vh)' }}>
       {/* Sidebar */}
       <Sidebar onLogout={handleLogout} />
 
@@ -524,7 +526,7 @@ export default function Dashboard() {
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
                   {isAuthError && (
@@ -544,7 +546,7 @@ export default function Dashboard() {
           )}
 
           {/* Main Input Area */}
-          <div ref={inputAreaRef} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6 md:p-8 mb-8">
+          <div ref={inputAreaRef} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6 lg:p-8 mb-8">
             <div className="space-y-6">
               {/* Job Description Input */}
               <div>
@@ -560,22 +562,24 @@ export default function Dashboard() {
                 />
               </div>
 
-              {/* Action Buttons */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Action Buttons - Improved mobile layout */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 <Button
                   onClick={handleGenerateResume}
                   disabled={isGeneratingResume || !jobDescription.trim()}
-                  className="h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                  className="h-12 md:h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50 text-sm md:text-base"
                 >
                   {isGeneratingResume ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
+                      <span className="hidden sm:inline">Generating...</span>
+                      <span className="sm:hidden">Gen...</span>
                     </>
                   ) : (
                     <>
                       <FileText className="mr-2 h-4 w-4" />
-                      Generate Resume
+                      <span className="hidden sm:inline">Generate Resume</span>
+                      <span className="sm:hidden">Resume</span>
                     </>
                   )}
                 </Button>
@@ -583,17 +587,19 @@ export default function Dashboard() {
                 <Button
                   onClick={handleGenerateCoverLetter}
                   disabled={isGeneratingCoverLetter || !jobDescription.trim()}
-                  className="h-14 bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                  className="h-12 md:h-14 bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50 text-sm md:text-base"
                 >
                   {isGeneratingCoverLetter ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
+                      <span className="hidden sm:inline">Generating...</span>
+                      <span className="sm:hidden">Gen...</span>
                     </>
                   ) : (
                     <>
                       <Mail className="mr-2 h-4 w-4" />
-                      Generate Cover Letter
+                      <span className="hidden sm:inline">Generate Cover Letter</span>
+                      <span className="sm:hidden">Cover Letter</span>
                     </>
                   )}
                 </Button>
@@ -601,10 +607,11 @@ export default function Dashboard() {
                 <Button
                   onClick={() => setActiveTab('question')}
                   disabled={isGeneratingAnswer || !jobDescription.trim()}
-                  className="h-14 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                  className="h-12 md:h-14 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50 text-sm md:text-base sm:col-span-2 lg:col-span-1"
                 >
                   <HelpCircle className="mr-2 h-4 w-4" />
-                  Answer Question
+                  <span className="hidden sm:inline">Answer Question</span>
+                  <span className="sm:hidden">Question</span>
                 </Button>
               </div>
 
@@ -631,7 +638,7 @@ export default function Dashboard() {
                       onChange={(e) => setQuestion(e.target.value)}
                       placeholder="Enter the application question you need to answer..."
                       rows={3}
-                      className="w-full px-4 py-3 pr-24 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-400 resize-none transition-all"
+                      className="w-full px-4 py-3 pr-4 md:pr-24 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-400 resize-none transition-all"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault()
@@ -641,7 +648,7 @@ export default function Dashboard() {
                         }
                       }}
                     />
-                    <div className="absolute right-3 top-3 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                    <div className="hidden md:flex absolute right-3 top-3 items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                       <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-xs flex items-center gap-1">
                         <span>Enter</span>
                         <span>↵</span>
@@ -652,7 +659,7 @@ export default function Dashboard() {
                   <Button
                     onClick={handleAnswerQuestion}
                     disabled={isGeneratingAnswer || !jobDescription.trim() || !question.trim()}
-                    className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                    className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
                   >
                     {isGeneratingAnswer ? (
                       <>
@@ -676,48 +683,48 @@ export default function Dashboard() {
             <div className="space-y-6">
               {/* Resume Results */}
               {generatedResumePdf && activeTab === 'resume' && (
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                       Your Tailored Resume
                     </h3>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         onClick={handleDownloadResume}
                         variant="outline"
                         size="sm"
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs md:text-sm"
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download PDF
+                        <Download className="h-4 w-4 mr-1 md:mr-2" />
+                        <span className="hidden sm:inline">Download </span>PDF
                       </Button>
                       <Button
                         onClick={handleDownloadTeX}
                         disabled={isDownloadingTeX}
                         variant="outline"
                         size="sm"
-                        className="text-green-600 border-green-200 hover:bg-green-50"
+                        className="text-green-600 border-green-200 hover:bg-green-50 text-xs md:text-sm"
                       >
                         {isDownloadingTeX ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 mr-1 md:mr-2 animate-spin" />
                         ) : (
-                          <FileCode className="h-4 w-4 mr-2" />
+                          <FileCode className="h-4 w-4 mr-1 md:mr-2" />
                         )}
-                        Download TeX
+                        <span className="hidden sm:inline">Download </span>TeX
                       </Button>
                       <Button
                         onClick={handleOpenInOverleaf}
                         disabled={isPreparingOverleaf}
                         variant="outline"
                         size="sm"
-                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50 text-xs md:text-sm"
                       >
                         {isPreparingOverleaf ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 mr-1 md:mr-2 animate-spin" />
                         ) : (
-                          <ExternalLink className="h-4 w-4 mr-2" />
+                          <ExternalLink className="h-4 w-4 mr-1 md:mr-2" />
                         )}
-                        Edit in Overleaf
+                        <span className="hidden lg:inline">Edit in </span>Overleaf
                       </Button>
                     </div>
                   </div>
@@ -729,19 +736,19 @@ export default function Dashboard() {
 
               {/* Cover Letter Results */}
               {coverLetter && activeTab === 'cover-letter' && (
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                       Your Cover Letter
                     </h3>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         onClick={handleCopyCoverLetter}
                         variant="outline"
                         size="sm"
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs md:text-sm"
                       >
-                        <CopyIcon className="h-4 w-4 mr-2" />
+                        <CopyIcon className="h-4 w-4 mr-1 md:mr-2" />
                         {isCoverLetterCopied ? 'Copied!' : 'Copy'}
                       </Button>
                       <Button
@@ -749,14 +756,14 @@ export default function Dashboard() {
                         disabled={isDownloadingCoverLetter}
                         variant="outline"
                         size="sm"
-                        className="text-green-600 border-green-200 hover:bg-green-50"
+                        className="text-green-600 border-green-200 hover:bg-green-50 text-xs md:text-sm"
                       >
                         {isDownloadingCoverLetter ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 mr-1 md:mr-2 animate-spin" />
                         ) : (
-                          <Download className="h-4 w-4 mr-2" />
+                          <Download className="h-4 w-4 mr-1 md:mr-2" />
                         )}
-                        Download PDF
+                        <span className="hidden sm:inline">Download </span>PDF
                       </Button>
                     </div>
                   </div>
@@ -770,8 +777,8 @@ export default function Dashboard() {
 
               {/* Answer Results */}
               {answer && activeTab === 'question' && (
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-6">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                       Your Answer
                     </h3>
@@ -779,9 +786,9 @@ export default function Dashboard() {
                       onClick={handleCopyAnswer}
                       variant="outline"
                       size="sm"
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs md:text-sm w-full sm:w-auto"
                     >
-                      <CopyIcon className="h-4 w-4 mr-2" />
+                      <CopyIcon className="h-4 w-4 mr-1 md:mr-2" />
                       {isAnswerCopied ? 'Copied!' : 'Copy Answer'}
                     </Button>
                   </div>
@@ -793,94 +800,100 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Enhanced Glassmorphism Make it Better Section */}
+              {/* Enhanced Mobile-Friendly Make it Better Section */}
               {((activeTab === 'resume' && generatedResumePdf) || 
                 (activeTab === 'cover-letter' && coverLetter) || 
                 (activeTab === 'question' && answer)) && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4 md:px-8 z-40 animate-in slide-in-from-bottom-4 fade-in duration-500">
-                  <div className="bg-white/15 dark:bg-gray-900/15 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/30 dark:border-gray-700/30 p-4">
-                    {/* Single line: title first, then quick actions */}
-                    <div className="flex items-center gap-3 mb-3 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-5 w-5 text-blue-600" />
-                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                          Make it better
-                        </h3>
-                      </div>
-                      
-                      <button
-                        onClick={() => handleQuickAction("Make it shorter and more concise")}
-                        disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                        className="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        ✂️ Make shorter
-                      </button>
-                      <button
-                        onClick={() => handleQuickAction("Make the tone more formal and professional")}
-                        disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                        className="px-2.5 py-1 text-xs font-medium rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        👔 More formal
-                      </button>
-                      <button
-                        onClick={() => handleQuickAction("Make the tone more casual and approachable")}
-                        disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                        className="px-2.5 py-1 text-xs font-medium rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-200/50 dark:border-orange-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        😊 More casual
-                      </button>
-                      <button
-                        onClick={() => handleQuickAction("Add more technical skills and keywords relevant to the job")}
-                        disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                        className="px-2.5 py-1 text-xs font-medium rounded-full bg-violet-500/10 hover:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        🔑 Add keywords
-                      </button>
-                    </div>
-
-                    {/* Compact Custom Input */}
-                    <div className="flex gap-3">
-                      <div className="flex-1 relative">
-                        <input
-                          type="text"
-                          value={followUpInstruction}
-                          onChange={(e) => setFollowUpInstruction(e.target.value)}
-                          placeholder="Or describe what you want to improve..."
-                          className="w-full h-12 px-4 pr-16 text-sm bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white dark:placeholder-gray-400 transition-all"
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              handleFollowUpSubmit()
-                            }
-                          }}
-                          disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                        />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                          <kbd className="px-2 py-1 bg-gray-100/70 dark:bg-gray-700/70 rounded border border-gray-300/50 dark:border-gray-600/50 font-mono text-xs flex items-center gap-1 backdrop-blur-sm">
-                            <span>Enter</span>
-                            <span>↵</span>
-                          </kbd>
-                          <span>to update</span>
+                <div className="fixed bottom-0 left-0 right-0 p-4 z-40 animate-in slide-in-from-bottom-4 fade-in duration-500 md:bottom-6 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-4xl md:px-8">
+                  <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl rounded-t-2xl md:rounded-2xl shadow-2xl border border-white/30 dark:border-gray-700/30 p-4">
+                    {/* Mobile: Stack vertically, Desktop: Single line */}
+                    <div className="space-y-3 md:space-y-0">
+                      {/* Title and quick actions */}
+                      <div className="flex flex-col md:flex-row md:items-center gap-3 md:mb-3">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5 text-blue-600" />
+                          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                            Make it better
+                          </h3>
+                        </div>
+                        
+                        {/* Quick action buttons - wrap on mobile */}
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => handleQuickAction("Make it shorter and more concise")}
+                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                            className="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            ✂️ <span className="hidden sm:inline">Make </span>shorter
+                          </button>
+                          <button
+                            onClick={() => handleQuickAction("Make the tone more formal and professional")}
+                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                            className="px-2.5 py-1 text-xs font-medium rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            👔 <span className="hidden sm:inline">More </span>formal
+                          </button>
+                          <button
+                            onClick={() => handleQuickAction("Make the tone more casual and approachable")}
+                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                            className="px-2.5 py-1 text-xs font-medium rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-200/50 dark:border-orange-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            😊 <span className="hidden sm:inline">More </span>casual
+                          </button>
+                          <button
+                            onClick={() => handleQuickAction("Add more technical skills and keywords relevant to the job")}
+                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                            className="px-2.5 py-1 text-xs font-medium rounded-full bg-violet-500/10 hover:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            🔑 <span className="hidden sm:inline">Add </span>keywords
+                          </button>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        onClick={handleFollowUpSubmit}
-                        disabled={!followUpInstruction.trim() || isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                        className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
-                      >
-                        {(isEditingResume || isEditingCoverLetter || isEditingAnswer) ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Updating...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 h-4 w-4" />
-                            Update
-                          </>
-                        )}
-                      </Button>
+
+                      {/* Custom Input - Stack vertically on mobile */}
+                      <div className="flex flex-col md:flex-row gap-3">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={followUpInstruction}
+                            onChange={(e) => setFollowUpInstruction(e.target.value)}
+                            placeholder="Or describe what you want to improve..."
+                            className="w-full h-12 px-4 pr-4 md:pr-16 text-sm bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white dark:placeholder-gray-400 transition-all"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleFollowUpSubmit()
+                              }
+                            }}
+                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                          />
+                          <div className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                            <kbd className="px-2 py-1 bg-gray-100/70 dark:bg-gray-700/70 rounded border border-gray-300/50 dark:border-gray-600/50 font-mono text-xs flex items-center gap-1 backdrop-blur-sm">
+                              <span>Enter</span>
+                              <span>↵</span>
+                            </kbd>
+                            <span>to update</span>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={handleFollowUpSubmit}
+                          disabled={!followUpInstruction.trim() || isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                          className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50 w-full md:w-auto"
+                        >
+                          {(isEditingResume || isEditingCoverLetter || isEditingAnswer) ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Updating...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="mr-2 h-4 w-4" />
+                              Update
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
