@@ -165,6 +165,11 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
     }
   };
 
+  const handleProgressClose = () => {
+    setShowProgress(false);
+    setIsGenerating(false);
+  };
+
   return (
     <section className="relative overflow-hidden py-16 md:py-24 lg:py-32 bg-gradient-to-b from-white to-blue-50 dark:from-gray-950 dark:to-blue-950">
       {/* Decorative elements - reduced blur intensity for better performance */}
@@ -331,7 +336,8 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
       {/* Progress Modal */}
       <ResumeProgress 
         isVisible={showProgress} 
-        onComplete={handleProgressComplete} 
+        onComplete={handleProgressComplete}
+        onClose={handleProgressClose}
       />
     </section>
   );
