@@ -15,8 +15,12 @@ from backend.utils.file_utils import save_base64_pdf
 from backend.utils.file_ops import extract_text_from_pdf
 from backend.utils.resume_formatter import format_resume_text
 from backend.core.ai_service import format_user_preferences
+from backend.core.storage_service import storage_service, safe_upload_with_fallback
+import logging
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+logger = logging.getLogger(__name__)
 
 @router.get("/me", response_model=User)
 def get_current_user_info(current_user = Depends(get_current_user)):
@@ -67,6 +71,7 @@ async def signup(user: UserCreate, db: Session = Depends(get_db), background_tas
     # Process resume text content and/or file
     resume_content = user.initial_resume
     resume_file_path = None
+    pdf_data = None  # Store PDF data for cloud upload
     
     # If PDF file is provided, extract text from it
     if user.resume_file:
@@ -102,7 +107,20 @@ async def signup(user: UserCreate, db: Session = Depends(get_db), background_tas
     db.commit()
     db.refresh(db_user)
     
-    # Schedule the resume formatting to happen in the background
+    # DUAL STORAGE: Upload original resume to Supabase cloud storage
+    # This runs after local storage and database operations succeed
+    if pdf_data:
+        try:
+            safe_upload_with_fallback(
+                storage_service.upload_original_resume,
+                db_user.id,
+                pdf_data
+            )
+        except Exception as e:
+            # Log the error but don't fail the signup process
+            logger.error(f"Cloud storage upload failed during signup: {e}")
+    
+    # Format the resume content in the background
     background_tasks.add_task(
         process_resume_background,
         db_user.id,
@@ -281,6 +299,17 @@ async def upload_resume_pdf(
         db.add(resume)
     
     db.commit()
+    
+    # DUAL STORAGE: Upload original resume to Supabase cloud storage
+    if pdf_contents:
+        try:
+            safe_upload_with_fallback(
+                storage_service.upload_original_resume,
+                current_user.id,
+                pdf_contents
+            )
+        except Exception as e:
+            logger.error(f"Cloud storage upload failed during resume upload: {e}")
     
     # Format the resume content in the background
     background_tasks.add_task(
