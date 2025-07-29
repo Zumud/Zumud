@@ -9,19 +9,22 @@ import os
 import json
 import base64
 import tempfile
+import logging
 
 from backend.api.auth import get_current_user
 from backend.core import ai_service
 from backend.models.ai_models import AIModel
 from backend.models.tailoring_options import TailoringOptionsBase
 from backend.models.user_models import UserTemplate, UserTemplateCreate, UserTemplateUpdate
-from backend.utils.file_ops import PDFGenerator, save_pdf, extract_text_from_pdf
-from backend.utils.path_ops import create_new_application_path, get_current_application_path
+from backend.utils.file_ops import PDFGenerator, save_pdf, extract_text_from_pdf, save_application_qa
+from backend.utils.path_ops import create_new_application_path, get_current_application_path, get_current_session_info, ensure_session_consistency, extract_company_from_local_path
 from backend.models import db_models
 from backend.models.db import get_db
+from backend.core.storage_service import storage_service, safe_upload_with_fallback
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
+logger = logging.getLogger(__name__)
 
 
 @router.get("/resume/plain")
@@ -87,17 +90,47 @@ def generate_tailored_plain_coverletter(
     
     save_path = get_current_application_path(current_user.username)
     
-    # Save the plain text version for future editing
+    # Save the plain text version for future editing (existing functionality)
     text_file_path = os.path.join(save_path, "CoverLetter.txt")
     with open(text_file_path, 'w') as f:
         f.write(cover_letter_text)
     
-    # Generate PDF
+    # Generate PDF (existing functionality)
     pdf_generator = PDFGenerator()
-    pdf_generator.create_pdf_document(
+    pdf_path = pdf_generator.create_pdf_document(
         cover_letter_text,
         output_folder=str(save_path),
     )
+    
+    # DUAL STORAGE: Upload to Supabase cloud storage
+    # This runs after local storage succeeds and doesn't affect the API response
+    try:
+        # Get session info and company name for cloud organization
+        session_info = get_current_session_info(current_user.username)
+        company_name = extract_company_from_local_path(save_path) or "unknown_company"
+        
+        if session_info:
+            session_id, _ = session_info
+            
+            # Read the generated PDF content
+            pdf_content = None
+            if os.path.exists(pdf_path):
+                with open(pdf_path, 'rb') as f:
+                    pdf_content = f.read()
+            
+            # Upload cover letter files to cloud storage
+            safe_upload_with_fallback(
+                storage_service.upload_cover_letter,
+                current_user.id,
+                session_id,
+                company_name,
+                cover_letter_text,  # Text content
+                pdf_content  # PDF content
+            )
+    except Exception as e:
+        # Log the error but don't fail the request
+        logger.error(f"Cloud storage upload failed for cover letter generation: {e}")
+    
     return cover_letter_text
 
 @router.get("/cover-letter/pdf", response_class=FileResponse)
@@ -165,7 +198,7 @@ async def generate_and_save_pdf_resume(
     save_path = create_new_application_path(current_user.username, company_name, timestamp)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     
-    latex_compiler_response, _, structured_resume_json = await ai_service.generate_structured_latex_resume_async(
+    latex_compiler_response, tex_content, structured_resume_json = await ai_service.generate_structured_latex_resume_async(
         str(save_path),
         current_user.resumes.resume_content,
         job_description,
@@ -177,6 +210,7 @@ async def generate_and_save_pdf_resume(
         is_anonymous=False  # Authenticated users get no watermark
     )
     
+    # Save files locally (existing functionality)
     pdf_file_path = save_pdf(str(save_path), latex_compiler_response.content, current_user.username)
     
     # Store the structured resume JSON for later use in the session or a temporary file
@@ -184,6 +218,28 @@ async def generate_and_save_pdf_resume(
     json_file_path = os.path.join(save_path, "resume.json")
     with open(json_file_path, 'w') as f:
         f.write(structured_resume_json)
+    
+    # DUAL STORAGE: Upload to Supabase cloud storage
+    # This runs after local storage succeeds and doesn't affect the API response
+    try:
+        # Get session info for cloud organization
+        session_info = get_current_session_info(current_user.username)
+        if session_info:
+            session_id, _ = session_info
+            
+            # Upload resume files to cloud storage
+            safe_upload_with_fallback(
+                storage_service.upload_tailored_resume,
+                current_user.id,
+                session_id,
+                company_name,
+                latex_compiler_response.content,  # PDF content
+                tex_content,  # TEX content
+                structured_resume_json  # JSON content
+            )
+    except Exception as e:
+        # Log the error but don't fail the request
+        logger.error(f"Cloud storage upload failed for resume generation: {e}")
     
     structured_resume = json.loads(structured_resume_json)
     name = structured_resume.get('personal_info', {}).get('name', '') if structured_resume.get('personal_info', {}).get('name') else ''
@@ -280,15 +336,44 @@ def answer_application_questions(
             detail="No resume content found. Please add your resume details before generating answers."
         )
     
+    # Get the current application path for this user (ORIGINAL LOGIC RESTORED)
     save_path = get_current_application_path(current_user.username)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
-    return ai_service.generate_answer_questions(
+    
+    # Use original AI service function that handles file saving internally (ORIGINAL LOGIC RESTORED)
+    answer = ai_service.generate_answer_questions(
         current_user.resumes.resume_content,
         job_description,
         question,
-        str(save_path),
+        str(save_path),  # Pass save path for internal file saving
         tailoring_options.ai_model
     )
+    
+    # DUAL STORAGE: Upload to Supabase cloud storage
+    # This runs after local storage succeeds and doesn't affect the API response
+    try:
+        # Get session info and company name for cloud organization
+        session_info = get_current_session_info(current_user.username)
+        company_name = extract_company_from_local_path(save_path) or "unknown_company"
+        
+        if session_info:
+            session_id, _ = session_info
+            
+            # Upload question-answer pair to cloud storage
+            safe_upload_with_fallback(
+                storage_service.upload_question_answer,
+                current_user.id,
+                session_id,
+                company_name,
+                question,
+                answer,
+                False  # is_updated = False for new answers
+            )
+    except Exception as e:
+        # Log the error but don't fail the request
+        logger.error(f"Cloud storage upload failed for question-answer: {e}")
+    
+    return answer
 
 @router.post("/resume/improve")
 async def improve_resume_pdf(
@@ -580,7 +665,7 @@ def edit_answer_with_instructions(
     question: str = Query(..., description="The question being answered"),
     current_user = Depends(get_current_user)
 ) -> str:
-    """Update an application answer based on free-form text instructions"""
+    """Edit an existing answer based on user instructions"""
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -591,7 +676,7 @@ def edit_answer_with_instructions(
     if not current_user.resumes.resume_content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No resume content found. Please add your resume details first."
+            detail="No resume content found. Please add your resume details before editing answers."
         )
     
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
@@ -607,20 +692,44 @@ def edit_answer_with_instructions(
             tailoring_options.ai_model
         )
         
-        # Get the current application path for this user
+        # Get the current application path for this user (existing functionality)
         save_path = get_current_application_path(current_user.username)
         
-        # Save the Q&A pair in the application folder
+        # Save the Q&A pair in the application folder (existing functionality)
         qa_file_path = os.path.join(save_path, f"question_updated_{datetime.now().strftime('%m%d_%H%M')}.txt")
         with open(qa_file_path, 'w') as f:
-            f.write(f"Question: {question}\n\nAnswer: {updated_answer}\n\nEdit Instructions: {edit_instruction}")
+            f.write(f"Question: {question}\n\nOriginal Answer: {original_answer}\n\nEdit Instructions: {edit_instruction}\n\nUpdated Answer: {updated_answer}")
+        
+        # DUAL STORAGE: Upload to Supabase cloud storage
+        # This runs after local storage succeeds and doesn't affect the API response
+        try:
+            # Get session info and company name for cloud organization
+            session_info = get_current_session_info(current_user.username)
+            company_name = extract_company_from_local_path(save_path) or "unknown_company"
+            
+            if session_info:
+                session_id, _ = session_info
+                
+                # Upload updated question-answer pair to cloud storage
+                safe_upload_with_fallback(
+                    storage_service.upload_question_answer,
+                    current_user.id,
+                    session_id,
+                    company_name,
+                    question,
+                    updated_answer,
+                    True  # is_updated = True for edited answers
+                )
+        except Exception as e:
+            # Log the error but don't fail the request
+            logger.error(f"Cloud storage upload failed for question-answer edit: {e}")
         
         return updated_answer
-    
-    except Exception as e:
+        
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update answer: {str(e)}"
+            detail=str(e)
         )
 
 # Template Management Endpoints
@@ -880,17 +989,17 @@ async def generate_anonymous_resume(
         # Extract company name from job description
         company_name = ai_service.get_company_name(job_description)
         
-        # Create a temporary path for anonymous user
+        # Create a temporary path for anonymous user (ORIGINAL LOGIC RESTORED)
         timestamp = datetime.now().strftime("%m-%d_%H-%M")
         anonymous_username = f"anonymous_{session_id[:8]}"
         save_path = create_new_application_path(anonymous_username, company_name, timestamp)
         
-        # Use default AI model and template for anonymous users
+        # Use default AI model and template for anonymous users (ORIGINAL LOGIC RESTORED)
         from backend.models.tailoring_options import TailoringOptionsBase
         
         tailoring_options = TailoringOptionsBase()
         
-        # Generate the resume PDF with watermark for anonymous users
+        # Generate the resume PDF with watermark for anonymous users (ORIGINAL LOGIC RESTORED)
         latex_compiler_response, _, structured_resume_json = await ai_service.generate_structured_latex_resume_async(
             str(save_path),
             resume_text,
@@ -903,15 +1012,15 @@ async def generate_anonymous_resume(
             is_anonymous=True  # Add watermark for anonymous users
         )
         
-        # Convert PDF to base64 for frontend
+        # Convert PDF to base64 for frontend (ORIGINAL LOGIC RESTORED)
         pdf_base64 = base64.b64encode(latex_compiler_response.content).decode('utf-8')
         
-        # Generate filename
+        # Generate filename (ORIGINAL LOGIC RESTORED)
         structured_resume = json.loads(structured_resume_json)
         name = structured_resume.get('personal_info', {}).get('name', 'Resume') if structured_resume.get('personal_info', {}).get('name') else 'Resume'
         filename = f"{name}_{timestamp}_{company_name}.pdf"
         
-        # Store session data in database with 24-hour expiration
+        # Store session data in database with 24-hour expiration (ORIGINAL LOGIC RESTORED)
         expires_at = datetime.now() + timedelta(hours=24)
         session_record = db_models.AnonymousResumeSession(
             session_id=session_id,
@@ -925,7 +1034,7 @@ async def generate_anonymous_resume(
         db.add(session_record)
         db.commit()
         
-        # Clean up old expired sessions (run occasionally)
+        # Clean up old expired sessions (run occasionally) (ORIGINAL LOGIC RESTORED)
         try:
             expired_sessions = db.query(db_models.AnonymousResumeSession).filter(
                 db_models.AnonymousResumeSession.expires_at < datetime.now()
@@ -937,9 +1046,24 @@ async def generate_anonymous_resume(
             if expired_sessions:
                 db.commit()
         except Exception as cleanup_error:
-            # Don't fail the main request if cleanup fails
-            print(f"Warning: Failed to clean up expired sessions: {cleanup_error}")
+            # Don't fail the main request if cleanup fails (ORIGINAL LOGIC RESTORED)
+            logger.warning(f"Warning: Failed to clean up expired sessions: {cleanup_error}")
         
+        # DUAL STORAGE: Upload to Supabase cloud storage
+        # This runs after local storage succeeds and doesn't affect the API response
+        try:
+            safe_upload_with_fallback(
+                storage_service.upload_anonymous_resume,
+                session_id,
+                company_name,
+                latex_compiler_response.content,  # PDF content
+                filename
+            )
+        except Exception as e:
+            # Log the error but don't fail the request
+            logger.error(f"Cloud storage upload failed for anonymous resume: {e}")
+        
+        # Return original response format
         return {
             "session_id": session_id,
             "pdf_base64": pdf_base64,
@@ -948,7 +1072,11 @@ async def generate_anonymous_resume(
             "filename": filename
         }
         
+    except HTTPException:
+        # Re-raise HTTP exceptions as they are
+        raise
     except Exception as e:
+        logger.error(f"Unexpected error in anonymous resume generation: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate anonymous resume: {str(e)}"
