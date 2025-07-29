@@ -1,7 +1,8 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
+import uuid
 
 from backend.config.config import APPLICATIONS_DIR
 
@@ -12,9 +13,11 @@ class ApplicationContext:
     Singleton class to manage the current application context per user.
     This ensures all documents for a single job application are saved in the same folder,
     and different users have separate contexts.
+    Enhanced with session tracking for cloud storage integration.
     """
     _instance = None
     _user_application_paths: Dict[str, Path] = {}
+    _user_session_info: Dict[str, Tuple[str, str]] = {}  # username -> (session_id, company_name)
 
     def __new__(cls):
         # Check if an instance of this class already exists
@@ -55,12 +58,45 @@ class ApplicationContext:
         """
         if username in cls._user_application_paths:
             del cls._user_application_paths[username]
+        if username in cls._user_session_info:
+            del cls._user_session_info[username]
+    
+    @classmethod
+    def get_session_info(cls, username: str) -> Optional[Tuple[str, str]]:
+        """
+        Get the current session info (session_id, company_name) for a user.
+        
+        Args:
+            username: Username for which to get session info
+            
+        Returns:
+            Tuple of (session_id, company_name) if exists, None otherwise
+        """
+        return cls._user_session_info.get(username)
+    
+    @classmethod
+    def set_session_info(cls, username: str, session_id: str, company_name: str):
+        """
+        Set session info for cloud storage tracking.
+        
+        Args:
+            username: Username for which to set session info
+            session_id: Session ID for cloud storage organization
+            company_name: Company name for the application
+        """
+        cls._user_session_info[username] = (session_id, company_name)
+    
+    @classmethod
+    def generate_session_id(cls) -> str:
+        """Generate a unique session ID for application tracking."""
+        return str(uuid.uuid4())
 
 
 def create_new_application_path(username: str, company_name: str, timestamp: Optional[str] = None) -> Path:
     """
     Create a new application path for a company under a specific user.
     This always creates a new path and sets it as the current application context for that user.
+    Enhanced with session tracking for cloud storage integration.
     
     Args:
         username: Username of the user creating the application
@@ -82,6 +118,10 @@ def create_new_application_path(username: str, company_name: str, timestamp: Opt
     
     # Set this as the current application context for this user
     ApplicationContext.set_current_path(username, path)
+    
+    # Generate and store session info for cloud storage
+    session_id = ApplicationContext.generate_session_id()
+    ApplicationContext.set_session_info(username, session_id, company_name)
     
     return path
 
@@ -107,3 +147,97 @@ def get_current_application_path(username: str, company_name: Optional[str] = No
         company_name = "unknown_company"  # Default name if none provided
     
     return create_new_application_path(username, company_name)
+
+
+def get_current_session_info(username: str) -> Optional[Tuple[str, str]]:
+    """
+    Get the current session information for cloud storage operations.
+    
+    Args:
+        username: Username of the user
+        
+    Returns:
+        Tuple of (session_id, company_name) if available, None otherwise
+    """
+    return ApplicationContext.get_session_info(username)
+
+
+def extract_company_from_local_path(path: Path) -> Optional[str]:
+    """
+    Extract company name from local application path.
+    
+    Args:
+        path: Local application path
+        
+    Returns:
+        Company name if found, None otherwise
+    """
+    try:
+        path_parts = path.name.split('_')
+        if len(path_parts) >= 2:
+            # Return everything after the timestamp part
+            return '_'.join(path_parts[1:])
+    except Exception:
+        pass
+    return None
+
+
+def create_session_aware_path(username: str, company_name: str, 
+                            session_id: Optional[str] = None, 
+                            timestamp: Optional[str] = None) -> Tuple[Path, str, str]:
+    """
+    Create a new application path with explicit session tracking.
+    This is useful when you need to coordinate local and cloud storage operations.
+    
+    Args:
+        username: Username of the user creating the application
+        company_name: Name of the company being applied to
+        session_id: Optional explicit session ID (generates one if not provided)
+        timestamp: Optional timestamp string (generates one if not provided)
+        
+    Returns:
+        Tuple of (local_path, session_id, sanitized_company_name)
+    """
+    if timestamp is None:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    if session_id is None:
+        session_id = ApplicationContext.generate_session_id()
+    
+    # Create the user directory if it doesn't exist
+    user_dir = APPLICATIONS_DIR / username
+    
+    # Create the application directory
+    path = user_dir / f"{timestamp}_{company_name}"
+    os.makedirs(path, exist_ok=True)
+    
+    # Set this as the current application context for this user
+    ApplicationContext.set_current_path(username, path)
+    ApplicationContext.set_session_info(username, session_id, company_name)
+    
+    return path, session_id, company_name
+
+
+def ensure_session_consistency(username: str, company_name: str) -> Tuple[str, str]:
+    """
+    Ensure session consistency for a user-company combination.
+    If no session exists, creates one. If session exists, returns existing info.
+    
+    Args:
+        username: Username of the user
+        company_name: Company name for the application
+        
+    Returns:
+        Tuple of (session_id, company_name)
+    """
+    session_info = ApplicationContext.get_session_info(username)
+    
+    if session_info and session_info[1] == company_name:
+        # Existing session for the same company
+        return session_info
+    
+    # Need new session (either no existing session or different company)
+    session_id = ApplicationContext.generate_session_id()
+    ApplicationContext.set_session_info(username, session_id, company_name)
+    
+    return session_id, company_name
