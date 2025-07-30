@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Eye } from "lucide-react"
+import { ExternalLink } from "lucide-react"
+import { PdfViewerGuidance } from "@/components/ui/pdf-viewer-guidance"
 
 interface PdfViewerProps {
   pdfUrl: string
@@ -26,6 +27,8 @@ const isIOS = () => {
   return /iPad|iPhone|iPod/.test(window.navigator.userAgent)
 }
 
+
+
 export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
   const [isMounted, setIsMounted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -44,11 +47,6 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
 
   const handleOpenInNewTab = () => {
     window.open(pdfUrl, '_blank', 'noopener,noreferrer')
-  }
-
-  const handleTryIframe = () => {
-    setShowIframe(true)
-    setIframeError(false)
   }
 
   const handleIframeError = () => {
@@ -108,24 +106,9 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
               </Button>
             </div>
 
-            {/* Try Preview Option (for desktop/larger screens) */}
-            {!isMobile && !showIframe && (
-              <Button
-                onClick={handleTryIframe}
-                variant="ghost"
-                size="sm"
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Try inline preview
-              </Button>
-            )}
-
             {/* Error message if iframe failed */}
             {iframeError && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                Inline preview not supported by your browser. Please use the buttons above.
-              </p>
+              <PdfViewerGuidance className="mt-2 max-w-md" />
             )}
           </div>
         </div>
