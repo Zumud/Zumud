@@ -56,28 +56,24 @@ class StorageService:
         
         # Try to create the bucket
         try:
-            # Try the correct Supabase storage API format
-            response = self.supabase.storage.create_bucket(
-                self.BUCKET_NAME,  # bucket id/name as first parameter
-                {"public": False, "file_size_limit": None, "allowed_mime_types": None}
-            )
+            # Try the standard Supabase storage API format (bucket name only)
+            response = self.supabase.storage.create_bucket(self.BUCKET_NAME)
             if response:
                 logger.info(f"Successfully created bucket {self.BUCKET_NAME}")
             else:
                 logger.warning(f"Failed to create bucket {self.BUCKET_NAME}: No response from Supabase")
         except Exception as create_error:
-            # If that fails, try alternative format
+            # If that fails, try with options dict
             try:
-                logger.debug(f"First attempt failed, trying alternative format: {create_error}")
-                response = self.supabase.storage.create_bucket({
-                    "id": self.BUCKET_NAME,
-                    "name": self.BUCKET_NAME,
-                    "public": False
-                })
+                logger.debug(f"First attempt failed, trying with options: {create_error}")
+                response = self.supabase.storage.create_bucket(
+                    self.BUCKET_NAME,
+                    {"public": False}
+                )
                 if response:
-                    logger.info(f"Successfully created bucket {self.BUCKET_NAME} (alternative format)")
+                    logger.info(f"Successfully created bucket {self.BUCKET_NAME} (with options)")
                 else:
-                    logger.warning(f"Failed to create bucket {self.BUCKET_NAME}: No response from Supabase (alternative format)")
+                    logger.warning(f"Failed to create bucket {self.BUCKET_NAME}: No response from Supabase (with options)")
             except Exception as final_error:
                 logger.error(f"Failed to create bucket {self.BUCKET_NAME} with both methods: {create_error} | {final_error}")
     
