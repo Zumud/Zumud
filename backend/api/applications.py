@@ -17,7 +17,7 @@ from backend.models.ai_models import AIModel
 from backend.models.tailoring_options import TailoringOptionsBase
 from backend.models.user_models import UserTemplate, UserTemplateCreate, UserTemplateUpdate
 from backend.utils.file_ops import PDFGenerator, save_pdf, extract_text_from_pdf, save_application_qa
-from backend.utils.path_ops import create_new_application_path, get_current_application_path, get_current_session_info, ensure_session_consistency, extract_company_from_local_path
+from backend.utils.path_ops import create_new_application_path, get_current_application_path, get_current_session_info, extract_company_from_local_path, get_or_create_application
 from backend.models import db_models
 from backend.models.db import get_db
 from backend.core.storage_service import storage_service, safe_upload_with_fallback
@@ -65,6 +65,7 @@ def generate_tailored_plain_resume(
 @router.get("/cover-letter/plain")
 def generate_tailored_plain_coverletter(
     job_description: str = Query(..., description="The job description to tailor the cover letter for"),
+    is_new_application: Optional[bool] = Query(None, description="Whether to create a new job application. If not provided, reuses existing application if available."),
     current_user = Depends(get_current_user)
 ) -> str:
     """Generate a tailored plain text cover letter based on job description"""
@@ -88,7 +89,8 @@ def generate_tailored_plain_coverletter(
         tailoring_options.ai_model
     )
     
-    save_path = get_current_application_path(current_user.username)
+    company_name = ai_service.get_company_name(job_description)
+    save_path = get_or_create_application(current_user.username, company_name, is_new_application)
     
     # Save the plain text version for future editing (existing functionality)
     text_file_path = os.path.join(save_path, "CoverLetter.txt")
@@ -105,9 +107,8 @@ def generate_tailored_plain_coverletter(
     # DUAL STORAGE: Upload to Supabase cloud storage
     # This runs after local storage succeeds and doesn't affect the API response
     try:
-        # Get session info and company name for cloud organization
+        # Get session info for cloud organization
         session_info = get_current_session_info(current_user.username)
-        company_name = extract_company_from_local_path(save_path) or "unknown_company"
         
         if session_info:
             session_id, _ = session_info
@@ -170,6 +171,7 @@ def download_cover_letter_pdf(
 @router.get("/resume/pdf", response_class=FileResponse)
 async def generate_and_save_pdf_resume(
     job_description: str = Query(..., description="The job description to tailor the resume for"),
+    is_new_application: Optional[bool] = Query(None, description="Whether to create a new job application. If not provided, creates a new application by default."),
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -194,8 +196,7 @@ async def generate_and_save_pdf_resume(
         user_preferences = preferences.preferences_text
     
     company_name = ai_service.get_company_name(job_description)
-    timestamp = datetime.now().strftime("%m-%d_%H-%M")
-    save_path = create_new_application_path(current_user.username, company_name, timestamp)
+    save_path = get_or_create_application(current_user.username, company_name, is_new_application)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     
     latex_compiler_response, tex_content, structured_resume_json = await ai_service.generate_structured_latex_resume_async(
@@ -243,6 +244,8 @@ async def generate_and_save_pdf_resume(
     
     structured_resume = json.loads(structured_resume_json)
     name = structured_resume.get('personal_info', {}).get('name', '') if structured_resume.get('personal_info', {}).get('name') else ''
+    # Generate timestamp for filename
+    timestamp = datetime.now().strftime("%m-%d_%H-%M")
     # Return the PDF file directly
     return FileResponse(
         path=pdf_file_path,
@@ -320,6 +323,7 @@ def get_resume_tex_content(
 def answer_application_questions(
     job_description: str = Query(..., description="The job description to analyze"),
     question: str = Query(..., description="The question to answer"),
+    is_new_application: Optional[bool] = Query(None, description="Whether to create a new job application. If not provided, reuses existing application if available."),
     current_user = Depends(get_current_user)
 ) -> str:
     """Generate answers for job application questions based on resume and job description"""
@@ -336,8 +340,9 @@ def answer_application_questions(
             detail="No resume content found. Please add your resume details before generating answers."
         )
     
-    # Get the current application path for this user (ORIGINAL LOGIC RESTORED)
-    save_path = get_current_application_path(current_user.username)
+    # Get or create application path for this user
+    company_name = ai_service.get_company_name(job_description)
+    save_path = get_or_create_application(current_user.username, company_name, is_new_application)
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     
     # Use original AI service function that handles file saving internally (ORIGINAL LOGIC RESTORED)
@@ -352,9 +357,8 @@ def answer_application_questions(
     # DUAL STORAGE: Upload to Supabase cloud storage
     # This runs after local storage succeeds and doesn't affect the API response
     try:
-        # Get session info and company name for cloud organization
+        # Get session info for cloud organization
         session_info = get_current_session_info(current_user.username)
-        company_name = extract_company_from_local_path(save_path) or "unknown_company"
         
         if session_info:
             session_id, _ = session_info

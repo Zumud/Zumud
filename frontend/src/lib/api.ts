@@ -286,10 +286,41 @@ export const preferences = {
     apiCall('users/me/preferences', 'POST', { preference }),
 };
 
+// Simple application session management
+const applicationSessionManager = {
+  // Extract company name for display purposes (simple version)
+  extractCompanyName: (jobDescription: string): string => {
+    const text = jobDescription.toLowerCase();
+    
+    // Look for simple patterns like "Company Name | Salary" or "Company Name - Job Title"  
+    const patterns = [
+      /^([^|\n]+?)\s*\|/,  // "Company | Rest"
+      /^([^-\n]+?)\s*-/,   // "Company - Rest"
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim().replace(/\b(inc|corp|llc|ltd|company|solutions|technologies|systems)\b/gi, '').trim();
+      }
+    }
+    
+    // Fallback: take first line up to 50 chars
+    const firstLine = jobDescription.split('\n')[0];
+    return firstLine.length > 50 ? firstLine.substring(0, 50).replace(/\W+$/, '') : firstLine;
+  }
+};
+
 // Application endpoints
 export const applications = {
-  generateResume: (jobDescription: string) => 
-    apiCall('applications/resume/pdf', 'GET', { job_description: jobDescription }, false),
+  generateResume: (jobDescription: string, isNewApplication?: boolean) => {
+    const params: any = { job_description: jobDescription };
+    if (isNewApplication !== undefined) {
+      params.is_new_application = isNewApplication;
+    }
+    
+    return apiCall('applications/resume/pdf', 'GET', params, false);
+  },
   
   getResumeTeX: () => 
     apiCall('applications/resume/tex', 'GET', undefined, false),
@@ -300,8 +331,14 @@ export const applications = {
   getLatestResumeJson: () =>
     apiCall('applications/resume/json', 'GET'),
   
-  generateCoverLetter: (jobDescription: string) => 
-    apiCall('applications/cover-letter/plain', 'GET', { job_description: jobDescription }, false),
+  generateCoverLetter: (jobDescription: string, isNewApplication?: boolean) => {
+    const params: any = { job_description: jobDescription };
+    if (isNewApplication !== undefined) {
+      params.is_new_application = isNewApplication;
+    }
+    
+    return apiCall('applications/cover-letter/plain', 'GET', params, false);
+  },
   
   getCoverLetterPDF: () => 
     apiCall('applications/cover-letter/pdf', 'GET'),
@@ -309,11 +346,17 @@ export const applications = {
   getCoverLetterText: () => 
     apiCall('applications/cover-letter/text', 'GET'),
   
-  answerQuestion: (jobDescription: string, question: string) => 
-    apiCall('applications/questions/answer', 'GET', { 
+  answerQuestion: (jobDescription: string, question: string, isNewApplication?: boolean) => {
+    const params: any = { 
       job_description: jobDescription, 
       question 
-    }, false),
+    };
+    if (isNewApplication !== undefined) {
+      params.is_new_application = isNewApplication;
+    }
+    
+    return apiCall('applications/questions/answer', 'GET', params, false);
+  },
     
   editAnswerWithInstructions: (editInstruction: string, originalAnswer: string, question: string, jobDescription: string) => 
     apiCall('applications/questions/answer/edit', 'GET', { 
@@ -358,6 +401,8 @@ export const applications = {
   getAnonymousResume: (sessionId: string) =>
     apiCall(`applications/resume/anonymous/${sessionId}`, 'GET', undefined, false),
 };
+
+export { applicationSessionManager };
 
 export default {
   auth,
