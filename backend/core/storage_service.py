@@ -138,9 +138,13 @@ class StorageService:
         """
         base_path = f"users/{user_id}/{path_type}"
         
-        if path_type == "applications" and session_id and company_name:
-            sanitized_company = self._sanitize_company_name(company_name)
-            return f"{base_path}/{session_id}_{sanitized_company}"
+        if path_type == "applications" and session_id:
+            if company_name:
+                sanitized_company = self._sanitize_company_name(company_name)
+                return f"{base_path}/{session_id}_{sanitized_company}"
+            else:
+                # No company name found - use just the session ID
+                return f"{base_path}/{session_id}"
         
         return base_path
     
