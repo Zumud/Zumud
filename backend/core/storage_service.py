@@ -119,7 +119,7 @@ class StorageService:
     
     def _get_timestamp(self) -> str:
         """Get current timestamp for file naming."""
-        return datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M")
+        return datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
     
     def _construct_user_path(self, user_id: int, path_type: str, 
                            session_id: Optional[str] = None, 

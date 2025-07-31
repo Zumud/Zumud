@@ -17,7 +17,7 @@ from backend.models.ai_models import AIModel
 from backend.models.tailoring_options import TailoringOptionsBase
 from backend.models.user_models import UserTemplate, UserTemplateCreate, UserTemplateUpdate
 from backend.utils.file_ops import PDFGenerator, save_pdf, extract_text_from_pdf, save_application_qa
-from backend.utils.path_ops import create_new_application_path, get_current_application_path, get_current_session_info, extract_company_from_local_path, get_or_create_application
+from backend.utils.path_ops import create_new_application_path, get_current_application_path, get_current_session_info, extract_company_from_local_path, get_or_create_application, create_session_aware_path
 from backend.models import db_models
 from backend.models.db import get_db
 from backend.core.storage_service import storage_service, safe_upload_with_fallback
@@ -161,7 +161,7 @@ def download_cover_letter_pdf(
         )
     
     # Return the PDF file
-    timestamp = datetime.now().strftime("%m-%d_%H-%M")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
     return FileResponse(
         path=pdf_file_path,
         filename=f"{current_user.username}_{timestamp}_{company_name}_cover_letter.pdf",
@@ -245,7 +245,7 @@ async def generate_and_save_pdf_resume(
     structured_resume = json.loads(structured_resume_json)
     name = structured_resume.get('personal_info', {}).get('name', '') if structured_resume.get('personal_info', {}).get('name') else ''
     # Generate timestamp for filename
-    timestamp = datetime.now().strftime("%m-%d_%H-%M")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
     # Return the PDF file directly
     return FileResponse(
         path=pdf_file_path,
@@ -282,7 +282,7 @@ def get_resume_tex_file(
         )
     
     # Return the .tex file
-    timestamp = datetime.now().strftime("%m-%d_%H-%M")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
     return FileResponse(
         path=tex_file_path,
         filename=f"{current_user.username}_{timestamp}_{company_name}_resume.tex",
@@ -401,7 +401,7 @@ async def improve_resume_pdf(
         )
     
     # Generate a random username for anonymous users
-    timestamp = datetime.now().strftime("%m-%d_%H-%M")
+    timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
     anonymous_username = f"anonymous_{timestamp}_{uuid.uuid4().hex[:8]}"
     
     # Create a save path
@@ -471,10 +471,25 @@ async def edit_resume_with_instructions(
     with open(json_file_path, 'r') as f:
         last_resume_json = f.read()
     
-    # Create a new path for the updated resume with a timestamp
+    # Create a new versioned path that preserves the existing session ID
     company_name = os.path.basename(current_save_path).split('_')[-1]
-    timestamp = datetime.now().strftime("%m-%d_%H-%M")
-    new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
+    timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
+    
+    # Get the existing session info to preserve session ID consistency
+    session_info = get_current_session_info(current_user.username)
+    
+    if session_info:
+        # Reuse existing session ID for version consistency
+        existing_session_id, _ = session_info
+        new_save_path, _, _ = create_session_aware_path(
+            current_user.username, 
+            company_name, 
+            session_id=existing_session_id,  # Preserve existing session ID
+            timestamp=timestamp
+        )
+    else:
+        # Fallback: create new application if no session exists
+        new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
     
     # Get user's tailoring options
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
@@ -487,7 +502,7 @@ async def edit_resume_with_instructions(
     
     try:
         # Process the edit and generate PDF using the new service function
-        latex_compiler_response, updated_resume_json = ai_service.update_resume_with_instructions(
+        latex_compiler_response, updated_resume_json, tex_content = ai_service.update_resume_with_instructions(
             last_resume_json,
             job_description,
             edit_instruction,
@@ -503,8 +518,36 @@ async def edit_resume_with_instructions(
         with open(new_json_file_path, 'w') as f:
             f.write(updated_resume_json)
         
+        # Save the TEX file locally (consistent with initial generation)
+        tex_file_path = os.path.join(new_save_path, "resume.tex")
+        with open(tex_file_path, 'w', encoding='utf-8') as f:
+            f.write(tex_content)
+        
         # Save the PDF
         pdf_file_path = save_pdf(str(new_save_path), latex_compiler_response.content, current_user.username)
+        
+        # DUAL STORAGE: Upload edited resume to Supabase cloud storage with versioning
+        # This runs after local storage succeeds and doesn't affect the API response
+        try:
+            # Get session info for the new versioned application path
+            session_info = get_current_session_info(current_user.username)
+            
+            if session_info:
+                session_id, _ = session_info
+                
+                # Upload the edited resume files to cloud storage (PDF, TEX, JSON)
+                safe_upload_with_fallback(
+                    storage_service.upload_tailored_resume,
+                    current_user.id,
+                    session_id,
+                    company_name,
+                    latex_compiler_response.content,  # PDF content
+                    tex_content,  # TEX content
+                    updated_resume_json  # Updated JSON content
+                )
+        except Exception as e:
+            # Log the error but don't fail the request
+            logger.error(f"Cloud storage upload failed for resume edit: {e}")
         
         # Return the PDF file
         return FileResponse(
@@ -590,10 +633,25 @@ async def edit_cover_letter_with_instructions(
     with open(text_file_path, 'r') as f:
         cover_letter_text = f.read()
     
-    # Create a new path for the updated cover letter with a timestamp
+    # Create a new versioned path that preserves the existing session ID
     company_name = os.path.basename(current_save_path).split('_')[-1]
-    timestamp = datetime.now().strftime("%m-%d_%H-%M")
-    new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
+    timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
+    
+    # Get the existing session info to preserve session ID consistency
+    session_info = get_current_session_info(current_user.username)
+    
+    if session_info:
+        # Reuse existing session ID for version consistency
+        existing_session_id, _ = session_info
+        new_save_path, _, _ = create_session_aware_path(
+            current_user.username, 
+            company_name, 
+            session_id=existing_session_id,  # Preserve existing session ID
+            timestamp=timestamp
+        )
+    else:
+        # Fallback: create new application if no session exists
+        new_save_path = create_new_application_path(current_user.username, company_name, timestamp)
     
     try:
         # Process the edit using the AI service
@@ -618,6 +676,34 @@ async def edit_cover_letter_with_instructions(
         
         # The path to the newly generated PDF
         new_pdf_file_path = os.path.join(new_save_path, "CoverLetter.pdf")
+        
+        # DUAL STORAGE: Upload edited cover letter to Supabase cloud storage with versioning
+        # This runs after local storage succeeds and doesn't affect the API response
+        try:
+            # Get session info for the new versioned application path
+            session_info = get_current_session_info(current_user.username)
+            
+            if session_info:
+                session_id, _ = session_info
+                
+                # Read the generated PDF content
+                pdf_content = None
+                if os.path.exists(new_pdf_file_path):
+                    with open(new_pdf_file_path, 'rb') as f:
+                        pdf_content = f.read()
+                
+                # Upload the edited cover letter files to cloud storage (TEXT, PDF)
+                safe_upload_with_fallback(
+                    storage_service.upload_cover_letter,
+                    current_user.id,
+                    session_id,
+                    company_name,
+                    updated_cover_letter,  # Text content
+                    pdf_content  # PDF content
+                )
+        except Exception as e:
+            # Log the error but don't fail the request
+            logger.error(f"Cloud storage upload failed for cover letter edit: {e}")
         
         # Return the PDF file
         return FileResponse(
@@ -700,7 +786,7 @@ def edit_answer_with_instructions(
         save_path = get_current_application_path(current_user.username)
         
         # Save the Q&A pair in the application folder (existing functionality)
-        qa_file_path = os.path.join(save_path, f"question_updated_{datetime.now().strftime('%m%d_%H%M')}.txt")
+        qa_file_path = os.path.join(save_path, f"question_updated_{datetime.now().strftime('%m%d_%H%M%S')}.txt")
         with open(qa_file_path, 'w') as f:
             f.write(f"Question: {question}\n\nOriginal Answer: {original_answer}\n\nEdit Instructions: {edit_instruction}\n\nUpdated Answer: {updated_answer}")
         
@@ -994,7 +1080,7 @@ async def generate_anonymous_resume(
         company_name = ai_service.get_company_name(job_description)
         
         # Create a temporary path for anonymous user (ORIGINAL LOGIC RESTORED)
-        timestamp = datetime.now().strftime("%m-%d_%H-%M")
+        timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
         anonymous_username = f"anonymous_{session_id[:8]}"
         save_path = create_new_application_path(anonymous_username, company_name, timestamp)
         
