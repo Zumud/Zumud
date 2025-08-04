@@ -35,24 +35,19 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
 
   const sidebarItems: SidebarItem[] = [
     {
-      icon: History,
-      label: "History",
-      href: "/coming-soon",
+      icon: BarChart3,
+      label: "Dashboard",
+      href: "/dashboard",
     },
     {
-      icon: BarChart3,
-      label: "Insights",
-      href: "/coming-soon",
+      icon: History,
+      label: "History",
+      href: "/history",
     },
     {
       icon: User,
       label: "Profile",
       href: "/profile",
-    },
-    {
-      icon: Settings,
-      label: "Settings",
-      href: "/coming-soon",
     },
     {
       icon: LogOut,
