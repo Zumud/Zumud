@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Download, ArrowLeft, CheckCircle, FileText, Share2, User, Mail, Star, Clock, Zap, Shield } from "lucide-react"
 import AuthModal from "@/components/auth/auth-modal"
 import { applications } from "@/lib/api"
+import { PdfViewerGuidance } from "@/components/ui/pdf-viewer-guidance"
 
 export default function GeneratedResumePage() {
   const params = useParams()
@@ -17,6 +18,7 @@ export default function GeneratedResumePage() {
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [pdfIframeError, setPdfIframeError] = useState(false)
 
   useEffect(() => {
     const loadResumeData = async () => {
@@ -128,6 +130,10 @@ export default function GeneratedResumePage() {
 
   const handleBackToHome = () => {
     router.push('/')
+  }
+
+  const handlePdfIframeError = () => {
+    setPdfIframeError(true)
   }
 
   if (isLoading) {
@@ -248,13 +254,61 @@ export default function GeneratedResumePage() {
                 </div>
               </div>
               <div className="p-2">
-                {pdfUrl && (
+                {pdfUrl && !pdfIframeError && (
                   <iframe
                     src={pdfUrl}
                     className="w-full border-0 rounded-lg"
                     style={{ height: '1000px' }}
                     title="Resume Preview"
+                    onError={handlePdfIframeError}
+                    onLoad={(e) => {
+                      // Check if iframe content loaded successfully
+                      const iframe = e.target as HTMLIFrameElement
+                      try {
+                        // If we can't access the content or if it's empty, show fallback
+                        setTimeout(() => {
+                          if (!iframe.contentDocument || iframe.contentDocument.body?.children.length === 0) {
+                            handlePdfIframeError()
+                          }
+                        }, 2000)
+                      } catch {
+                        // Cross-origin error means the PDF might be loading, so we'll let it be
+                      }
+                    }}
                   />
+                )}
+                {pdfUrl && pdfIframeError && (
+                  <div className="h-[1000px] flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg">
+                    <div className="text-center space-y-4 max-w-md">
+                      <div className="w-20 h-20 bg-red-100 rounded-2xl flex items-center justify-center mx-auto">
+                        <FileText className="w-10 h-10 text-red-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        PDF Preview Not Available
+                      </h3>
+                      <p className="text-gray-600">
+                        Your browser's PDF viewer needs to be enabled for inline preview.
+                      </p>
+                      <PdfViewerGuidance className="mt-4" />
+                      <Button
+                        onClick={handleDownload}
+                        className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={isDownloading}
+                      >
+                        {isDownloading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Downloading...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4 mr-2" />
+                            Download Resume
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
