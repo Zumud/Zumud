@@ -71,6 +71,9 @@ export default function Dashboard() {
   
   // State to track if user has made their first generation
   const [hasGenerated, setHasGenerated] = useState(false)
+  
+  // State for simple application session management (implicit)
+  const [isNewApplication, setIsNewApplication] = useState(false)
 
  
 
@@ -81,6 +84,16 @@ export default function Dashboard() {
       setUserData(storedUserData)
     }
   }, [])
+
+  // Set new application flag when job description changes (implicit intent detection)
+  useEffect(() => {
+    if (jobDescription.trim()) {
+      // Job description changed, so next generation should be a new application
+      setIsNewApplication(true)
+    } else {
+      setIsNewApplication(false)
+    }
+  }, [jobDescription])
 
 
 
@@ -205,7 +218,7 @@ export default function Dashboard() {
       // Operation to perform
       async () => {
         // Generate the resume PDF first
-        const pdfResult = await applications.generateResume(jobDescription)
+        const pdfResult = await applications.generateResume(jobDescription, isNewApplication)
         
         // After generating the PDF, fetch the latest resume JSON
         try {
@@ -238,6 +251,9 @@ export default function Dashboard() {
         
         // Trigger progress completion animation
         setForceCompleteProgress(true)
+        
+        // Reset new application flag after successful generation
+        setIsNewApplication(false)
       },
       // Default error message
       "Failed to generate resume",
@@ -261,11 +277,15 @@ export default function Dashboard() {
     // Mark as first generation to hide welcome section
     setHasGenerated(true)
     asyncOperation(
-      () => applications.generateCoverLetter(jobDescription),
+      () => applications.generateCoverLetter(jobDescription, isNewApplication),
       setIsGeneratingCoverLetter,
       "cover letter generation",
       "Generating cover letter...",
-      (result) => setCoverLetter(result),
+      (result) => {
+        setCoverLetter(result)
+        // Reset new application flag after successful generation
+        setIsNewApplication(false)
+      },
       "Failed to generate cover letter",
       () => !jobDescription.trim() ? "Please enter a job description" : null
     )
@@ -278,11 +298,15 @@ export default function Dashboard() {
     // Mark as first generation to hide welcome section
     setHasGenerated(true)
     asyncOperation(
-      () => applications.answerQuestion(jobDescription, question),
+      () => applications.answerQuestion(jobDescription, question, isNewApplication),
       setIsGeneratingAnswer,
       "answer generation",
       "Generating answer...",
-      (result) => setAnswer(result),
+      (result) => {
+        setAnswer(result)
+        // Reset new application flag after successful generation
+        setIsNewApplication(false)
+      },
       "Failed to generate answer",
       () => {
         if (!jobDescription.trim()) return "Please enter a job description"

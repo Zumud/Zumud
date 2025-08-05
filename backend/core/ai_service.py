@@ -255,7 +255,7 @@ def update_resume_with_instructions(original_structured_resume: str, job_descrip
         db: Database session for template lookup
         
     Returns:
-        tuple: (latex_compiler_response, updated_resume_json)
+        tuple: (latex_compiler_response, updated_resume_json, tex_content)
     """
     prompt = (
         f"You are an expert resume writer helping to refine a resume based on specific feedback. "
@@ -312,7 +312,7 @@ def update_resume_with_instructions(original_structured_resume: str, job_descrip
         error_msg = latex_compiler_response.content.decode('utf-8')
         raise ValueError(f"Failed to compile LaTeX document: {error_msg}")
     
-    return latex_compiler_response, updated_resume_json
+    return latex_compiler_response, updated_resume_json, rendered_latex
 
 def update_cover_letter_with_instructions(cover_letter: str, resume_content: str, job_description: str, instructions: str, model=AIModel.gpt_4_1_nano) -> str:
     """

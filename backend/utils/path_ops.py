@@ -149,6 +149,35 @@ def get_current_application_path(username: str, company_name: Optional[str] = No
     return create_new_application_path(username, company_name)
 
 
+def get_or_create_application(username: str, company_name: str, is_new_application: Optional[bool] = None) -> Path:
+    """
+    Unified application management logic that handles the is_new_application flag.
+    
+    Args:
+        username: Username of the user
+        company_name: Name of the company being applied to
+        is_new_application: Optional flag to control application creation:
+            - True: Always create new application
+            - False: Use existing if available, create new if none exists
+            - None: Create new application (default for backward compatibility)
+        
+    Returns:
+        Path object for the application directory
+    """
+    if is_new_application is True:
+        # Explicit request for new application
+        return create_new_application_path(username, company_name)
+    
+    # For is_new_application=False or None, try to reuse existing
+    existing_path = ApplicationContext.get_current_path(username)
+    
+    if existing_path is not None:
+        return existing_path
+    
+    # No existing application, create new one
+    return create_new_application_path(username, company_name)
+
+
 def get_current_session_info(username: str) -> Optional[Tuple[str, str]]:
     """
     Get the current session information for cloud storage operations.
