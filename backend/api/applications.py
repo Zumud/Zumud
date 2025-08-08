@@ -2,13 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, File, Uplo
 from datetime import datetime, timedelta
 from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 from typing import Optional
 import uuid
 import os
 import json
 import base64
-import tempfile
 import logging
 
 from backend.api.auth import get_current_user

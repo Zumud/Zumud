@@ -21,7 +21,7 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Start with <span className="font-semibold text-blue-600">10 FREE generations</span>, 
-            then just $0.10 per generation. No subscriptions, no hidden fees.
+            then just €0.50 per generation. No subscriptions, no hidden fees.
           </p>
         </div>
 
