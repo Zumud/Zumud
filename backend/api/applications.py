@@ -19,7 +19,14 @@ from backend.utils.path_ops import create_new_application_path, get_current_appl
 from backend.models import db_models
 from backend.models.db import get_db
 from backend.core.storage_service import storage_service, safe_upload_with_fallback
-from backend.core.stripe_billing_service import process_coverletter_billing
+from backend.core.stripe_billing_service import (
+    process_coverletter_billing,
+    process_resume_billing,
+    process_qa_billing,
+    process_coverletter_edit_billing,
+    process_resume_edit_billing,
+    process_qa_edit_billing,
+)
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -53,13 +60,19 @@ def generate_tailored_plain_resume(
         user_preferences = preferences.preferences_text
 
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
-    return ai_service.generate_tailored_resume_text(
+    result = ai_service.generate_tailored_resume_text(
         current_user.resumes.resume_content,
         job_description,
         tailoring_options.ai_model,
         tailoring_options.resume_template,
         user_preferences
     )
+    # Stripe metered billing (non-blocking; logs on failure)
+    try:
+        process_resume_billing(email=current_user.email, name=current_user.username)
+    except Exception as e:
+        logger.error(f"Stripe billing flow failed for resume generation: {e}")
+    return result
 
 @router.get("/cover-letter/plain")
 def generate_tailored_plain_coverletter(
@@ -251,6 +264,13 @@ async def generate_and_save_pdf_resume(
     name = structured_resume.get('personal_info', {}).get('name', '') if structured_resume.get('personal_info', {}).get('name') else ''
     # Generate timestamp for filename
     timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
+
+    # Stripe metered billing (non-blocking; logs on failure). Ensure subscription exists before responding
+    try:
+        process_resume_billing(email=current_user.email, name=current_user.username)
+    except Exception as e:
+        logger.error(f"Stripe billing flow failed for resume PDF generation: {e}")
+
     # Return the PDF file directly
     return FileResponse(
         path=pdf_file_path,
@@ -381,6 +401,12 @@ def answer_application_questions(
     except Exception as e:
         # Log the error but don't fail the request
         logger.error(f"Cloud storage upload failed for question-answer: {e}")
+    
+    # Stripe metered billing (non-blocking; logs on failure)
+    try:
+        process_qa_billing(email=current_user.email, name=current_user.username)
+    except Exception as e:
+        logger.error(f"Stripe billing flow failed for Q&A generation: {e}")
     
     return answer
 
@@ -565,6 +591,12 @@ async def edit_resume_with_instructions(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+    finally:
+        # Stripe metered billing (non-blocking; logs on failure)
+        try:
+            process_resume_edit_billing(email=current_user.email, name=current_user.username)
+        except Exception as be:
+            logger.error(f"Stripe billing flow failed for resume edit: {be}")
 
 @router.get("/resume/json")
 def get_latest_resume_json(
@@ -721,6 +753,12 @@ async def edit_cover_letter_with_instructions(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update cover letter: {str(e)}"
         )
+    finally:
+        # Stripe metered billing (non-blocking; logs on failure)
+        try:
+            process_coverletter_edit_billing(email=current_user.email, name=current_user.username)
+        except Exception as be:
+            logger.error(f"Stripe billing flow failed for cover letter edit: {be}")
 
 @router.get("/cover-letter/text", response_class=PlainTextResponse)
 def get_cover_letter_text_content(
@@ -826,6 +864,12 @@ def edit_answer_with_instructions(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+    finally:
+        # Stripe metered billing (non-blocking; logs on failure)
+        try:
+            process_qa_edit_billing(email=current_user.email, name=current_user.username)
+        except Exception as be:
+            logger.error(f"Stripe billing flow failed for Q&A edit: {be}")
 
 # Template Management Endpoints
 
