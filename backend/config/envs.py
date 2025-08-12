@@ -45,3 +45,10 @@ if not SECRET_KEY:
 ALGORITHM = getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
 
+# Stripe Configuration
+# We do not log or hardcode keys here. Values must come from the environment (.env).
+STRIPE_API_KEY = getenv("STRIPE_API_KEY") or getenv("STRIPE_SECRET_KEY")
+STRIPE_COVERLETTER_PRICE_ID = getenv("STRIPE_COVERLETTER_PRICE_ID")
+STRIPE_COVERLETTER_PRODUCT_NAME = getenv("STRIPE_COVERLETTER_PRODUCT_NAME", "CoverLetter Generation")
+STRIPE_COVERLETTER_METER_NAME = getenv("STRIPE_COVERLETTER_METER_NAME", "coverletter_event")
+
