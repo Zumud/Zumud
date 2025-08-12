@@ -1,10 +1,25 @@
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List
 from backend.config.envs import (
     STRIPE_API_KEY,
     STRIPE_COVERLETTER_PRICE_ID,
     STRIPE_COVERLETTER_PRODUCT_NAME,
     STRIPE_COVERLETTER_METER_NAME,
+    STRIPE_RESUME_PRICE_ID,
+    STRIPE_RESUME_PRODUCT_NAME,
+    STRIPE_RESUME_METER_NAME,
+    STRIPE_QA_PRICE_ID,
+    STRIPE_QA_PRODUCT_NAME,
+    STRIPE_QA_METER_NAME,
+    STRIPE_COVERLETTER_EDIT_PRICE_ID,
+    STRIPE_COVERLETTER_EDIT_PRODUCT_NAME,
+    STRIPE_COVERLETTER_EDIT_METER_NAME,
+    STRIPE_RESUME_EDIT_PRICE_ID,
+    STRIPE_RESUME_EDIT_PRODUCT_NAME,
+    STRIPE_RESUME_EDIT_METER_NAME,
+    STRIPE_QA_EDIT_PRICE_ID,
+    STRIPE_QA_EDIT_PRODUCT_NAME,
+    STRIPE_QA_EDIT_METER_NAME,
 )
 
 try:
@@ -30,7 +45,7 @@ def _init_stripe_client() -> bool:
     return True
 
 
-def _find_coverletter_product_and_price() -> Tuple[str, str]:
+def _discover_product_and_price(product_name: str, explicit_price_id: Optional[str]) -> Tuple[str, str]:
     """
     Locate the Stripe Product (by name) and an active metered recurring Price in EUR for Cover Letter Generation.
 
@@ -41,7 +56,7 @@ def _find_coverletter_product_and_price() -> Tuple[str, str]:
         Exception if product/price cannot be found.
     """
     # Allow overrides via env if available (recommended in production)
-    explicit_price_id = STRIPE_COVERLETTER_PRICE_ID
+    explicit_price_id = explicit_price_id
     if _init_stripe_client() and explicit_price_id:
         try:
             price = stripe.Price.retrieve(explicit_price_id)  # type: ignore[attr-defined]
@@ -52,7 +67,7 @@ def _find_coverletter_product_and_price() -> Tuple[str, str]:
     if not _init_stripe_client():
         raise RuntimeError("Stripe client not initialized")
 
-    product_name = STRIPE_COVERLETTER_PRODUCT_NAME
+    product_name = product_name
 
     product = None
     # Prefer Product search if available
@@ -106,6 +121,32 @@ def _find_coverletter_product_and_price() -> Tuple[str, str]:
     return product["id"], candidate_price["id"]
 
 
+def _discover_price_id(product_name: str, explicit_price_id: Optional[str]) -> Optional[str]:
+    try:
+        _, price_id = _discover_product_and_price(product_name, explicit_price_id)
+        return price_id
+    except Exception as e:
+        logger.info(f"Price discovery skipped for '{product_name}': {e}")
+        return None
+
+
+def _discover_all_price_ids() -> List[str]:
+    """Best-effort discovery of all configured product price IDs to ensure one subscription contains them all."""
+    price_ids: List[str] = []
+    for name, explicit in [
+        (STRIPE_RESUME_PRODUCT_NAME, STRIPE_RESUME_PRICE_ID),
+        (STRIPE_COVERLETTER_PRODUCT_NAME, STRIPE_COVERLETTER_PRICE_ID),
+        (STRIPE_QA_PRODUCT_NAME, STRIPE_QA_PRICE_ID),
+        (STRIPE_RESUME_EDIT_PRODUCT_NAME, STRIPE_RESUME_EDIT_PRICE_ID),
+        (STRIPE_COVERLETTER_EDIT_PRODUCT_NAME, STRIPE_COVERLETTER_EDIT_PRICE_ID),
+        (STRIPE_QA_EDIT_PRODUCT_NAME, STRIPE_QA_EDIT_PRICE_ID),
+    ]:
+        pid = _discover_price_id(name, explicit)
+        if pid and pid not in price_ids:
+            price_ids.append(pid)
+    return price_ids
+
+
 def _get_or_create_customer(email: str, name: Optional[str]) -> Optional[object]:
     """Find or create a Stripe customer by email. Returns the Customer object or None if Stripe not configured."""
     if not _init_stripe_client():
@@ -122,10 +163,11 @@ def _get_or_create_customer(email: str, name: Optional[str]) -> Optional[object]
         return None
 
 
-def _find_or_create_subscription(customer_id: str, price_id: str) -> Tuple[Optional[object], Optional[str]]:
+def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[str]) -> Tuple[Optional[object], Dict[str, Optional[str]]]:
     """
     Ensure the customer has a subscription containing the given price.
-    Returns (subscription, subscription_item_id) or (None, None) on failure.
+    Ensure a single subscription that contains all provided prices.
+    Returns (subscription, {price_id -> subscription_item_id}) or (None, {}).
     """
     if not _init_stripe_client():
         return None, None
@@ -138,39 +180,55 @@ def _find_or_create_subscription(customer_id: str, price_id: str) -> Tuple[Optio
         trial_subs = stripe.Subscription.list(  # type: ignore[attr-defined]
             customer=customer_id, status="trialing", limit=100
         )
+        def prices_to_item_map(sub) -> Dict[str, str]:
+            mapping: Dict[str, str] = {}
+            for item in sub["items"]["data"]:
+                mapping[item["price"]["id"]] = item["id"]
+            return mapping
 
-        def find_item(subs) -> Tuple[Optional[object], Optional[str]]:
+        # Try find a single subscription with all required items
+        for subs in (active_subs, trial_subs):
             for sub in subs.data:
-                for item in sub["items"]["data"]:
-                    if item["price"]["id"] == price_id:
-                        return sub, item["id"]
-            return None, None
+                mapping = prices_to_item_map(sub)
+                if all(pid in mapping for pid in price_ids):
+                    return sub, {pid: mapping.get(pid) for pid in price_ids}
 
-        sub, item_id = find_item(active_subs)
-        if sub:
-            return sub, item_id
-        sub, item_id = find_item(trial_subs)
-        if sub:
-            return sub, item_id
-
-        # Create new subscription; use invoice collection to avoid requiring immediate payment method
-        created = stripe.Subscription.create(  # type: ignore[attr-defined]
-            customer=customer_id,
-            items=[{"price": price_id}],
-            collection_method="send_invoice",
-            days_until_due=30,
-            proration_behavior="create_prorations",
-        )
-        # Return the item for the created price
-        created_item_id = None
-        for item in created["items"]["data"]:
-            if item["price"]["id"] == price_id:
-                created_item_id = item["id"]
+        # If none has all, prefer to reuse the first existing active or trial subscription
+        base_sub = None
+        base_mapping: Dict[str, str] = {}
+        for subs in (active_subs, trial_subs):
+            if subs.data:
+                base_sub = subs.data[0]
+                base_mapping = prices_to_item_map(base_sub)
                 break
-        return created, created_item_id
+
+        if base_sub is None:
+            # Create a new subscription containing all items
+            created = stripe.Subscription.create(  # type: ignore[attr-defined]
+                customer=customer_id,
+                items=[{"price": pid} for pid in price_ids],
+                collection_method="send_invoice",
+                days_until_due=30,
+                proration_behavior="create_prorations",
+            )
+            mapping = prices_to_item_map(created)
+            return created, {pid: mapping.get(pid) for pid in price_ids}
+
+        # Add missing items to the existing subscription
+        missing = [pid for pid in price_ids if pid not in base_mapping]
+        for pid in missing:
+            try:
+                added = stripe.SubscriptionItem.create(  # type: ignore[attr-defined]
+                    subscription=base_sub["id"], price=pid
+                )
+                base_mapping[pid] = added["id"]
+            except Exception as add_err:
+                logger.error(f"Failed adding price {pid} to subscription {base_sub['id']}: {add_err}")
+
+        return base_sub, {pid: base_mapping.get(pid) for pid in price_ids}
     except Exception as e:
         logger.error(
-            f"Stripe ensure subscription failed for customer {customer_id} and price {price_id}: {e}"
+            f"Stripe ensure subscription failed for customer {customer_id} and prices {price_ids}: {e}"
         )
         return None, None
 
@@ -229,6 +287,27 @@ def _record_usage_with_subscription_item(subscription_item_id: str) -> bool:
         return False
 
 
+def _ensure_products_and_record(customer_id: str, price_to_meter: Dict[str, str]) -> None:
+    # Ensure single subscription with all known items
+    ensure_price_ids = _discover_all_price_ids()
+    # Always include the target prices
+    for pid in price_to_meter.keys():
+        if pid not in ensure_price_ids:
+            ensure_price_ids.append(pid)
+    subscription, item_map = _find_or_create_subscription_with_items(customer_id, ensure_price_ids or list(price_to_meter.keys()))
+    if not subscription:
+        return
+
+    # Record events per product
+    for price_id, meter_name in price_to_meter.items():
+        recorded = _record_meter_event(customer_id=customer_id, meter_event_name=meter_name)
+        if recorded:
+            continue
+        item_id = item_map.get(price_id)
+        if item_id:
+            _record_usage_with_subscription_item(item_id)  # fallback
+
+
 def process_coverletter_billing(email: str, name: Optional[str]) -> None:
     """
     End-to-end flow for billing when a cover letter is generated:
@@ -248,24 +327,87 @@ def process_coverletter_billing(email: str, name: Optional[str]) -> None:
         return
 
     try:
-        _, price_id = _find_coverletter_product_and_price()
+        _, price_id = _discover_product_and_price(STRIPE_COVERLETTER_PRODUCT_NAME, STRIPE_COVERLETTER_PRICE_ID)
     except Exception as e:
         logger.error(f"Unable to locate CoverLetter Generation price in Stripe: {e}")
         return
 
-    subscription, subscription_item_id = _find_or_create_subscription(customer_id=customer["id"], price_id=price_id)
-    if subscription is None:
+    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_COVERLETTER_METER_NAME})
+
+
+def process_resume_billing(email: str, name: Optional[str]) -> None:
+    if not _init_stripe_client():
         return
-
-    meter_name = STRIPE_COVERLETTER_METER_NAME
-
-    # Prefer Billing Meters ingestion
-    recorded = _record_meter_event(customer_id=customer["id"], meter_event_name=meter_name)
-    if recorded:
+    customer = _get_or_create_customer(email=email, name=name)
+    if customer is None:
         return
+    try:
+        _, price_id = _discover_product_and_price(STRIPE_RESUME_PRODUCT_NAME, STRIPE_RESUME_PRICE_ID)
+    except Exception as e:
+        logger.error(f"Unable to locate Resume Generation price in Stripe: {e}")
+        return
+    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_RESUME_METER_NAME})
 
-    # Fallback to usage record increment if meter event ingestion fails or unsupported
-    if subscription_item_id:
-        _record_usage_with_subscription_item(subscription_item_id)
+
+def process_qa_billing(email: str, name: Optional[str]) -> None:
+    if not _init_stripe_client():
+        return
+    customer = _get_or_create_customer(email=email, name=name)
+    if customer is None:
+        return
+    try:
+        _, price_id = _discover_product_and_price(STRIPE_QA_PRODUCT_NAME, STRIPE_QA_PRICE_ID)
+    except Exception as e:
+        logger.error(f"Unable to locate Q&A Generation price in Stripe: {e}")
+        return
+    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_QA_METER_NAME})
+
+
+def process_coverletter_edit_billing(email: str, name: Optional[str]) -> None:
+    if not _init_stripe_client():
+        return
+    customer = _get_or_create_customer(email=email, name=name)
+    if customer is None:
+        return
+    try:
+        _, price_id = _discover_product_and_price(
+            STRIPE_COVERLETTER_EDIT_PRODUCT_NAME, STRIPE_COVERLETTER_EDIT_PRICE_ID
+        )
+    except Exception as e:
+        logger.error(f"Unable to locate CoverLetter Edit price in Stripe: {e}")
+        return
+    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_COVERLETTER_EDIT_METER_NAME})
+
+
+def process_resume_edit_billing(email: str, name: Optional[str]) -> None:
+    if not _init_stripe_client():
+        return
+    customer = _get_or_create_customer(email=email, name=name)
+    if customer is None:
+        return
+    try:
+        _, price_id = _discover_product_and_price(
+            STRIPE_RESUME_EDIT_PRODUCT_NAME, STRIPE_RESUME_EDIT_PRICE_ID
+        )
+    except Exception as e:
+        logger.error(f"Unable to locate Resume Edit price in Stripe: {e}")
+        return
+    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_RESUME_EDIT_METER_NAME})
+
+
+def process_qa_edit_billing(email: str, name: Optional[str]) -> None:
+    if not _init_stripe_client():
+        return
+    customer = _get_or_create_customer(email=email, name=name)
+    if customer is None:
+        return
+    try:
+        _, price_id = _discover_product_and_price(
+            STRIPE_QA_EDIT_PRODUCT_NAME, STRIPE_QA_EDIT_PRICE_ID
+        )
+    except Exception as e:
+        logger.error(f"Unable to locate Q&A Edit price in Stripe: {e}")
+        return
+    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_QA_EDIT_METER_NAME})
 
 
