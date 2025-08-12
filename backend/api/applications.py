@@ -19,6 +19,7 @@ from backend.utils.path_ops import create_new_application_path, get_current_appl
 from backend.models import db_models
 from backend.models.db import get_db
 from backend.core.storage_service import storage_service, safe_upload_with_fallback
+from backend.core.stripe_billing_service import process_coverletter_billing
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -129,6 +130,12 @@ def generate_tailored_plain_coverletter(
     except Exception as e:
         # Log the error but don't fail the request
         logger.error(f"Cloud storage upload failed for cover letter generation: {e}")
+    
+    # Stripe metered billing (non-blocking; logs on failure)
+    try:
+        process_coverletter_billing(email=current_user.email, name=current_user.username)
+    except Exception as e:
+        logger.error(f"Stripe billing flow failed for cover letter generation: {e}")
     
     return cover_letter_text
 
