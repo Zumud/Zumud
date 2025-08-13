@@ -256,8 +256,7 @@ def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[st
             created = stripe.Subscription.create(  # type: ignore[attr-defined]
                 customer=customer_id,
                 items=[{"price": pid} for pid in price_ids],
-                collection_method="send_invoice",
-                days_until_due=30,
+                collection_method="charge_automatically",  # Automatically charge payment method on file
                 proration_behavior="create_prorations",
                 billing_mode={"type": "flexible"},
                 payment_behavior="default_incomplete",
