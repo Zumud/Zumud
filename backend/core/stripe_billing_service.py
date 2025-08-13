@@ -42,6 +42,8 @@ def _init_stripe_client() -> bool:
         logger.warning("STRIPE_API_KEY/STRIPE_SECRET_KEY not set; skipping billing operations.")
         return False
     stripe.api_key = api_key
+    # Set API version to support flexible billing mode
+    stripe.api_version = "2025-06-30.basil"
     return True
 
 
@@ -238,6 +240,17 @@ def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[st
             for sub in subs.data:
                 mapping = prices_to_item_map(sub)
                 if all(pid in mapping for pid in price_ids):
+                    # Migrate to flexible billing mode if not already flexible
+                    if sub.get("billing_mode", {}).get("type") != "flexible":
+                        try:
+                            sub = stripe.Subscription.migrate(  # type: ignore[attr-defined]
+                                sub["id"],
+                                billing_mode={"type": "flexible"}
+                            )
+                            logger.info(f"Successfully migrated subscription {sub['id']} to flexible billing mode")
+                        except Exception as migrate_error:
+                            logger.error(f"Failed to migrate subscription {sub['id']} to flexible billing mode: {migrate_error}")
+                            # Continue with existing subscription even if migration fails
                     return sub, {pid: mapping.get(pid) for pid in price_ids}
 
         # If none has all, prefer to reuse the first existing active or trial subscription
@@ -246,17 +259,31 @@ def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[st
         for subs in (active_subs, trial_subs):
             if subs.data:
                 base_sub = subs.data[0]
+                # Migrate to flexible billing mode if not already flexible
+                if base_sub.get("billing_mode", {}).get("type") != "flexible":
+                    try:
+                        base_sub = stripe.Subscription.migrate(  # type: ignore[attr-defined]
+                            base_sub["id"],
+                            billing_mode={"type": "flexible"}
+                        )
+                        logger.info(f"Successfully migrated subscription {base_sub['id']} to flexible billing mode")
+                    except Exception as migrate_error:
+                        logger.error(f"Failed to migrate subscription {base_sub['id']} to flexible billing mode: {migrate_error}")
+                        # Continue with existing subscription even if migration fails
                 base_mapping = prices_to_item_map(base_sub)
                 break
 
         if base_sub is None:
-            # Create a new subscription containing all items
+            # Create a new subscription containing all items with flexible billing mode
             created = stripe.Subscription.create(  # type: ignore[attr-defined]
                 customer=customer_id,
                 items=[{"price": pid} for pid in price_ids],
                 collection_method="send_invoice",
                 days_until_due=30,
                 proration_behavior="create_prorations",
+                billing_mode={"type": "flexible"},
+                payment_behavior="default_incomplete",
+                payment_settings={"save_default_payment_method": "on_subscription"}
             )
             mapping = prices_to_item_map(created)
             return created, {pid: mapping.get(pid) for pid in price_ids}
