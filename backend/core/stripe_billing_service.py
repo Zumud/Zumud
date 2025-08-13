@@ -156,8 +156,55 @@ def _get_or_create_customer(email: str, name: Optional[str]) -> Optional[object]
         customers = stripe.Customer.list(email=email, limit=1)  # type: ignore[attr-defined]
         if customers and customers.data:
             return customers.data[0]
-        # Create new
-        return stripe.Customer.create(email=email, name=name or email)  # type: ignore[attr-defined]
+        
+        # Create new customer
+        new_customer = stripe.Customer.create(email=email, name=name or email)  # type: ignore[attr-defined]
+        
+        # Add €5 initial credit to new customers using Credit Grants
+        try:
+            credit_amount_cents = 500  # €5 = 500 cents
+            
+            # Check if billing.CreditGrant is available (newer Stripe versions)
+            billing = getattr(stripe, "billing", None)
+            if billing is not None and hasattr(billing, "CreditGrant") and hasattr(billing.CreditGrant, "create"):
+                billing.CreditGrant.create(
+                    customer=new_customer["id"],
+                    name="Initial promotional credit",
+                    applicability_config={
+                        "scope": {"price_type": "metered"}
+                    },
+                    category="promotional",
+                    amount={
+                        "type": "monetary",
+                        "monetary": {
+                            "value": credit_amount_cents,
+                            "currency": "eur"
+                        }
+                    }
+                )
+                logger.info(f"Successfully created €5 credit grant for new customer {new_customer['id']} (email: {email})")
+            else:
+                # Fallback: Use raw API request for older SDK versions
+                requestor = stripe.api_requestor.APIRequestor()
+                url = "/v1/billing/credit_grants"
+                body = {
+                    "customer": new_customer["id"],
+                    "name": "Initial promotional credit",
+                    "applicability_config[scope][price_type]": "metered",
+                    "category": "promotional",
+                    "amount[type]": "monetary",
+                    "amount[monetary][value]": credit_amount_cents,
+                    "amount[monetary][currency]": "eur"
+                }
+                requestor.request("post", url, params=body)
+                logger.info(f"Successfully created €5 credit grant for new customer {new_customer['id']} (email: {email}) via raw API")
+                
+        except Exception as credit_error:
+            logger.error(f"Failed to create initial credit grant for new customer {email}: {credit_error}")
+            # Don't fail customer creation if credit grant fails
+        
+        return new_customer
+        
     except Exception as e:
         logger.error(f"Stripe customer lookup/create failed for {email}: {e}")
         return None
@@ -409,5 +456,6 @@ def process_qa_edit_billing(email: str, name: Optional[str]) -> None:
         logger.error(f"Unable to locate Q&A Edit price in Stripe: {e}")
         return
     _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_QA_EDIT_METER_NAME})
+
 
 
