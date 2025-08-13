@@ -240,17 +240,6 @@ def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[st
             for sub in subs.data:
                 mapping = prices_to_item_map(sub)
                 if all(pid in mapping for pid in price_ids):
-                    # Migrate to flexible billing mode if not already flexible
-                    if sub.get("billing_mode", {}).get("type") != "flexible":
-                        try:
-                            sub = stripe.Subscription.migrate(  # type: ignore[attr-defined]
-                                sub["id"],
-                                billing_mode={"type": "flexible"}
-                            )
-                            logger.info(f"Successfully migrated subscription {sub['id']} to flexible billing mode")
-                        except Exception as migrate_error:
-                            logger.error(f"Failed to migrate subscription {sub['id']} to flexible billing mode: {migrate_error}")
-                            # Continue with existing subscription even if migration fails
                     return sub, {pid: mapping.get(pid) for pid in price_ids}
 
         # If none has all, prefer to reuse the first existing active or trial subscription
@@ -259,17 +248,6 @@ def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[st
         for subs in (active_subs, trial_subs):
             if subs.data:
                 base_sub = subs.data[0]
-                # Migrate to flexible billing mode if not already flexible
-                if base_sub.get("billing_mode", {}).get("type") != "flexible":
-                    try:
-                        base_sub = stripe.Subscription.migrate(  # type: ignore[attr-defined]
-                            base_sub["id"],
-                            billing_mode={"type": "flexible"}
-                        )
-                        logger.info(f"Successfully migrated subscription {base_sub['id']} to flexible billing mode")
-                    except Exception as migrate_error:
-                        logger.error(f"Failed to migrate subscription {base_sub['id']} to flexible billing mode: {migrate_error}")
-                        # Continue with existing subscription even if migration fails
                 base_mapping = prices_to_item_map(base_sub)
                 break
 
@@ -283,7 +261,11 @@ def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[st
                 proration_behavior="create_prorations",
                 billing_mode={"type": "flexible"},
                 payment_behavior="default_incomplete",
-                payment_settings={"save_default_payment_method": "on_subscription"}
+                payment_settings={"save_default_payment_method": "on_subscription"},
+                billing_thresholds={
+                    "amount_gte": 2000,  # €20.00 threshold (2000 cents)
+                    "reset_billing_cycle_anchor": True  # Reset billing cycle when threshold is reached
+                }
             )
             mapping = prices_to_item_map(created)
             return created, {pid: mapping.get(pid) for pid in price_ids}
