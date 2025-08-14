@@ -1,5 +1,6 @@
 import logging
 from typing import Optional, Tuple, Dict, List
+from fastapi import HTTPException, status
 from backend.config.envs import (
     STRIPE_API_KEY,
     STRIPE_COVERLETTER_PRICE_ID,
@@ -29,6 +30,17 @@ except Exception:  # pragma: no cover - handled gracefully if not installed
 
 
 logger = logging.getLogger(__name__)
+
+
+class PaymentMethodRequiredException(Exception):
+    """Exception raised when a payment method is required but not available."""
+    def __init__(self, message: str, amount_euros: float = 0.0):
+        self.message = message
+        self.amount_euros = amount_euros
+        super().__init__(message)
+
+
+
 
 
 def _init_stripe_client() -> bool:
@@ -212,6 +224,92 @@ def _get_or_create_customer(email: str, name: Optional[str]) -> Optional[object]
         return None
 
 
+def check_payment_method_required(email: str, name: Optional[str]) -> None:
+    """
+    Check if user needs to add payment method before proceeding with generation.
+    
+    Uses Stripe's upcoming invoice to determine if the user would be charged.
+    If next invoice amount > €0, requires payment method.
+    
+    Args:
+        email: Customer email address
+        name: Customer name (optional)
+        
+    Raises:
+        PaymentMethodRequiredException: If payment method is required but not available
+    """
+    if not _init_stripe_client():
+        # If Stripe not configured, allow generation (fail-open)
+        return
+    
+    customer = _get_or_create_customer(email=email, name=name)
+    if customer is None:
+        # If can't get customer, allow generation (fail-open)
+        return
+    
+    try:
+        # Get customer's subscription to preview the upcoming invoice
+        # We need at least one subscription to preview charges
+        subscriptions = stripe.Subscription.list(  # type: ignore[attr-defined]
+            customer=customer["id"],
+            status="active",
+            limit=1
+        )
+        
+        # If no active subscription, check for trialing subscriptions
+        if not subscriptions.data:
+            subscriptions = stripe.Subscription.list(  # type: ignore[attr-defined]
+                customer=customer["id"],
+                status="trialing",
+                limit=1
+            )
+        
+        # If still no subscription, customer won't be charged yet
+        if not subscriptions.data:
+            logger.info(f"No active subscription found for {email}, no payment method check needed")
+            return
+        
+        subscription = subscriptions.data[0]
+        
+        # Get the upcoming invoice to see what would be charged
+        upcoming_invoice = stripe.Invoice.create_preview(  # type: ignore[attr-defined]
+            customer=customer["id"],
+            subscription=subscription["id"]
+        )
+        
+        # Check the amount that would be charged (after credits applied)
+        amount_due = upcoming_invoice.amount_due if upcoming_invoice.amount_due is not None else 0
+        
+        if amount_due > 0:
+            # User would be charged, check if they have a payment method
+            payment_methods = stripe.PaymentMethod.list(  # type: ignore[attr-defined]
+                customer=customer["id"],
+                type="card"
+            )
+            
+            if not payment_methods.data:
+                # No payment method available, but charge would be required
+                amount_euros = amount_due / 100  # Convert cents to euros
+                raise PaymentMethodRequiredException(
+                    f"Please add a payment method to continue. Your next charge will be €{amount_euros:.2f}",
+                    amount_euros
+                )
+        
+        # Either amount_due is 0 (covered by credit) or payment method exists
+        logger.info(f"Payment method check passed for {email}. Amount due: €{amount_due/100:.2f}")
+        
+    except PaymentMethodRequiredException as e:
+        # Convert business exception to HTTP exception
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=e.message
+        )
+    except Exception as e:
+        # For any other error, log and allow generation (fail-open)
+        logger.error(f"Failed to check payment method requirement for {email}: {e}")
+        return
+
+
 def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[str]) -> Tuple[Optional[object], Dict[str, Optional[str]]]:
     """
     Ensure the customer has a subscription containing the given price.
@@ -366,13 +464,17 @@ def _ensure_products_and_record(customer_id: str, price_to_meter: Dict[str, str]
 def process_coverletter_billing(email: str, name: Optional[str]) -> None:
     """
     End-to-end flow for billing when a cover letter is generated:
-      1) Ensure Stripe customer for the given email
-      2) Ensure subscription to CoverLetter Generation price (metered)
-      3) Record one meter event to 'coverletter_event' (or env override)
+      1) Check if payment method is required
+      2) Ensure Stripe customer for the given email
+      3) Ensure subscription to CoverLetter Generation price (metered)
+      4) Record one meter event to 'coverletter_event' (or env override)
          - If meter event ingestion is not available, fall back to usage record increment
 
     This function logs errors and never raises, to avoid blocking the core feature.
     """
+    # Check if payment method is required before proceeding
+    check_payment_method_required(email, name)
+    
     # If Stripe not configured, no-op
     if not _init_stripe_client():
         return
@@ -391,6 +493,9 @@ def process_coverletter_billing(email: str, name: Optional[str]) -> None:
 
 
 def process_resume_billing(email: str, name: Optional[str]) -> None:
+    # Check if payment method is required before proceeding
+    check_payment_method_required(email, name)
+    
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
@@ -405,6 +510,9 @@ def process_resume_billing(email: str, name: Optional[str]) -> None:
 
 
 def process_qa_billing(email: str, name: Optional[str]) -> None:
+    # Check if payment method is required before proceeding
+    check_payment_method_required(email, name)
+    
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
@@ -419,6 +527,9 @@ def process_qa_billing(email: str, name: Optional[str]) -> None:
 
 
 def process_coverletter_edit_billing(email: str, name: Optional[str]) -> None:
+    # Check if payment method is required before proceeding
+    check_payment_method_required(email, name)
+    
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
@@ -435,6 +546,9 @@ def process_coverletter_edit_billing(email: str, name: Optional[str]) -> None:
 
 
 def process_resume_edit_billing(email: str, name: Optional[str]) -> None:
+    # Check if payment method is required before proceeding
+    check_payment_method_required(email, name)
+    
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
@@ -451,6 +565,9 @@ def process_resume_edit_billing(email: str, name: Optional[str]) -> None:
 
 
 def process_qa_edit_billing(email: str, name: Optional[str]) -> None:
+    # Check if payment method is required before proceeding
+    check_payment_method_required(email, name)
+    
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
