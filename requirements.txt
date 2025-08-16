@@ -89,3 +89,4 @@ uvloop==0.21.0
 watchfiles==1.0.0
 websockets==14.1
 sentry-sdk[fastapi]==2.33.0
+stripe==10.5.0

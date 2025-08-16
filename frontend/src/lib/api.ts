@@ -402,11 +402,18 @@ export const applications = {
     apiCall(`applications/resume/anonymous/${sessionId}`, 'GET', undefined, false),
 };
 
+// Billing endpoints
+export const billing = {
+  createCustomerPortalSession: (returnUrl?: string) => 
+    apiCall('billing/manage-subscription', 'POST', returnUrl ? { return_url: returnUrl } : {}),
+};
+
 export { applicationSessionManager };
 
 export default {
   auth,
   resume,
   applications,
-  preferences
+  preferences,
+  billing
 }; 
