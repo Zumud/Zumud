@@ -9,11 +9,13 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { billing } from "@/lib/api";
 
 interface SidebarProps {
   onLogout: () => void;
@@ -31,7 +33,28 @@ interface SidebarItem {
 export default function Sidebar({ onLogout, className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(true); // Default to collapsed
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const router = useRouter();
+
+  const handleManageSubscription = async () => {
+    try {
+      setIsLoadingPortal(true);
+      const response = await billing.createCustomerPortalSession();
+      
+      if (response && response.portal_url) {
+        // Redirect to Stripe Customer Portal
+        window.location.href = response.portal_url;
+      } else {
+        console.error('No portal URL received from API');
+        alert('Unable to open billing portal. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to create customer portal session:', error);
+      alert('Unable to open billing portal. Please try again.');
+    } finally {
+      setIsLoadingPortal(false);
+    }
+  };
 
   const sidebarItems: SidebarItem[] = [
     {
@@ -48,6 +71,11 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
       icon: User,
       label: "Profile",
       href: "/profile",
+    },
+    {
+      icon: CreditCard,
+      label: "Manage Subscription",
+      onClick: handleManageSubscription,
     },
     {
       icon: LogOut,
@@ -135,10 +163,13 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
                   item.variant === "destructive" && "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
                 )}
                 onClick={() => handleItemClick(item)}
+                disabled={item.label === "Manage Subscription" && isLoadingPortal}
               >
                 <item.icon className="h-4 w-4 flex-shrink-0" />
                 {!isCollapsed && (
-                  <span className="truncate">{item.label}</span>
+                  <span className="truncate">
+                    {item.label === "Manage Subscription" && isLoadingPortal ? "Opening..." : item.label}
+                  </span>
                 )}
               </Button>
             ))}
