@@ -73,3 +73,16 @@ STRIPE_QA_EDIT_PRICE_ID = getenv("STRIPE_QA_EDIT_PRICE_ID")
 STRIPE_QA_EDIT_PRODUCT_NAME = getenv("STRIPE_QA_EDIT_PRODUCT_NAME", "Q&A Edit Generation")
 STRIPE_QA_EDIT_METER_NAME = getenv("STRIPE_QA_EDIT_METER_NAME", "qa_edit_event")
 
+# Environment Configuration
+ENVIRONMENT = getenv("ENVIRONMENT", "development")
+
+# Frontend URL Configuration
+# Automatically determine the correct frontend URL based on environment
+if ENVIRONMENT.lower() == "production":
+    FRONTEND_URL = getenv("FRONTEND_URL", "https://zumud.com")
+else:
+    FRONTEND_URL = getenv("FRONTEND_URL", "http://localhost:3000")
+
+# Customer Portal Return URL
+CUSTOMER_PORTAL_RETURN_URL = f"{FRONTEND_URL}/dashboard"
+

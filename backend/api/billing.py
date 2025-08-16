@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from typing import Optional
 import logging
 
 from backend.api.auth import get_current_user
 from backend.models import db_models
 from backend.core.stripe_billing_service import create_customer_portal_session
+from backend.config.envs import CUSTOMER_PORTAL_RETURN_URL
+
+
+class CustomerPortalRequest(BaseModel):
+    return_url: Optional[str] = None
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -12,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/manage-subscription")
 async def manage_subscription(
-    return_url: str = Body(..., description="URL to redirect back to after portal session"),
+    request: CustomerPortalRequest,
     current_user: db_models.User = Depends(get_current_user)
 ):
     """
@@ -26,7 +33,7 @@ async def manage_subscription(
     - Manage tax information
     
     Args:
-        return_url: URL to redirect back to after the portal session (required)
+        request: Request body containing optional return_url (uses environment default if not provided)
         current_user: Authenticated user from JWT token
         
     Returns:
@@ -36,6 +43,9 @@ async def manage_subscription(
         HTTPException: If portal session creation fails
     """
     try:
+        # Use provided return_url or fall back to environment configuration
+        return_url = request.return_url or CUSTOMER_PORTAL_RETURN_URL
+        
         # Create customer portal session
         portal_url = create_customer_portal_session(
             email=current_user.email,
