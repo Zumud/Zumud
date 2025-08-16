@@ -16,6 +16,7 @@ from backend.utils.file_ops import extract_text_from_pdf
 from backend.utils.resume_formatter import format_resume_text
 from backend.core.ai_service import format_user_preferences
 from backend.core.storage_service import storage_service, safe_upload_with_fallback
+
 import logging
 
 router = APIRouter(prefix="/users", tags=["users"])

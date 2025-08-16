@@ -45,3 +45,44 @@ if not SECRET_KEY:
 ALGORITHM = getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
 
+# Stripe Configuration
+# We do not log or hardcode keys here. Values must come from the environment (.env).
+STRIPE_API_KEY = getenv("STRIPE_API_KEY") or getenv("STRIPE_SECRET_KEY")
+STRIPE_COVERLETTER_PRICE_ID = getenv("STRIPE_COVERLETTER_PRICE_ID")
+STRIPE_COVERLETTER_PRODUCT_NAME = getenv("STRIPE_COVERLETTER_PRODUCT_NAME", "CoverLetter Generation")
+STRIPE_COVERLETTER_METER_NAME = getenv("STRIPE_COVERLETTER_METER_NAME", "coverletter_event")
+
+# Additional products/meters
+STRIPE_RESUME_PRICE_ID = getenv("STRIPE_RESUME_PRICE_ID")
+STRIPE_RESUME_PRODUCT_NAME = getenv("STRIPE_RESUME_PRODUCT_NAME", "Resume Generation")
+STRIPE_RESUME_METER_NAME = getenv("STRIPE_RESUME_METER_NAME", "resume_event")
+
+STRIPE_QA_PRICE_ID = getenv("STRIPE_QA_PRICE_ID")
+STRIPE_QA_PRODUCT_NAME = getenv("STRIPE_QA_PRODUCT_NAME", "Q&A Generation")
+STRIPE_QA_METER_NAME = getenv("STRIPE_QA_METER_NAME", "qa_event")
+
+STRIPE_COVERLETTER_EDIT_PRICE_ID = getenv("STRIPE_COVERLETTER_EDIT_PRICE_ID")
+STRIPE_COVERLETTER_EDIT_PRODUCT_NAME = getenv("STRIPE_COVERLETTER_EDIT_PRODUCT_NAME", "CoverLetter Edit Generation")
+STRIPE_COVERLETTER_EDIT_METER_NAME = getenv("STRIPE_COVERLETTER_EDIT_METER_NAME", "coverletter_edit_event")
+
+STRIPE_RESUME_EDIT_PRICE_ID = getenv("STRIPE_RESUME_EDIT_PRICE_ID")
+STRIPE_RESUME_EDIT_PRODUCT_NAME = getenv("STRIPE_RESUME_EDIT_PRODUCT_NAME", "Resume Edit Generation")
+STRIPE_RESUME_EDIT_METER_NAME = getenv("STRIPE_RESUME_EDIT_METER_NAME", "resume_edit_event")
+
+STRIPE_QA_EDIT_PRICE_ID = getenv("STRIPE_QA_EDIT_PRICE_ID")
+STRIPE_QA_EDIT_PRODUCT_NAME = getenv("STRIPE_QA_EDIT_PRODUCT_NAME", "Q&A Edit Generation")
+STRIPE_QA_EDIT_METER_NAME = getenv("STRIPE_QA_EDIT_METER_NAME", "qa_edit_event")
+
+# Environment Configuration
+ENVIRONMENT = getenv("ENVIRONMENT", "development")
+
+# Frontend URL Configuration
+# Automatically determine the correct frontend URL based on environment
+if ENVIRONMENT.lower() == "production":
+    FRONTEND_URL = getenv("FRONTEND_URL", "https://zumud.com")
+else:
+    FRONTEND_URL = getenv("FRONTEND_URL", "http://localhost:3000")
+
+# Customer Portal Return URL
+CUSTOMER_PORTAL_RETURN_URL = f"{FRONTEND_URL}/dashboard"
+

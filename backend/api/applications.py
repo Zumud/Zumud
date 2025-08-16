@@ -1,14 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, status, Query, File, UploadFile, Form, Body
 from datetime import datetime, timedelta
 from fastapi.responses import FileResponse, PlainTextResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 from typing import Optional
 import uuid
 import os
 import json
 import base64
-import tempfile
 import logging
 
 from backend.api.auth import get_current_user
@@ -16,11 +14,20 @@ from backend.core import ai_service
 from backend.models.ai_models import AIModel
 from backend.models.tailoring_options import TailoringOptionsBase
 from backend.models.user_models import UserTemplate, UserTemplateCreate, UserTemplateUpdate
-from backend.utils.file_ops import PDFGenerator, save_pdf, extract_text_from_pdf, save_application_qa
+from backend.utils.file_ops import PDFGenerator, save_pdf, extract_text_from_pdf
 from backend.utils.path_ops import create_new_application_path, get_current_application_path, get_current_session_info, extract_company_from_local_path, get_or_create_application, create_session_aware_path
 from backend.models import db_models
 from backend.models.db import get_db
 from backend.core.storage_service import storage_service, safe_upload_with_fallback
+from backend.core.stripe_billing_service import (
+    process_coverletter_billing,
+    process_resume_billing,
+    process_qa_billing,
+    process_coverletter_edit_billing,
+    process_resume_edit_billing,
+    process_qa_edit_billing,
+    check_payment_method_required
+)
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -34,6 +41,9 @@ def generate_tailored_plain_resume(
     db: Session = Depends(get_db)
 ) -> str:
     """Generate a tailored plain text resume based on job description"""
+    # Check if payment method is required before generation
+    check_payment_method_required(email=current_user.email, name=current_user.username)
+    
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -54,13 +64,19 @@ def generate_tailored_plain_resume(
         user_preferences = preferences.preferences_text
 
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
-    return ai_service.generate_tailored_resume_text(
+    result = ai_service.generate_tailored_resume_text(
         current_user.resumes.resume_content,
         job_description,
         tailoring_options.ai_model,
         tailoring_options.resume_template,
         user_preferences
     )
+    # Stripe metered billing (non-blocking; logs on failure)
+    try:
+        process_resume_billing(email=current_user.email, name=current_user.username)
+    except Exception as e:
+        logger.error(f"Stripe billing flow failed for resume generation: {e}")
+    return result
 
 @router.get("/cover-letter/plain")
 def generate_tailored_plain_coverletter(
@@ -68,6 +84,8 @@ def generate_tailored_plain_coverletter(
     is_new_application: Optional[bool] = Query(None, description="Whether to create a new job application. If not provided, reuses existing application if available."),
     current_user = Depends(get_current_user)
 ) -> str:
+    # Check if payment method is required before generation
+    check_payment_method_required(email=current_user.email, name=current_user.username)
     """Generate a tailored plain text cover letter based on job description"""
     if not current_user.resumes:
         raise HTTPException(
@@ -132,6 +150,12 @@ def generate_tailored_plain_coverletter(
         # Log the error but don't fail the request
         logger.error(f"Cloud storage upload failed for cover letter generation: {e}")
     
+    # Stripe metered billing (non-blocking; logs on failure)
+    try:
+        process_coverletter_billing(email=current_user.email, name=current_user.username)
+    except Exception as e:
+        logger.error(f"Stripe billing flow failed for cover letter generation: {e}")
+    
     return cover_letter_text
 
 @router.get("/cover-letter/pdf", response_class=FileResponse)
@@ -176,6 +200,9 @@ async def generate_and_save_pdf_resume(
     db: Session = Depends(get_db)
 ):
     """Generate a tailored resume and return it as a PDF file"""
+    # Check if payment method is required before generation
+    check_payment_method_required(email=current_user.email, name=current_user.username)
+    
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -246,6 +273,13 @@ async def generate_and_save_pdf_resume(
     name = structured_resume.get('personal_info', {}).get('name', '') if structured_resume.get('personal_info', {}).get('name') else ''
     # Generate timestamp for filename
     timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
+
+    # Stripe metered billing (non-blocking; logs on failure). Ensure subscription exists before responding
+    try:
+        process_resume_billing(email=current_user.email, name=current_user.username)
+    except Exception as e:
+        logger.error(f"Stripe billing flow failed for resume PDF generation: {e}")
+
     # Return the PDF file directly
     return FileResponse(
         path=pdf_file_path,
@@ -326,6 +360,8 @@ def answer_application_questions(
     is_new_application: Optional[bool] = Query(None, description="Whether to create a new job application. If not provided, reuses existing application if available."),
     current_user = Depends(get_current_user)
 ) -> str:
+    # Check if payment method is required before generation
+    check_payment_method_required(email=current_user.email, name=current_user.username)
     """Generate answers for job application questions based on resume and job description"""
     if not current_user.resumes:
         raise HTTPException(
@@ -376,6 +412,12 @@ def answer_application_questions(
     except Exception as e:
         # Log the error but don't fail the request
         logger.error(f"Cloud storage upload failed for question-answer: {e}")
+    
+    # Stripe metered billing (non-blocking; logs on failure)
+    try:
+        process_qa_billing(email=current_user.email, name=current_user.username)
+    except Exception as e:
+        logger.error(f"Stripe billing flow failed for Q&A generation: {e}")
     
     return answer
 
@@ -439,6 +481,9 @@ async def edit_resume_with_instructions(
     db: Session = Depends(get_db)
 ):
     """Update a resume JSON based on free-form text instructions and return the updated PDF"""
+    # Check if payment method is required before generation
+    check_payment_method_required(email=current_user.email, name=current_user.username)
+    
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -560,6 +605,12 @@ async def edit_resume_with_instructions(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+    finally:
+        # Stripe metered billing (non-blocking; logs on failure)
+        try:
+            process_resume_edit_billing(email=current_user.email, name=current_user.username)
+        except Exception as be:
+            logger.error(f"Stripe billing flow failed for resume edit: {be}")
 
 @router.get("/resume/json")
 def get_latest_resume_json(
@@ -593,6 +644,9 @@ async def edit_cover_letter_with_instructions(
     current_user = Depends(get_current_user)
 ):
     """Update a cover letter based on free-form text instructions and return the updated PDF"""
+    # Check if payment method is required before generation
+    check_payment_method_required(email=current_user.email, name=current_user.username)
+    
     # Get the current application path to read the existing cover letter
     current_save_path = get_current_application_path(current_user.username)
     
@@ -716,6 +770,12 @@ async def edit_cover_letter_with_instructions(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update cover letter: {str(e)}"
         )
+    finally:
+        # Stripe metered billing (non-blocking; logs on failure)
+        try:
+            process_coverletter_edit_billing(email=current_user.email, name=current_user.username)
+        except Exception as be:
+            logger.error(f"Stripe billing flow failed for cover letter edit: {be}")
 
 @router.get("/cover-letter/text", response_class=PlainTextResponse)
 def get_cover_letter_text_content(
@@ -756,6 +816,8 @@ def edit_answer_with_instructions(
     current_user = Depends(get_current_user)
 ) -> str:
     """Edit an existing answer based on user instructions"""
+    # Check if payment method is required before generation
+    check_payment_method_required(email=current_user.email, name=current_user.username)
     if not current_user.resumes:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -821,6 +883,12 @@ def edit_answer_with_instructions(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+    finally:
+        # Stripe metered billing (non-blocking; logs on failure)
+        try:
+            process_qa_edit_billing(email=current_user.email, name=current_user.username)
+        except Exception as be:
+            logger.error(f"Stripe billing flow failed for Q&A edit: {be}")
 
 # Template Management Endpoints
 
