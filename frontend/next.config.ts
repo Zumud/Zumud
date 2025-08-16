@@ -36,6 +36,10 @@ const nextConfig = {
         destination: `${apiUrl}/users/:path*`,
       },
       {
+        source: '/billing/:path*',
+        destination: `${apiUrl}/billing/:path*`,
+      },
+      {
         source: '/ingest/static/:path*',
         destination: 'https://eu-assets.i.posthog.com/static/:path*',
       },
