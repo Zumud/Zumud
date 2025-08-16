@@ -291,7 +291,7 @@ def check_payment_method_required(email: str, name: Optional[str]) -> None:
                 # No payment method available, but charge would be required
                 amount_euros = amount_due / 100  # Convert cents to euros
                 raise PaymentMethodRequiredException(
-                    f"Please add a payment method to continue. Your next charge will be €{amount_euros:.2f}",
+                    f"Please add a payment method to continue. Your current balance is €{amount_euros:.2f}",
                     amount_euros
                 )
         
@@ -308,6 +308,42 @@ def check_payment_method_required(email: str, name: Optional[str]) -> None:
         # For any other error, log and allow generation (fail-open)
         logger.error(f"Failed to check payment method requirement for {email}: {e}")
         return
+
+
+def create_customer_portal_session(email: str, name: Optional[str], return_url: str) -> Optional[str]:
+    """
+    Create a Stripe Customer Portal session for the user to manage their billing.
+    
+    Args:
+        email: Customer email address
+        name: Optional customer name
+        return_url: URL to redirect back to after portal session (required)
+        
+    Returns:
+        Portal session URL if successful, None if failed
+    """
+    if not _init_stripe_client():
+        logger.error("Stripe client not initialized for customer portal session")
+        return None
+    
+    customer = _get_or_create_customer(email=email, name=name)
+    if customer is None:
+        logger.error(f"Failed to get or create customer for {email}")
+        return None
+    
+    try:
+        # Create a billing portal session
+        session = stripe.billing_portal.Session.create(  # type: ignore[attr-defined]
+            customer=customer["id"],
+            return_url=return_url,
+        )
+        
+        logger.info(f"Created customer portal session for {email}: {session['id']}")
+        return session["url"]
+        
+    except Exception as e:
+        logger.error(f"Failed to create customer portal session for {email}: {e}")
+        return None
 
 
 def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[str]) -> Tuple[Optional[object], Dict[str, Optional[str]]]:
