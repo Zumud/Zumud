@@ -291,7 +291,7 @@ def check_payment_method_required(email: str, name: Optional[str]) -> None:
                 # No payment method available, but charge would be required
                 amount_euros = amount_due / 100  # Convert cents to euros
                 raise PaymentMethodRequiredException(
-                    f"Please add a payment method to continue. Your current balance is €{amount_euros:.2f}",
+                    f"Please add a payment method to continue. Your current balance is -€{amount_euros:.2f}",
                     amount_euros
                 )
         
