@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
-import { applications, preferences } from "@/lib/api"
+import { applications, preferences, billing } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import PreferencesPrompt from "@/components/ui/preferences-prompt"
 import InlineResumeProgress from "@/components/ui/inline-resume-progress"
@@ -21,7 +21,8 @@ import {
   Mail,
   HelpCircle,
   Send,
-  Sparkles
+  Sparkles,
+  CreditCard
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -44,6 +45,8 @@ export default function Dashboard() {
   const [isDownloadingCoverLetter, setIsDownloadingCoverLetter] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isAuthError, setIsAuthError] = useState(false)
+  const [isPaymentError, setIsPaymentError] = useState(false)
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false)
   const [isPreparingOverleaf, setIsPreparingOverleaf] = useState(false)
   const [editInstruction, setEditInstruction] = useState("")
   const [isEditingResume, setIsEditingResume] = useState(false)
@@ -112,12 +115,45 @@ export default function Dashboard() {
     router.push('/')
   }
 
+  // Handle payment method portal
+  const handleAddPaymentMethod = async () => {
+    try {
+      setIsLoadingPortal(true)
+      const response = await billing.createCustomerPortalSession()
+      
+      if (response && response.portal_url) {
+        // Redirect to Stripe Customer Portal payment methods page directly
+        const paymentMethodsUrl = `${response.portal_url}/payment-methods`
+        window.location.href = paymentMethodsUrl
+      } else {
+        console.error('No portal URL received from API')
+        alert('Unable to open billing portal. Please try again.')
+      }
+    } catch (error) {
+      console.error('Failed to create customer portal session:', error)
+      alert('Unable to open billing portal. Please try again.')
+    } finally {
+      setIsLoadingPortal(false)
+    }
+  }
+
   // Reusable function to handle errors, especially timeouts
   const handleError = (err: any, defaultMessage: string) => {
     console.error(defaultMessage, err)
     
-    // Check if this is an authentication error
+    // Check if this is a payment method error
     if (err.message && (
+        err.message.includes('payment method') || 
+        err.message.includes('add a payment') ||
+        err.message.includes('current balance') ||
+        err.message.includes('€') ||
+        err.message.includes('402')
+    )) {
+      // Show payment error message with add payment method option
+      setError(err.message)
+      setIsPaymentError(true)
+      setIsAuthError(false)
+    } else if (err.message && (
         err.message.includes('session has expired') || 
         err.message.includes('login') || 
         err.message.includes('token') || 
@@ -127,9 +163,11 @@ export default function Dashboard() {
       // Show authentication error message with login option
       setError('Your session has expired. Please log in again to continue.')
       setIsAuthError(true)
+      setIsPaymentError(false)
     } else if (err.name === 'AbortError' || (err.message && err.message.includes("took too long to complete"))) {
       setError("Timeout: The request took too long to complete. Try again with a shorter job description.")
       setIsAuthError(false)
+      setIsPaymentError(false)
     } else if (err.message && (
       err.message.includes("414") || 
       err.message.includes("Request-URI Too Large") || 
@@ -138,9 +176,11 @@ export default function Dashboard() {
     )) {
       setError("The job description you provided is too long to process. Please try shortening it.")
       setIsAuthError(false)
+      setIsPaymentError(false)
     } else {
       setError(err.message || defaultMessage)
       setIsAuthError(false)
+      setIsPaymentError(false)
     }
   }
 
@@ -553,17 +593,40 @@ export default function Dashboard() {
                 <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
-                  {isAuthError && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={redirectToLogin}
-                      className="mt-2 text-red-600 border-red-300 hover:bg-red-50"
-                    >
-                      <LogIn className="h-4 w-4 mr-2" />
-                      Log in again
-                    </Button>
-                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {isAuthError && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={redirectToLogin}
+                        className="text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-900/30"
+                      >
+                        <LogIn className="h-4 w-4 mr-2" />
+                        Log in again
+                      </Button>
+                    )}
+                    {isPaymentError && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddPaymentMethod}
+                        disabled={isLoadingPortal}
+                        className="text-red-600 border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-900/30 font-medium"
+                      >
+                        {isLoadingPortal ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Opening...
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Add Payment Method
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
