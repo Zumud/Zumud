@@ -13,7 +13,11 @@ OPEN_AI_KEY = getenv("OPEN_AI_KEY")  # Put your open AI key here
 GMAIL_APP_PASSWORD = getenv("GMAIL_APP_PASSWORD")  # Put your gmail app password here
 ADD_GDRIVE_ZAP_URL = getenv("ADD_GDRIVE_ZAP_URL")  # Put zappier webhook workflow here, This webhook uploads the file to GDrive
 LaTeX_COMPILER_URL_TEXT = "https://texlive2020.latexonline.cc/compile?command=pdflatex&text="
-LaTeX_COMPILER_URL_DATA = "http://zumud.com:2700/data?target={tex_folder_path}&force=true&command={compiler}"
+# Base URL of the self-hosted latex-online compiler (aslushnikov/latex-online).
+# Defaults to localhost so production VPS deployments work without any extra config;
+# override LATEX_COMPILER_BASE_URL in .env for local dev (e.g. point at a remote VPS).
+LATEX_COMPILER_BASE_URL = getenv("LATEX_COMPILER_BASE_URL", "http://127.0.0.1:2700")
+LaTeX_COMPILER_URL_DATA = LATEX_COMPILER_BASE_URL + "/data?target={tex_folder_path}&force=true&command={compiler}"
 
 # Supabase Configuration
 SUPABASE_URL = getenv("SUPABASE_URL")
