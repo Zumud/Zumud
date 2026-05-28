@@ -1,0 +1,75 @@
+# REFERENCE TEMPLATE — NOT THE CANONICAL UNIT.
+#
+# The live VPS already runs `zumud-backend.service` (different user, paths,
+# and a simpler config). Do NOT `systemctl enable` this file alongside the
+# existing unit — both would try to bind 127.0.0.1:8000 and fight for it.
+#
+# This file documents the hardened settings (MemoryMax, ProtectSystem,
+# auto-restart on crash, Sentry sample rates, multi-worker, low log noise)
+# that the live unit should be migrated toward over time. Treat it as a
+# checklist, not as a drop-in.
+
+[Unit]
+Description=Zumud FastAPI backend (api.zumud.com)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# --- adjust these to match your server ---
+User=zumud
+Group=zumud
+WorkingDirectory=/opt/zumud
+
+# Use the project's virtualenv. Update the path if you put the venv elsewhere.
+Environment="PATH=/opt/zumud/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+EnvironmentFile=/opt/zumud/.env
+
+# Production-safe defaults. Override any of these in .env if needed.
+Environment="ENVIRONMENT=production"
+Environment="LOG_LEVEL=INFO"
+Environment="WEB_CONCURRENCY=2"
+Environment="HOST=0.0.0.0"
+Environment="PORT=8000"
+# Sentry sample rates (0.1 = 10%) - keep low in production:
+Environment="SENTRY_TRACES_SAMPLE_RATE=0.1"
+Environment="SENTRY_PROFILES_SAMPLE_RATE=0.1"
+
+ExecStart=/opt/zumud/.venv/bin/uvicorn backend.main:app \
+    --host ${HOST} \
+    --port ${PORT} \
+    --workers ${WEB_CONCURRENCY} \
+    --proxy-headers \
+    --forwarded-allow-ips="*" \
+    --timeout-keep-alive 30 \
+    --log-level info
+
+# --- resilience ---
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=0
+
+# Kill any worker that hangs longer than 90s on shutdown
+TimeoutStopSec=90
+KillSignal=SIGTERM
+KillMode=mixed
+
+# --- safety / hardening ---
+# Restart automatically when memory runs away (tweak to your VPS size)
+MemoryMax=80%
+MemoryHigh=70%
+
+# Restrict filesystem writes to the project directory and /tmp
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+
+# Cap the journal noise from this unit
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zumud-api
+
+[Install]
+WantedBy=multi-user.target

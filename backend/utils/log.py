@@ -3,7 +3,18 @@ import sys
 import logging
 import re
 from loguru import logger
-from backend.config.config import LOG_FOLDER, LOG_LEVEL, LOG_FORMAT
+from backend.config.config import (
+    LOG_FOLDER,
+    LOG_LEVEL,
+    LOG_FORMAT,
+    NOISY_LIBRARY_LOGGERS,
+)
+
+# `diagnose=True` causes loguru to inline every local variable into tracebacks.
+# That is helpful in development but in production it can dump secrets (tokens,
+# passwords) into log files and bloat them. Off by default; opt in with
+# LOG_DIAGNOSE=1.
+DIAGNOSE = os.getenv("LOG_DIAGNOSE", "0") == "1"
 
 # Create log directory
 os.makedirs(LOG_FOLDER, exist_ok=True)
@@ -18,8 +29,10 @@ logger.add(
     format=LOG_FORMAT,
     rotation="10 MB",
     retention="1 week",
+    compression="gz",
     backtrace=True,
-    diagnose=True
+    diagnose=DIAGNOSE,
+    enqueue=True,  # write off the request thread so a slow disk can't stall the API
 )
 
 # Add console handler
@@ -28,7 +41,8 @@ logger.add(
     level=LOG_LEVEL,
     format=LOG_FORMAT,
     backtrace=True,
-    diagnose=True
+    diagnose=DIAGNOSE,
+    enqueue=True,
 )
 
 # Intercept standard library logging
@@ -51,6 +65,12 @@ logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 for name in ["uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"]:
     logging.getLogger(name).handlers = [InterceptHandler()]
     logging.getLogger(name).propagate = False
+
+# Force noisy libraries (httpx/httpcore/hpack/...) up to WARNING regardless of
+# the global LOG_LEVEL. These emit per-request hex dumps that destroy log disks
+# and obscure real errors.
+for name in NOISY_LIBRARY_LOGGERS:
+    logging.getLogger(name).setLevel(logging.WARNING)
 
 # Capture stdout/stderr
 class SmartCaptureHandler:
