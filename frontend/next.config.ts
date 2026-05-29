@@ -3,10 +3,6 @@ import type { NextConfig } from "next";
 // Using type assertion to avoid TypeScript errors with new config options
 const nextConfig = {
   /* config options here */
-  // Disable ESLint during production builds
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Disable TypeScript errors during builds
   typescript: {
     ignoreBuildErrors: true,
@@ -59,7 +55,10 @@ const nextConfig = {
 
   // Optimize images for better performance
   images: {
-    domains: ['zumud.com'],
+    // `domains` was removed in Next.js 16; use remotePatterns instead.
+    remotePatterns: [
+      { protocol: 'https', hostname: 'zumud.com' },
+    ],
     formats: ['image/avif', 'image/webp'],
   },
 
