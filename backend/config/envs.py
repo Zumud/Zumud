@@ -21,8 +21,14 @@ LaTeX_COMPILER_URL_DATA = LATEX_COMPILER_BASE_URL + "/data?target={tex_folder_pa
 
 # Supabase Configuration
 SUPABASE_URL = getenv("SUPABASE_URL")
-SUPABASE_ANON_KEY = getenv("SUPABASE_ANON_KEY")
-SUPABASE_SERVICE_ROLE_KEY = getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+# API keys. Supabase deprecated the JWT-based anon/service_role keys in favour of
+# publishable (sb_publishable_...) and secret (sb_secret_...) keys. Prefer the new
+# keys; fall back to the legacy names so the app keeps working during migration.
+# https://supabase.com/docs/guides/getting-started/api-keys
+SUPABASE_PUBLISHABLE_KEY = getenv("SUPABASE_PUBLISHABLE_KEY") or getenv("SUPABASE_ANON_KEY")
+SUPABASE_SECRET_KEY = getenv("SUPABASE_SECRET_KEY") or getenv("SUPABASE_SERVICE_ROLE_KEY")
+
 DATABASE_URL = getenv("DATABASE_URL")  # PostgreSQL connection string
 
 # Validate required Supabase environment variables
