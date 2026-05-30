@@ -3,14 +3,14 @@
 <div align="center">
 
 ![Zumud Logo](/frontend/public/logos/zumud/combined.svg)
-![Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg?style=for-the-badge)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg?style=for-the-badge)](https://www.python.org/downloads/)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/agpl-3.0)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg?style=for-the-badge)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Next.js](https://img.shields.io/badge/Next.js-14.0.0+-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.0.0+-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 
 </div>
 
-**Zumud** is a proprietary platform that helps job seekers automatically generate customized resumes and cover letters tailored to specific job descriptions using AI.
+**Zumud** is an open-source platform that helps job seekers automatically generate customized resumes and cover letters tailored to specific job descriptions using AI.
 
 ## 🌟 Features
 
@@ -72,9 +72,10 @@ Zumud consists of two main components:
 
 Before you begin, ensure you have the following installed:
 
-- Python 3.9 or later
-- Node.js 18.0.0 or later
+- Python 3.12
+- Node.js 20 or later
 - Git
+- A Supabase project (Postgres database)
 - Virtual environment tool (`venv`, `virtualenv`, etc.)
 
 ## 📦 Installation
@@ -106,23 +107,20 @@ npm install
 
 ## 🔑 Environment Variables
 
-Create a `.env` file in the root directory with the following required variables:
+Copy the example files and fill in your own values:
 
-```
-# Required
-OPEN_AI_KEY=your_openai_api_key
-GMAIL_APP_PASSWORD=your_gmail_app_password
-ADD_GDRIVE_ZAP_URL=your_zapier_webhook_url
-
-# Optional - only required for production environments
-SECRET_KEY=your_secret_key_for_jwt  # Auto-generated if not set
-ALGORITHM=HS256  # Default value
-ACCESS_TOKEN_EXPIRE_MINUTES=720  # Default value
+```bash
+cp .env.example .env                      # backend (repo root)
+cp frontend/.env.example frontend/.env    # frontend
 ```
 
-> ⚠️ **Note**: 
-> - Never commit your `.env` file to version control.
-> - For production environments, it's recommended to set a permanent SECRET_KEY to prevent users from being logged out when the server restarts.
+`.env.example` documents every variable. At minimum the backend needs
+`DATABASE_URL` (Supabase Postgres), `OPEN_AI_KEY`, and `SECRET_KEY`; see the
+file for the full list and which features each optional variable enables.
+
+> ⚠️ **Note**:
+> - Never commit your `.env` file to version control (it is gitignored).
+> - For production, set a permanent `SECRET_KEY` so users aren't logged out on restart.
 
 ## 🏃‍♂️ Running the Application
 
@@ -173,7 +171,13 @@ Join our community to get help, share ideas, and collaborate:
 
 ## 📄 License
 
-This project is proprietary software with all rights reserved. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** — see the [LICENSE](LICENSE) file.
+
+In short: you may use, modify, and self-host Zumud, but if you run a modified version as a network service, you must make your modified source available to its users under the same license.
+
+## 🔒 Security
+
+Found a vulnerability? Please report it privately — see [SECURITY.md](SECURITY.md). Do not open a public issue for security reports.
 
 ---
 
