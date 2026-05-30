@@ -8,6 +8,11 @@ from backend.config.config import LOG_FOLDER, LOG_LEVEL, LOG_FORMAT
 # Create log directory
 os.makedirs(LOG_FOLDER, exist_ok=True)
 
+# loguru `diagnose` inlines local variable values into exception tracebacks:
+# very helpful in local dev, but a secret-leak risk in production (DB URL, keys,
+# tokens held in frame locals get written to logs). Enabled outside production only.
+DIAGNOSE = os.getenv("ENVIRONMENT", "development").lower() != "production"
+
 # Configure loguru
 logger.remove()  # Remove default handler
 
@@ -19,7 +24,7 @@ logger.add(
     rotation="10 MB",
     retention="1 week",
     backtrace=True,
-    diagnose=False  # do NOT inline local variables into tracebacks (would leak secrets)
+    diagnose=DIAGNOSE
 )
 
 # Add console handler
@@ -28,7 +33,7 @@ logger.add(
     level=LOG_LEVEL,
     format=LOG_FORMAT,
     backtrace=True,
-    diagnose=False  # do NOT inline local variables into tracebacks (would leak secrets)
+    diagnose=DIAGNOSE
 )
 
 # Intercept standard library logging
