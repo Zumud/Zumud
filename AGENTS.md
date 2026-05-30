@@ -1,6 +1,6 @@
 # Agent Context — Zumud
 
-AI resume / cover-letter tailoring. FastAPI + Next.js 15 + Supabase Postgres. Self-hosted on a single VPS behind Cloudflare.
+AI resume / cover-letter tailoring. FastAPI + Next.js 16 + Supabase Postgres. Self-hosted on a single VPS behind Cloudflare.
 
 > A second file at `.cursor/rules/local-context.mdc` may exist on a maintainer's machine with deployment specifics and current production posture. It is gitignored; do not assume contributors have it.
 
@@ -8,9 +8,9 @@ AI resume / cover-letter tailoring. FastAPI + Next.js 15 + Supabase Postgres. Se
 
 | | Tech | Notes |
 |---|---|---|
-| Frontend | Next.js 15 (App Router) + React 19 + Tailwind 4 | `next start` behind Caddy |
+| Frontend | Next.js 16 (App Router) + React 19 + Tailwind 4 | `next start` behind Caddy |
 | Backend | FastAPI / uvicorn, SQLAlchemy 2 | 2 workers in prod |
-| DB | Supabase Postgres | Custom username/password auth in `users.password` (bcrypt); `auth.users` is unused |
+| DB | Supabase Postgres | Custom username/password auth in `users.password` (bcrypt via pwdlib); `auth.users` is unused |
 | LaTeX | Self-hosted `aslushnikov/latex-online` rebuild on `islandoftex/texlive:TL2024-historic` | Loopback-only on `127.0.0.1:2700` |
 | Reverse proxy | Caddy + Let's Encrypt | |
 
@@ -51,10 +51,10 @@ docker run -d --name zumud-latex -p 127.0.0.1:2700:2700 <your-built-image>
 
 - **Schema is managed by `Base.metadata.create_all()` at startup.** No Alembic, no migration history. Adding a column = nullable + backfill manually. Modifying or dropping a column = manual SQL.
 - **Supabase storage is write-only in the code.** No `download` / `list` / `get_signed_url` calls anywhere. All user-facing PDFs/TeX/JSON are served from local `/Applications/` on the deploy host. The bucket is effectively a write-only archive.
-- **`next.config.ts` silences ESLint and TS errors at build time** (`ignoreDuringBuilds`, `ignoreBuildErrors`). Real bugs will ship if you rely on the build to catch them.
-- **CORS is `allow_origins=["*"]`** in `backend/main.py` — intentional during launch; tighten before adding cross-origin-sensitive endpoints.
+- **`next.config.ts` sets `typescript.ignoreBuildErrors`** — real TS type errors still ship. (Next 16 decoupled ESLint from the build; run `npm run lint` separately.)
+- **CORS** is restricted to the frontend origins via `CORS_ALLOWED_ORIGINS` (defaults to `https://zumud.com,https://www.zumud.com` in prod). Add new allowed origins there — do not revert to a wildcard (invalid with credentials anyway).
 - **Upstream `aslushnikov/latex-online` is abandoned.** Don't `docker pull` it — we maintain our own image. Source for the modified Dockerfile lives under `~/latex-online-src/` on the deploy host.
-- **`requirements.txt` carries unused `streamlit` and `altair`** (~150 MB) — backend doesn't import them. Safe to drop next time the file is touched.
+- **`requirements.txt` is a full pinned freeze** (Python 3.12 target). Regenerate via `pip freeze` after dependency changes; the set is verified clean with `pip-audit`.
 
 ## Process management
 
@@ -75,4 +75,4 @@ systemctl restart zumud-backend zumud-frontend
 
 ## Backlog
 
-A maintainer roadmap is tracked separately (see `.cursor/rules/local-context.mdc` if available). High-level themes, roughly in priority order: external monitoring, feature flags (billing, cloud-backup), RLS policies on user tables, CORS lockdown, replace abandoned latex-online upstream, introduce Alembic.
+A maintainer roadmap is tracked separately (see `.cursor/rules/local-context.mdc` if available). High-level themes, roughly in priority order: external uptime monitoring, RLS policies on user tables, a `BILLING_ENABLED` feature flag, dropping legacy prod DB columns, and (optional) CI/CD + staging + Alembic.
