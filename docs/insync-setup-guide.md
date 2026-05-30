@@ -116,6 +116,7 @@ insync-headless account add --cloud gd
 ```bash
 # Replace YOUR_AUTH_CODE with the actual code
 insync-headless account add --cloud gd --auth-code "YOUR_AUTH_CODE"
+# Replace your-account@gmail.com below with the Google account you authorized.
 ```
 
 ### Verify Account Addition
@@ -125,7 +126,7 @@ insync-headless account add --cloud gd --auth-code "YOUR_AUTH_CODE"
 insync-headless account list
 
 # Expected output:
-# noreply@example.com (Google Drive)
+# your-account@gmail.com (Google Drive)
 ```
 
 ## Folder Sync Configuration
@@ -134,7 +135,7 @@ insync-headless account list
 
 ```bash
 # Open selective sync for your account
-insync-headless selective-sync --account noreply@example.com --cloud gd
+insync-headless selective-sync --account your-account@gmail.com --cloud gd
 ```
 
 ### Understanding the Interface
@@ -209,7 +210,7 @@ ps aux | grep insync
 
 ```bash
 # Check InSync's default sync location
-ls -la /root/Insync-headless/noreply@example.com/Google\ Drive/
+ls -la /root/Insync-headless/your-account@gmail.com/Google\ Drive/
 
 # Check your custom sync location
 ls -la /root/Zumud/Applications/
@@ -280,7 +281,7 @@ show_status() {
 # Function to open selective sync
 open_selective_sync() {
     echo "Opening selective sync interface..."
-    insync-headless selective-sync --account noreply@example.com --cloud gd
+    insync-headless selective-sync --account your-account@gmail.com --cloud gd
 }
 
 # Function to pause/resume sync

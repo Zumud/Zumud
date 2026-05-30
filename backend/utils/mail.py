@@ -1,3 +1,4 @@
+import os
 import smtplib
 from os.path import basename
 from email.mime.application import MIMEApplication
@@ -7,7 +8,13 @@ from email.utils import COMMASPACE, formatdate
 
 from config.envs import GMAIL_APP_PASSWORD
 
-def send_mail(send_from = "noreply@example.com", send_to=["noreply@example.com"], subject="TestTailoredResume", text="This is a test email!", files=None, server="smtp.gmail.com", port=465):
+# Sender/recipient come from the environment; fall back to a neutral placeholder
+# so no real address is hardcoded in the source.
+DEFAULT_SENDER = os.getenv("EMAIL_SENDER", "noreply@example.com")
+
+def send_mail(send_from=None, send_to=None, subject="TestTailoredResume", text="This is a test email!", files=None, server="smtp.gmail.com", port=465):
+    send_from = send_from or DEFAULT_SENDER
+    send_to = send_to or [DEFAULT_SENDER]
     assert isinstance(send_to, list)
 
     msg = MIMEMultipart()
