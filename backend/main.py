@@ -48,19 +48,27 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Get allowed origins from environment or use wildcard for development
+# Allowed CORS origins = the frontend sites whose browser JS may read API
+# responses. NOT a wildcard in production: only our own frontend should be
+# permitted (a wildcard also can't be combined with allow_credentials).
+# Override with CORS_ALLOWED_ORIGINS (comma-separated) if domains change.
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-if ENVIRONMENT == "production":
-    # In production, allow the frontend domain on the same machine
+_cors_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if _cors_env.strip():
+    allowed_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+elif ENVIRONMENT == "production":
     allowed_origins = [
-        "http://localhost:3000",  # For local testing
-        "http://localhost",       # Base URL without port
-        "https://localhost",      # Secure version
-        "*"                       # Allow all origins temporarily while debugging
+        "https://zumud.com",
+        "https://www.zumud.com",
     ]
 else:
-    # In development, allow all origins
-    allowed_origins = ["*"]
+    # In development, the local frontend dev server
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
+logger.info(f"CORS allowed origins ({ENVIRONMENT}): {allowed_origins}")
 
 # Configure CORS
 app.add_middleware(
