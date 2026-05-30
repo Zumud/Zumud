@@ -160,7 +160,7 @@ The selective sync interface shows:
 3. **Set custom location** (if needed):
    - Highlight the folder
    - Press **Ctrl+S** (^S: Sync folder to custom location...)
-   - Enter local path (e.g., `/root/Zumud/Applications`)
+   - Enter local path (e.g., `/home/youruser/Zumud/Applications`)
 4. **Save configuration** by pressing OK
 
 ### Sync Direction
@@ -210,10 +210,10 @@ ps aux | grep insync
 
 ```bash
 # Check InSync's default sync location
-ls -la /root/Insync-headless/your-account@gmail.com/Google\ Drive/
+ls -la /home/youruser/Insync-headless/your-account@gmail.com/Google\ Drive/
 
 # Check your custom sync location
-ls -la /root/Zumud/Applications/
+ls -la /home/youruser/Zumud/Applications/
 
 # Check Google Drive via rclone (if configured)
 rclone ls gdrive:Applications/
@@ -236,10 +236,10 @@ insync-headless status
 ### Comprehensive Management Script
 
 ```bash
-cat > /root/insync_management.sh << 'EOF'
+cat > /home/youruser/insync_management.sh << 'EOF'
 #!/bin/bash
 
-LOG_FILE="/root/insync_sync.log"
+LOG_FILE="/home/youruser/insync_sync.log"
 
 log_message() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
@@ -300,7 +300,7 @@ test_sync() {
     log_message "Testing sync functionality..."
     
     # Create test file
-    TEST_FILE="/root/Zumud/Applications/insync_test_$(date +%s).txt"
+    TEST_FILE="/home/youruser/Zumud/Applications/insync_test_$(date +%s).txt"
     echo "Test file created at $(date)" > "$TEST_FILE"
     
     echo "Created test file: $TEST_FILE"
@@ -371,7 +371,7 @@ case "$1" in
 esac
 EOF
 
-chmod +x /root/insync_management.sh
+chmod +x /home/youruser/insync_management.sh
 ```
 
 ### Automated Sync Service
@@ -385,9 +385,9 @@ After=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/root/insync_management.sh status
-User=root
-Group=root
+ExecStart=/home/youruser/insync_management.sh status
+User=youruser
+Group=youruser
 
 [Install]
 WantedBy=multi-user.target
@@ -486,7 +486,7 @@ systemctl start insync-monitor.timer
 ### Create Test Script
 
 ```bash
-cat > /root/test_insync_sync.sh << 'EOF'
+cat > /home/youruser/test_insync_sync.sh << 'EOF'
 #!/bin/bash
 
 echo "=== InSync Sync Test ==="
@@ -498,7 +498,7 @@ insync-headless status
 
 # Test 2: Create test file locally
 echo -e "\n2. Creating test file locally..."
-TEST_FILE="/root/Zumud/Applications/insync_test_$(date +%s).txt"
+TEST_FILE="/home/youruser/Zumud/Applications/insync_test_$(date +%s).txt"
 echo "Test file created at $(date)" > "$TEST_FILE"
 echo "Created: $TEST_FILE"
 
@@ -521,17 +521,17 @@ tail -5 ~/.config/Insync/logs/insync.log 2>/dev/null || echo "No logs found"
 echo -e "\n=== Test Complete ==="
 EOF
 
-chmod +x /root/test_insync_sync.sh
+chmod +x /home/youruser/test_insync_sync.sh
 ```
 
 ### Run Tests
 
 ```bash
 # Run comprehensive test
-/root/test_insync_sync.sh
+/home/youruser/test_insync_sync.sh
 
 # Test specific functionality
-/root/insync_management.sh test
+/home/youruser/insync_management.sh test
 ```
 
 ## Conclusion
