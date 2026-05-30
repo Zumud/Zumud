@@ -19,7 +19,7 @@ logger.add(
     rotation="10 MB",
     retention="1 week",
     backtrace=True,
-    diagnose=True
+    diagnose=False  # do NOT inline local variables into tracebacks (would leak secrets)
 )
 
 # Add console handler
@@ -28,7 +28,7 @@ logger.add(
     level=LOG_LEVEL,
     format=LOG_FORMAT,
     backtrace=True,
-    diagnose=True
+    diagnose=False  # do NOT inline local variables into tracebacks (would leak secrets)
 )
 
 # Intercept standard library logging
