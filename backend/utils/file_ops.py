@@ -73,6 +73,10 @@ def generate_tex_and_tar(save_folder: str, latex_content: str, file_name: str= "
         if not tex_file_path.endswith(".tex"):
             tex_file_path += ".tex"
 
+        # Strip ASCII control chars (keep \t \n \r) — pdflatex chokes on them and
+        # LLMs occasionally emit stray ones (e.g. U+0016) when transcribing RTL text.
+        latex_content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', latex_content)
+
         # Write the LaTeX content into the file
         with open(tex_file_path, "w", encoding="utf-8") as tex_file:
             tex_file.write(latex_content)
