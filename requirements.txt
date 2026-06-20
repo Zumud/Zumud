@@ -1,5 +1,5 @@
 aiohappyeyeballs==2.6.2
-aiohttp==3.14.0
+aiohttp==3.14.1
 aiosignal==1.4.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
@@ -99,7 +99,7 @@ typer==0.26.3
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2024.2
-ujson==5.12.1
+ujson==5.13.0
 urllib3==2.7.0
 uvicorn==0.48.0
 uvloop==0.22.1
