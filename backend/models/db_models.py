@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum, Boolean
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from backend.models.db import Base
@@ -11,8 +12,12 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=False)
+    # Nullable since Supabase Auth users (e.g. Google sign-in) have no local
+    # password; auth is verified against Supabase, not this column.
+    password = Column(String, nullable=True)
     email = Column(String, unique=True)
+    # Links this profile row to its Supabase auth.users id (the JWT `sub`).
+    supabase_uid = Column(UUID(as_uuid=True), unique=True, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Establish relationships

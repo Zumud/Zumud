@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import AuthModal from "@/components/auth/auth-modal"
-import { isAuthenticated } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import Navbar from "@/components/landing/navbar"
 import HeroSection from "@/components/landing/hero-section"

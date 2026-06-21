@@ -29,6 +29,12 @@ SUPABASE_URL = getenv("SUPABASE_URL")
 SUPABASE_PUBLISHABLE_KEY = getenv("SUPABASE_PUBLISHABLE_KEY") or getenv("SUPABASE_ANON_KEY")
 SUPABASE_SECRET_KEY = getenv("SUPABASE_SECRET_KEY") or getenv("SUPABASE_SERVICE_ROLE_KEY")
 
+# Used to verify Supabase Auth (GoTrue) access tokens signed with the legacy
+# symmetric (HS256) project JWT secret. For projects using asymmetric signing
+# keys (ES256/RS256) this can be left unset; tokens are then verified against
+# the project JWKS endpoint derived from SUPABASE_URL.
+SUPABASE_JWT_SECRET = getenv("SUPABASE_JWT_SECRET")
+
 DATABASE_URL = getenv("DATABASE_URL")  # PostgreSQL connection string
 
 # Validate required Supabase environment variables

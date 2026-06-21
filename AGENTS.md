@@ -10,7 +10,7 @@ AI resume / cover-letter tailoring. FastAPI + Next.js 16 + Supabase Postgres. Se
 |---|---|---|
 | Frontend | Next.js 16 (App Router) + React 19 + Tailwind 4 | `next start` behind Caddy |
 | Backend | FastAPI / uvicorn, SQLAlchemy 2 | 2 workers in prod |
-| DB | Supabase Postgres | Custom username/password auth in `users.password` (bcrypt via pwdlib); `auth.users` is unused |
+| DB | Supabase Postgres | Auth via **Supabase Auth (GoTrue)**; `public.users` is the profile table (integer `id`) linked to `auth.users` by `supabase_uid` |
 | LaTeX | Self-hosted `aslushnikov/latex-online` rebuild on `islandoftex/texlive:TL2024-historic` | Loopback-only on `127.0.0.1:2700` |
 | Reverse proxy | Caddy + Let's Encrypt | |
 
@@ -49,6 +49,7 @@ docker run -d --name zumud-latex -p 127.0.0.1:2700:2700 <your-built-image>
 
 ## Conventions & gotchas
 
+- **Auth is Supabase Auth.** The frontend logs in via `@supabase/ssr` (email/password or "Continue with Google"); the backend verifies the Supabase access token (`backend/core/supabase_auth.py`) and maps it to a `public.users` row via `supabase_uid`. `get_current_user` **lazily provisions** a profile (+ empty resume) on first authenticated request, which is how Google sign-in auto-creates accounts. Login is by **email**; keep existing `username` values stable (filesystem paths key off them). `/login` and `/users/signup` are retired. See `docs/supabase-auth-migration.md` for the full rollout (provider config, schema SQL, user import, cutover).
 - **Schema is managed by `Base.metadata.create_all()` at startup.** No Alembic, no migration history. Adding a column = nullable + backfill manually. Modifying or dropping a column = manual SQL.
 - **Supabase storage is write-only in the code.** No `download` / `list` / `get_signed_url` calls anywhere. All user-facing PDFs/TeX/JSON are served from local `/Applications/` on the deploy host. The bucket is effectively a write-only archive.
 - **`next.config.ts` sets `typescript.ignoreBuildErrors`** — real TS type errors still ship. (Next 16 decoupled ESLint from the build; run `npm run lint` separately.)

@@ -10,11 +10,17 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!isAuthenticated()) {
-      router.push("/")
-    } else {
-      setLoading(false)
+    let active = true
+    isAuthenticated().then((ok) => {
+      if (!active) return
+      if (!ok) {
+        router.push("/")
+      } else {
+        setLoading(false)
+      }
+    })
+    return () => {
+      active = false
     }
   }, [router])
 

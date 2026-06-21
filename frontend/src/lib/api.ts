@@ -53,7 +53,7 @@ async function apiCall(
   data?: any,
   isFormData = false
 ) {
-  const token = getAccessToken();
+  const token = await getAccessToken();
   
   const headers: Record<string, string> = {};
   
@@ -239,26 +239,9 @@ async function apiCall(
   throw lastError || new Error('All API call attempts failed');
 }
 
-// Auth endpoints
+// Auth endpoints. Login/signup are handled by Supabase Auth on the client
+// (see components/auth/auth-modal.tsx); the backend only exposes the profile.
 export const auth = {
-  login: (username: string, password: string) => {
-    // Create URLSearchParams for form data submission
-    const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
-    
-    return apiCall('login', 'POST', formData, true);
-  },
-  
-  signup: (username: string, password: string, email: string, initialResume: string, resumeFile?: string) => 
-    apiCall('users/signup', 'POST', { 
-      username, 
-      password, 
-      email, 
-      initial_resume: initialResume || null,
-      resume_file: resumeFile || null
-    }),
-    
   getProfile: () => apiCall('users/me'),
 };
 

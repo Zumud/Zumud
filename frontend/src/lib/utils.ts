@@ -1,50 +1,27 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { createClient } from "@/lib/supabase/client"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Auth utilities
-export function setAccessToken(token: string): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('access_token', token);
-  }
+// Auth utilities, backed by Supabase Auth. The session is managed by
+// @supabase/ssr (stored in cookies); these helpers expose the bits the app
+// needs: the bearer token for backend calls, a login check, and sign-out.
+export async function getAccessToken(): Promise<string | null> {
+  const supabase = createClient()
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
 }
 
-export function getAccessToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
-  }
-  return null;
+export async function isAuthenticated(): Promise<boolean> {
+  const supabase = createClient()
+  const { data } = await supabase.auth.getSession()
+  return !!data.session
 }
 
-export function removeAccessToken(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('access_token');
-  }
-}
-
-export function setUserData(userData: any): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('user_data', JSON.stringify(userData));
-  }
-}
-
-export function getUserData(): any {
-  if (typeof window !== 'undefined') {
-    const userData = localStorage.getItem('user_data');
-    return userData ? JSON.parse(userData) : null;
-  }
-  return null;
-}
-
-export function removeUserData(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('user_data');
-  }
-}
-
-export function isAuthenticated(): boolean {
-  return !!getAccessToken();
+export async function signOut(): Promise<void> {
+  const supabase = createClient()
+  await supabase.auth.signOut()
 }

@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/ui/sidebar"
-import { isAuthenticated, removeAccessToken, removeUserData } from "@/lib/utils"
+import { isAuthenticated, signOut } from "@/lib/utils"
 
 export default function HistoryPage() {
   const [isFormSubmitted, setIsFormSubmitted] = useState(false)
@@ -14,17 +14,22 @@ export default function HistoryPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!isAuthenticated()) {
-      router.push("/")
-    } else {
-      setLoading(false)
+    let active = true
+    isAuthenticated().then((ok) => {
+      if (!active) return
+      if (!ok) {
+        router.push("/")
+      } else {
+        setLoading(false)
+      }
+    })
+    return () => {
+      active = false
     }
   }, [router])
 
-  const handleLogout = () => {
-    removeAccessToken()
-    removeUserData()
+  const handleLogout = async () => {
+    await signOut()
     router.push("/")
   }
 

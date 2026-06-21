@@ -14,7 +14,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { MoonIcon, SunIcon } from "lucide-react";
-import { isAuthenticated } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 interface NavbarProps {
   onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
@@ -24,19 +24,20 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
   const [theme, setTheme] = React.useState<"light" | "dark">("light");
   const [userAuthenticated, setUserAuthenticated] = React.useState(false);
 
-  // Check authentication status on mount and when localStorage changes
+  // Reflect Supabase auth state on mount and whenever it changes.
   React.useEffect(() => {
-    const checkAuthStatus = () => {
-      setUserAuthenticated(isAuthenticated());
-    };
-    
-    checkAuthStatus();
-    
-    // Listen for storage changes to update auth state
-    window.addEventListener('storage', checkAuthStatus);
-    
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(({ data }) => {
+      setUserAuthenticated(!!data.session);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserAuthenticated(!!session);
+    });
+
     return () => {
-      window.removeEventListener('storage', checkAuthStatus);
+      sub.subscription.unsubscribe();
     };
   }, []);
 

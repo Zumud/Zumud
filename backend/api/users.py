@@ -5,11 +5,11 @@ from loguru import logger
 import base64
 
 from backend.models.db import get_db, SessionLocal
-from backend.models.user_models import User, UserCreate, UserPreference, UserPreferenceCreate
+from backend.models.user_models import User, UserPreference, UserPreferenceCreate
 from backend.models.resume_models import Resume, ResumeBase
 from backend.models.legal_authorization_models import LegalAuthorization
 from backend.models import db_models
-from backend.api.auth import get_current_user, pwd_context
+from backend.api.auth import get_current_user
 from backend.models.tailoring_options import TailoringOptionsBase, TailoringOptions
 from backend.utils.file_utils import save_base64_pdf
 from backend.utils.file_ops import extract_text_from_pdf
@@ -51,84 +51,10 @@ async def process_resume_background(
     finally:
         db.close()
 
-@router.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
-async def signup(user: UserCreate, db: Session = Depends(get_db), background_tasks: BackgroundTasks = None):
-    """Create a new user account"""
-    if db.query(db_models.User).filter(db_models.User.username == user.username).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
-        )
-    
-    hashed_password = pwd_context.hash(user.password)
-    db_user = db_models.User(
-        username=user.username,
-        email=user.email,
-        password=hashed_password
-    )
-    db.add(db_user)
-    db.flush()
-    
-    # Process resume text content and/or file
-    resume_content = user.initial_resume
-    resume_file_path = None
-    pdf_data = None  # Store PDF data for cloud upload
-    
-    # If PDF file is provided, extract text from it
-    if user.resume_file:
-        try:
-            # Get the PDF content from base64
-            if "base64," in user.resume_file:
-                base64_data = user.resume_file.split("base64,")[1]
-            else:
-                base64_data = user.resume_file
-                
-            pdf_data = base64.b64decode(base64_data)
-            
-            # Extract text from the PDF
-            extracted_text = await extract_text_from_pdf(pdf_data)
-            
-            # Use the extracted text as resume content if it's not empty
-            if extracted_text and extracted_text.strip():
-                resume_content = extracted_text
-                
-            # Still save the file for future reference but we won't expose API endpoints for it now
-            resume_file_path = save_base64_pdf(user.resume_file)
-        except Exception as e:
-            # Log the error but continue with the signup process
-            logger.error(f"Error extracting text from PDF: {e}")
-    
-    # Store initial unformatted content in the database
-    db_resume = db_models.Resume(
-        user_id=db_user.id,
-        resume_content=resume_content or "",  # Store raw content initially
-        resume_file_path=resume_file_path
-    )
-    db.add(db_resume)
-    db.commit()
-    db.refresh(db_user)
-    
-    # DUAL STORAGE: Upload original resume to Supabase cloud storage
-    # This runs after local storage and database operations succeed
-    if pdf_data:
-        try:
-            safe_upload_with_fallback(
-                storage_service.upload_original_resume,
-                db_user.id,
-                pdf_data
-            )
-        except Exception as e:
-            # Log the error but don't fail the signup process
-            logger.error(f"Cloud storage upload failed during signup: {e}")
-    
-    # Format the resume content in the background
-    background_tasks.add_task(
-        process_resume_background,
-        db_user.id,
-        resume_content,
-    )
-    
-    return db_user
+# Account creation is handled by Supabase Auth on the frontend (email/password
+# or "Continue with Google"). The local profile row and its empty resume are
+# created lazily on first authenticated request (see auth.get_current_user), and
+# an initial resume is attached afterwards via POST /users/me/resume/upload.
 
 @router.get("/me/resume", response_model=Resume)
 def get_user_resume(current_user = Depends(get_current_user), db: Session = Depends(get_db)):

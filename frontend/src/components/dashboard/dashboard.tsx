@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { getUserData, removeAccessToken, removeUserData } from "@/lib/utils"
+import { signOut } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 import { applications, preferences, billing } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import PreferencesPrompt from "@/components/ui/preferences-prompt"
@@ -80,11 +81,17 @@ export default function Dashboard() {
 
  
 
-  // Load user data on mount
+  // Load user data on mount from the Supabase session.
   useEffect(() => {
-    const storedUserData = getUserData()
-    if (storedUserData) {
-      setUserData(storedUserData)
+    let active = true
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      if (active && data.user) {
+        setUserData({ first_name: deriveFirstName(data.user) })
+      }
+    })
+    return () => {
+      active = false
     }
   }, [])
 
@@ -100,17 +107,14 @@ export default function Dashboard() {
 
 
 
-  const handleLogout = () => {
-    removeAccessToken()
-    removeUserData()
+  const handleLogout = async () => {
+    await signOut()
     window.location.reload()
   }
 
   // Function to redirect to login page
-  const redirectToLogin = () => {
-    // Clear auth data
-    removeAccessToken()
-    removeUserData()
+  const redirectToLogin = async () => {
+    await signOut()
     // Redirect to home/login page
     router.push('/')
   }
@@ -1013,4 +1017,21 @@ function getGreeting() {
   if (hour < 12) return 'morning'
   if (hour < 17) return 'afternoon'
   return 'evening'
+}
+
+// Derive a friendly first name from the Supabase user (Google provides a full
+// name; otherwise fall back to the email local part).
+function deriveFirstName(user: {
+  email?: string | null
+  user_metadata?: { full_name?: string; name?: string }
+}): string {
+  const meta = user.user_metadata ?? {}
+  const fullName = meta.full_name || meta.name
+  if (fullName && fullName.trim()) {
+    return fullName.trim().split(/\s+/)[0]
+  }
+  if (user.email) {
+    return String(user.email).split('@')[0]
+  }
+  return ''
 } 

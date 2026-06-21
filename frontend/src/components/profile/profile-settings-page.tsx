@@ -6,7 +6,7 @@ import { Loader2, Upload, CheckCircle, ArrowLeft, Save, LogIn } from "lucide-rea
 import { resume } from "@/lib/api"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { removeAccessToken, removeUserData } from "@/lib/utils"
+import { signOut } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 export default function ProfileSettingsPage() {
@@ -23,10 +23,8 @@ export default function ProfileSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Function to redirect to login page
-  const redirectToLogin = () => {
-    // Clear auth data
-    removeAccessToken()
-    removeUserData()
+  const redirectToLogin = async () => {
+    await signOut()
     // Redirect to home/login page
     router.push('/')
   }
