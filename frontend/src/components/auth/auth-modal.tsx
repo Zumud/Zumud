@@ -16,7 +16,7 @@ interface AuthModalProps {
   defaultTab?: 'login' | 'signup'
 }
 
-type Step = 'email' | 'password' | 'create'
+type Step = 'email' | 'password' | 'create' | 'reset-sent'
 
 function toMessage(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback
@@ -128,6 +128,23 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     }
   }
 
+  const handleForgotPassword = async () => {
+    setError(null)
+    setIsLoading(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/auth/reset-password')}`,
+      })
+      if (error) throw error
+      setStep('reset-sent')
+    } catch (err) {
+      console.error('Password reset error:', err)
+      setError(toMessage(err, 'Could not send the reset email. Please try again.'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password.length < 6) {
@@ -208,6 +225,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             {step === 'email' && 'Welcome to Zumud'}
             {step === 'password' && 'Welcome back'}
             {step === 'create' && 'Create your account'}
+            {step === 'reset-sent' && 'Check your email'}
           </DialogTitle>
         </DialogHeader>
 
@@ -309,6 +327,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                 'Sign in'
               )}
             </Button>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={isLoading}
+              className="block w-full text-center text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+            >
+              Forgot password?
+            </button>
           </form>
         )}
 
@@ -332,6 +358,23 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
               )}
             </Button>
           </form>
+        )}
+
+        {step === 'reset-sent' && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => { setError(null); setStep('password') }}
+              className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to sign in
+            </button>
+            <p className="text-sm text-gray-700">
+              We sent a password reset link to{' '}
+              <span className="font-medium">{email.trim()}</span>. Open it to choose a new password.
+            </p>
+          </div>
         )}
       </DialogContent>
     </Dialog>
