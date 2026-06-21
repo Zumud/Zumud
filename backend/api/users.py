@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, status, HTTPException, File, UploadFile, BackgroundTasks
+from pydantic import BaseModel, EmailStr
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from loguru import logger
 import base64
@@ -27,6 +29,49 @@ logger = logging.getLogger(__name__)
 def get_current_user_info(current_user = Depends(get_current_user)):
     """Get current user information"""
     return current_user
+
+
+class EmailCheckRequest(BaseModel):
+    email: EmailStr
+
+
+@router.post("/check-email")
+def check_email(payload: EmailCheckRequest, db: Session = Depends(get_db)):
+    """Report which sign-in methods exist for an email (identifier-first auth UI).
+
+    Public endpoint. It intentionally reveals whether an email is registered —
+    inherent to identifier-first flows (Stripe/Google-style) and an accepted
+    trade-off. Reads Supabase Auth (auth.users / auth.identities), the source of
+    truth for login.
+    """
+    email = payload.email.strip().lower()
+    try:
+        row = db.execute(
+            text(
+                """
+                SELECT
+                  EXISTS (SELECT 1 FROM auth.users WHERE lower(email) = :email) AS does_exist,
+                  EXISTS (SELECT 1 FROM auth.users
+                          WHERE lower(email) = :email
+                            AND encrypted_password IS NOT NULL
+                            AND encrypted_password <> '') AS has_password,
+                  EXISTS (SELECT 1 FROM auth.identities i
+                          JOIN auth.users u ON u.id = i.user_id
+                          WHERE lower(u.email) = :email AND i.provider = 'google') AS has_google
+                """
+            ),
+            {"email": email},
+        ).first()
+    except Exception as e:
+        # Fail safe: never block the UI if the auth-schema read fails.
+        logger.error(f"check-email lookup failed: {e}")
+        return {"exists": False, "has_password": False, "has_google": False}
+
+    return {
+        "exists": bool(row[0]),
+        "has_password": bool(row[1]),
+        "has_google": bool(row[2]),
+    }
 
 async def process_resume_background(
     user_id: int, 

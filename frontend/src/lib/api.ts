@@ -240,9 +240,13 @@ async function apiCall(
 }
 
 // Auth endpoints. Login/signup are handled by Supabase Auth on the client
-// (see components/auth/auth-modal.tsx); the backend only exposes the profile.
+// (see components/auth/auth-modal.tsx); the backend exposes the profile and an
+// email lookup that powers the identifier-first modal.
 export const auth = {
   getProfile: () => apiCall('users/me'),
+
+  checkEmail: (email: string): Promise<{ exists: boolean; has_password: boolean; has_google: boolean }> =>
+    apiCall('users/check-email', 'POST', { email }),
 };
 
 // Resume endpoints
