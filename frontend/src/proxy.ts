@@ -7,6 +7,18 @@ import { createServerClient } from '@supabase/ssr';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/profile', '/history'];
 
+// Behind the Caddy reverse proxy, request URLs carry the internal
+// 127.0.0.1:3000 origin; build redirects from the forwarded public host so
+// users aren't bounced to localhost.
+function publicOrigin(request: NextRequest): string {
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https';
+  if (process.env.NODE_ENV !== 'development' && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+  return request.nextUrl.origin;
+}
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -15,7 +27,7 @@ export async function proxy(request: NextRequest) {
     const sessionId = pathname.split('/resume/')[1];
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!sessionId || !uuidRegex.test(sessionId)) {
-      return NextResponse.redirect(new URL('/', request.url));
+      return NextResponse.redirect(`${publicOrigin(request)}/`);
     }
     return NextResponse.next();
   }
@@ -51,9 +63,7 @@ export async function proxy(request: NextRequest) {
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
   if (isProtected && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(`${publicOrigin(request)}/`);
   }
 
   return supabaseResponse;
