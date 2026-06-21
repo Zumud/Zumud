@@ -41,6 +41,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  // Separate flag so the password-reset action doesn't spin the "Sign in" button.
+  const [isResetting, setIsResetting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   // Inline hint when the email belongs to a Google-only account (no password).
@@ -130,7 +132,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
   const handleForgotPassword = async () => {
     setError(null)
-    setIsLoading(true)
+    setIsResetting(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/auth/reset-password')}`,
@@ -141,7 +143,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       console.error('Password reset error:', err)
       setError(toMessage(err, 'Could not send the reset email. Please try again.'))
     } finally {
-      setIsLoading(false)
+      setIsResetting(false)
     }
   }
 
@@ -330,7 +332,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             <button
               type="button"
               onClick={handleForgotPassword}
-              disabled={isLoading}
+              disabled={isLoading || isResetting}
               className="block w-full text-center text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
             >
               Forgot password?
