@@ -25,9 +25,8 @@ export default function CallToActionSection({ onAuthModalOpen }: CallToActionSec
               Ready to land your dream job?
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/85">
-              Join professionals who&apos;ve transformed their job search with
-              AI-tailored resumes. Start creating applications that get you hired —
-              free.
+              Join professionals who land more interviews with AI-tailored resumes.
+              Your first 10 are on us.
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -52,11 +51,11 @@ export default function CallToActionSection({ onAuthModalOpen }: CallToActionSec
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/85">
               <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="size-4" />
-                Free trial · no credit card
+                Free to start, no card
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="size-4" />
-                Setup in under a minute
+                Ready in under a minute
               </span>
             </div>
           </div>

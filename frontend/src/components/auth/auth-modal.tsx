@@ -287,7 +287,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
               {googleHint && (
                 <p className="text-sm text-muted-foreground">
-                  This email is registered with Google — use{' '}
+                  This email uses Google sign-in. Tap{' '}
                   <span className="font-medium text-foreground">Continue with Google</span> above.
                 </p>
               )}

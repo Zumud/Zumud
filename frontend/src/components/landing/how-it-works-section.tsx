@@ -5,20 +5,17 @@ const STEPS = [
   {
     icon: FileTextIcon,
     title: "Add your resume",
-    description:
-      "Upload your existing resume as a PDF or paste it as plain text. No account required to start.",
+    description: "Upload a PDF or paste your text. No account needed.",
   },
   {
     icon: ClipboardIcon,
     title: "Paste the job description",
-    description:
-      "Drop in the role you're targeting. Zumud analyzes the key skills, keywords, and requirements.",
+    description: "Drop in the role. We read the must-have skills and keywords.",
   },
   {
     icon: RocketIcon,
     title: "Get your tailored resume",
-    description:
-      "In about 30 seconds, download an ATS-optimized resume rewritten for that specific job.",
+    description: "Download an ATS-ready resume built for that job in ~30 seconds.",
   },
 ];
 
@@ -29,11 +26,10 @@ function HowItWorksSection() {
         <div className="mx-auto mb-14 max-w-2xl text-center">
           <span className="badge-soft mb-4">How it works</span>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            From job post to tailored resume in 3 steps
+            Three steps to a tailored resume
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            A simple, repeatable process that takes minutes instead of hours for
-            every application.
+            Minutes per application, not hours.
           </p>
         </div>
 

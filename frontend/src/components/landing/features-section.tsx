@@ -1,47 +1,41 @@
 import React from "react";
-import { BrainIcon, FileTextIcon, ClockIcon, TargetIcon, MessageSquareIcon, RefreshCwIcon } from "lucide-react";
+import { BrainIcon, FileTextIcon, ClockIcon, DownloadIcon, MessageSquareIcon, RefreshCwIcon } from "lucide-react";
 
 const FEATURES = [
   {
     icon: BrainIcon,
     title: "AI-powered tailoring",
-    description:
-      "Zumud analyzes each job description and rewrites your resume to match the exact skills and keywords recruiters look for.",
+    description: "We rewrite your resume to match each job's skills and keywords.",
     tint: "brand",
   },
   {
     icon: FileTextIcon,
     title: "ATS optimization",
-    description:
-      "Clean, parseable formatting that sails through Applicant Tracking Systems so a human actually sees your application.",
+    description: "Clean formatting that gets you past the bots to a human.",
     tint: "violet",
   },
   {
     icon: ClockIcon,
     title: "Lightning fast",
-    description:
-      "Generate a perfectly tailored resume in about 30 seconds. No more hours spent rewriting for every role.",
+    description: "A tailored resume in about 30 seconds, not an afternoon.",
     tint: "orange",
   },
   {
     icon: MessageSquareIcon,
     title: "Cover letters & answers",
-    description:
-      "Generate matching cover letters and tailored answers to application questions from the same job description.",
+    description: "Matching cover letters and application answers from the same job post.",
     tint: "violet",
   },
   {
     icon: RefreshCwIcon,
     title: "Refine in one click",
-    description:
-      "Make it shorter, more formal, or add keywords. Iterate on any document with simple natural-language edits.",
+    description: "Shorter, more formal, more keywords. Edit in plain English.",
     tint: "brand",
   },
   {
-    icon: TargetIcon,
-    title: "Built for results",
-    description:
-      "Every output is focused on one goal: getting you more interviews for the jobs you actually want.",
+    icon: DownloadIcon,
+    title: "Export anywhere",
+    description: "Download as PDF, export the LaTeX, or open it in Overleaf.",
     tint: "orange",
   },
 ];
@@ -62,8 +56,7 @@ function FeaturesSection() {
             Everything you need to get hired
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            All the tools to create compelling, job-specific applications that
-            stand out and land more interviews.
+            One resume becomes the right resume for every job.
           </p>
         </div>
 

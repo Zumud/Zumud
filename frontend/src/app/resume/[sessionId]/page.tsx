@@ -211,8 +211,7 @@ export default function GeneratedResumePage() {
               🎉 Your tailored, ATS-optimized resume is ready
             </h2>
             <p className="mb-6 text-white/85">
-              Create a free account to remove the watermark and generate unlimited
-              tailored resumes, cover letters, and answers.
+              Sign up free to remove the watermark and generate unlimited documents.
             </p>
             <Button
               onClick={handleSignUp}
@@ -220,7 +219,7 @@ export default function GeneratedResumePage() {
               className="bg-white font-semibold text-[var(--brand)] shadow-lg hover:bg-white/90"
             >
               <Zap className="size-5" />
-              Get full access — free
+              Get full access for free
             </Button>
           </div>
         </div>
@@ -351,8 +350,7 @@ export default function GeneratedResumePage() {
           <div className="relative mx-auto max-w-2xl">
             <h2 className="mb-3 text-2xl font-bold text-white">Ready to land your dream job?</h2>
             <p className="mb-6 text-white/85">
-              Join thousands of professionals who&apos;ve boosted their interview rates
-              with Zumud. Remove the watermark and unlock unlimited generation today.
+              Remove the watermark and unlock unlimited resumes, cover letters, and answers.
             </p>
             <Button
               onClick={handleSignUp}
@@ -360,7 +358,7 @@ export default function GeneratedResumePage() {
               className="bg-white font-semibold text-[var(--brand)] shadow-lg hover:bg-white/90"
             >
               <Mail className="size-5" />
-              Start free account — 30 seconds
+              Create your free account
             </Button>
           </div>
         </div>

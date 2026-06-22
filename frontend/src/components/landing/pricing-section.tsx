@@ -20,15 +20,14 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
             Simple, transparent pricing
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Start with{" "}
-            <span className="font-semibold text-foreground">10 free generations</span>
-            , then just €0.10 each. No subscriptions, no hidden fees.
+            <span className="font-semibold text-foreground">10 free generations.</span>{" "}
+            Then €0.10 each. No subscriptions.
           </p>
         </div>
 
         {/* Pricing cards */}
         <div className="mx-auto grid max-w-4xl grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
-          {/* Free Trial — featured */}
+          {/* Free trial (featured) */}
           {freePlan && (
             <div className="surface relative flex flex-col p-7 ring-2 ring-brand md:p-8">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
@@ -48,7 +47,7 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
                     Free
                   </span>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {freePlan.generations} generations · no credit card
+                    {freePlan.generations} generations, no credit card
                   </p>
                 </div>
               </div>
@@ -92,7 +91,7 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
                     €{paygPlan.price.toFixed(2)}
                   </span>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    per generation · pay only when you use it
+                    Pay only when you generate
                   </p>
                 </div>
               </div>
@@ -128,9 +127,8 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
               </h3>
             </div>
             <p className="mx-auto max-w-2xl leading-relaxed text-muted-foreground">
-              We&apos;re confident you&apos;ll love the results. Try Zumud completely free
-              with 10 generations to see how much stronger your applications can be —
-              no credit card, no strings attached.
+              Try it free for 10 generations. No card, no strings. The results speak
+              for themselves.
             </p>
           </div>
 

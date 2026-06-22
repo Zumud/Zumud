@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, Sparkles, Zap, ShieldCheck, Clock, X } from "lucide-react";
+import { Upload, Loader2, Sparkles, Zap, ShieldCheck, Clock, X, AlertCircle } from "lucide-react";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { applications } from "@/lib/api";
@@ -81,6 +81,7 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,17 +89,18 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-      alert('Please upload a PDF file');
+      setError('That needs to be a PDF.');
       return;
     }
 
     // Check file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size exceeds 5MB limit');
+      setError('That file is over the 5MB limit.');
       return;
     }
 
     // Store the file and clear any existing text
+    setError(null);
     setResumeFile(file);
     setResumeText("");
   };
@@ -116,11 +118,12 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
     const hasResumeContent = resumeText.trim() || resumeFile;
     
     if (!hasResumeContent || !jobDescription.trim()) {
-      alert("Please provide both your resume and job description");
+      setError("Add your resume and a job description to continue.");
       return;
     }
-    
+
     // Show progress modal and start generation in background
+    setError(null);
     setShowProgress(true);
     setIsGenerating(true);
     
@@ -143,11 +146,11 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
       // Wait for progress animation to complete before redirecting
       // The progress component will call handleProgressComplete when done
       
-    } catch (error) {
-      console.error('Error generating resume:', error);
+    } catch (err) {
+      console.error('Error generating resume:', err);
       setShowProgress(false);
       setIsGenerating(false);
-      alert('Failed to generate resume. Please try again.');
+      setError('Something went wrong. Please try again.');
     }
   };
 
@@ -182,20 +185,25 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
             AI-tailored in ~30 seconds
           </span>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            <span className="text-brand-gradient">Job-specific resumes</span>,
-            <br className="hidden sm:block" /> generated instantly
+            <span className="text-brand-gradient">Instant job-specific resumes</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            Paste your resume and any job description — Zumud rewrites and
-            ATS-optimizes it for that exact role. Users report{" "}
-            <span className="font-semibold text-foreground">3× more interviews</span>{" "}
-            and save 15+ minutes per application.
+            Our users report 3× more interviews and save 15+ minutes per application.
           </p>
         </div>
 
         {/* Action form */}
         <div className="mx-auto max-w-5xl">
           <div className="surface p-5 shadow-xl shadow-brand/5 md:p-8">
+            {error && (
+              <div
+                role="alert"
+                className="mb-5 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              >
+                <AlertCircle className="size-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
             <div className="flex flex-col gap-5 lg:flex-row lg:gap-6">
               {/* Resume Input */}
               <div className="flex-1">
@@ -217,6 +225,7 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
                     value={resumeFile ? `📄 ${resumeFile.name} uploaded` : resumeText}
                     onChange={(e) => {
                       setResumeText(e.target.value);
+                      setError(null);
                       if (resumeFile) {
                         setResumeFile(null);
                       }
@@ -279,7 +288,10 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
                 </div>
                 <textarea
                   value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
+                  onChange={(e) => {
+                    setJobDescription(e.target.value);
+                    setError(null);
+                  }}
                   placeholder="Paste the job description you're applying to"
                   rows={6}
                   className="field resize-none"

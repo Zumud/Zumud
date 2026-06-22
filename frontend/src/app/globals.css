@@ -54,7 +54,7 @@
 :root {
   --radius: 0.75rem;
 
-  /* Surfaces — clean white with a barely-there cool tint */
+  /* Surfaces: clean white with a barely-there cool tint */
   --background: oklch(1 0 0);
   --foreground: oklch(0.18 0.02 264);
   --card: oklch(1 0 0);

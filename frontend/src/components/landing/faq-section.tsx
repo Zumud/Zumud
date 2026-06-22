@@ -5,32 +5,32 @@ const FAQ_ITEMS = [
   {
     question: "How long does it take to tailor a resume?",
     answer:
-      "About 30 seconds. Paste your resume and a job description, and Zumud returns an ATS-optimized, job-specific resume you can download as a PDF right away.",
+      "About 30 seconds. Paste your resume and a job description, then download an ATS-ready PDF.",
   },
   {
     question: "Do I need to sign up to try it?",
     answer:
-      "No. You can generate your first tailored resume from the homepage without an account. Create a free account to remove the watermark, save your documents, and unlock cover letters and application answers.",
+      "No. Generate your first resume right from the homepage. Sign up free to remove the watermark, save your work, and unlock cover letters.",
   },
   {
     question: "Is my resume optimized for ATS?",
     answer:
-      "Yes. Every resume uses clean, parseable formatting and the keywords from the job description, so it gets through Applicant Tracking Systems and in front of a human.",
+      "Yes. Clean formatting plus the job's own keywords get you past the bots to a human.",
   },
   {
     question: "Can I tailor a resume for different jobs?",
     answer:
-      "That's the whole idea. Paste a different job description each time and Zumud rewrites your resume for that specific role — as many times as you need.",
+      "That's the whole idea. Paste a new job description any time and we rewrite your resume for it. As often as you like.",
   },
   {
     question: "How much does it cost?",
     answer:
-      "Your first 10 generations are completely free, with no credit card required. After that it's pay-as-you-go at €0.10 per generation — no subscriptions and no hidden fees.",
+      "Your first 10 are free, no card required. After that it's €0.10 each. No subscriptions, no hidden fees.",
   },
   {
     question: "What can I download?",
     answer:
-      "You can download your resume as a polished PDF, export the LaTeX (TeX) source, or open it directly in Overleaf to fine-tune the design.",
+      "Download a polished PDF, export the LaTeX source, or open it straight in Overleaf.",
   },
 ];
 

@@ -17,7 +17,7 @@ interface LegalPageProps {
 
 /**
  * Shared, theme-aware layout for static legal pages (privacy, terms, cookies).
- * Kept intentionally simple — content is placeholder copy the team can refine.
+ * Kept intentionally simple; content is placeholder copy the team can refine.
  */
 export default function LegalPage({ title, lastUpdated, intro, sections }: LegalPageProps) {
   return (
