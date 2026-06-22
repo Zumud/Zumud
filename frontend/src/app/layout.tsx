@@ -126,11 +126,6 @@ const structuredData = {
         priceCurrency: "USD",
         description: "10 free resume generations, then pay-as-you-go.",
       },
-      aggregateRating: {
-        "@type": "AggregateRating",
-        ratingValue: "4.8",
-        ratingCount: "1200",
-      },
     },
   ],
 };
