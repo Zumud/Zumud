@@ -26,8 +26,8 @@ export const PRICING_PLANS = [
     generations: 1,
     pricePerGeneration: 0.10,
     features: [
-      "€0.50 per generation",
-      "All premium templates", 
+      "€0.10 per generation",
+      "All premium templates",
       "ATS optimization",
       "Cover letter generation",
       "LinkedIn optimization",

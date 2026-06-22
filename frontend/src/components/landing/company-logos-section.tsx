@@ -1,54 +1,30 @@
-import { BriefcaseIcon } from "lucide-react";
+const LOGOS = [
+  { src: "/logos/google.svg", alt: "Google", className: "h-7" },
+  { src: "/logos/microsoft.svg", alt: "Microsoft", className: "h-7" },
+  { src: "/logos/amazon.svg", alt: "Amazon", className: "h-7" },
+  { src: "/logos/meta.svg", alt: "Meta", className: "h-6" },
+  { src: "/logos/apple.svg", alt: "Apple", className: "h-9" },
+];
 
 export default function CompanyLogosSection() {
   return (
-    <section className="py-16 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800">
-      <div className="mx-auto max-w-7xl px-4 md:px-6">
-        <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-12">
-            Your next interview could be at one of these
-          </h2>
-          
-          <div className="flex justify-center items-center space-x-8 md:space-x-12 opacity-70 flex-wrap gap-y-6">
-            
-            {/* Google */}
-            <img 
-              src="/logos/google.svg" 
-              alt="Google" 
-              className="h-8 w-auto hover:opacity-100 transition-opacity duration-300"
-            />
+    <section className="border-y border-border/60 bg-muted/30 py-12">
+      <div className="container-page">
+        <p className="text-center text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          Tailored for roles at companies like these
+        </p>
 
-            {/* Microsoft */}
-            <img 
-              src="/logos/microsoft.svg" 
-              alt="Microsoft" 
-              className="h-8 w-auto hover:opacity-100 transition-opacity duration-300"
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-6 md:gap-x-14">
+          {LOGOS.map((logo) => (
+            <img
+              key={logo.alt}
+              src={logo.src}
+              alt={`${logo.alt} logo`}
+              className={`${logo.className} w-auto opacity-60 grayscale transition duration-300 hover:opacity-100 hover:grayscale-0 dark:opacity-70 dark:brightness-0 dark:invert dark:hover:opacity-100`}
             />
-
-            {/* Amazon */}
-            <img 
-              src="/logos/amazon.svg" 
-              alt="Amazon" 
-              className="h-8 w-auto hover:opacity-100 transition-opacity duration-300"
-            />
-
-            {/* Meta */}
-            <img 
-              src="/logos/meta.svg" 
-              alt="Meta" 
-              className="h-8 w-auto hover:opacity-100 transition-opacity duration-300"
-            />
-
-            {/* Apple */}
-            <img 
-              src="/logos/apple.svg" 
-              alt="Apple" 
-              className="h-10 w-auto hover:opacity-100 transition-opacity duration-300"
-            />
-
-          </div>
+          ))}
         </div>
       </div>
     </section>
   );
-} 
+}

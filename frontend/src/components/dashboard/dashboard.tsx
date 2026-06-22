@@ -564,27 +564,21 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="bg-gradient-to-b from-white to-blue-50/30 dark:from-gray-950 dark:to-blue-950/30 relative pb-32 md:pb-8" style={{ minHeight: 'max(100vh, 200vh)' }}>
+    <div className="ambient-glow relative min-h-screen bg-background pb-40 md:pb-12">
       {/* Sidebar */}
       <Sidebar onLogout={handleLogout} />
 
       {/* Main Content */}
       <div className="relative">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute left-1/4 top-1/4 h-48 w-48 md:h-64 md:w-64 rounded-full bg-blue-200/10 blur-3xl dark:bg-blue-900/10"></div>
-          <div className="absolute right-1/4 bottom-1/3 h-64 w-64 md:h-96 md:w-96 rounded-full bg-purple-200/10 blur-3xl dark:bg-purple-900/10"></div>
-        </div>
-
         {/* Main Content Area */}
-        <div className="px-4 py-8 md:px-8 md:py-12 max-w-4xl mx-auto">
+        <div className="mx-auto max-w-4xl px-4 py-8 md:px-8 md:py-12">
           {/* Header - hide after first generation */}
           {!hasGenerated && (
             <div className="text-center mb-8 md:mb-12 transition-all duration-500 ease-out">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent mb-2">
+              <h1 className="mb-2 text-2xl font-bold tracking-tight text-brand-gradient md:text-3xl lg:text-4xl">
                 {userData?.first_name ? `Good ${getGreeting()}, ${userData.first_name}` : "Welcome back"}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+              <p className="text-sm text-muted-foreground md:text-base">
                 Ready to create a tailored document for your next opportunity?
               </p>
             </div>
@@ -637,11 +631,11 @@ export default function Dashboard() {
           )}
 
           {/* Main Input Area */}
-          <div ref={inputAreaRef} className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6 lg:p-8 mb-8">
+          <div ref={inputAreaRef} className="surface mb-8 p-4 shadow-lg shadow-brand/5 md:p-6 lg:p-8">
             <div className="space-y-6">
               {/* Job Description Input */}
               <div>
-                <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                <label className="mb-3 block text-sm font-semibold">
                   Job Description
                 </label>
                 <textarea
@@ -649,7 +643,7 @@ export default function Dashboard() {
                   onChange={(e) => setJobDescription(e.target.value)}
                   placeholder="Paste the job description here to instantly generate a tailored document..."
                   rows={6}
-                  className="w-full px-4 py-3 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-400 resize-none transition-all"
+                  className="field resize-none"
                 />
               </div>
 
@@ -657,8 +651,9 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 <Button
                   onClick={handleGenerateResume}
+                  variant="brand"
                   disabled={isGeneratingResume || !jobDescription.trim()}
-                  className="h-12 md:h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50 text-sm md:text-base"
+                  className="h-12 text-sm font-semibold md:h-14 md:text-base"
                 >
                   {isGeneratingResume ? (
                     <>
@@ -678,7 +673,7 @@ export default function Dashboard() {
                 <Button
                   onClick={handleGenerateCoverLetter}
                   disabled={isGeneratingCoverLetter || !jobDescription.trim()}
-                  className="h-12 md:h-14 bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50 text-sm md:text-base"
+                  className="h-12 rounded-lg bg-[var(--accent2)] text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 hover:shadow-lg disabled:opacity-50 md:h-14 md:text-base"
                 >
                   {isGeneratingCoverLetter ? (
                     <>
@@ -697,10 +692,11 @@ export default function Dashboard() {
 
                 <Button
                   onClick={() => setActiveTab('question')}
+                  variant="outline"
                   disabled={isGeneratingAnswer || !jobDescription.trim()}
-                  className="h-12 md:h-14 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50 text-sm md:text-base sm:col-span-2 lg:col-span-1"
+                  className="h-12 text-sm font-semibold md:h-14 md:text-base sm:col-span-2 lg:col-span-1"
                 >
-                  <HelpCircle className="mr-2 h-4 w-4" />
+                  <HelpCircle className="mr-2 h-4 w-4 text-brand" />
                   <span className="hidden sm:inline">Answer Question</span>
                   <span className="sm:hidden">Question</span>
                 </Button>
@@ -708,7 +704,7 @@ export default function Dashboard() {
 
               {/* Resume Progress - Inline */}
               {showResumeProgress && (
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="pt-4 border-t border-border">
                   <InlineResumeProgress 
                     isVisible={showResumeProgress}
                     forceComplete={forceCompleteProgress}
@@ -719,8 +715,8 @@ export default function Dashboard() {
 
               {/* Question Input (shown when Answer Question is selected) */}
               {activeTab === 'question' && (
-                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <label className="block text-sm font-semibold">
                     Application Question
                   </label>
                   <div className="relative">
@@ -729,7 +725,7 @@ export default function Dashboard() {
                       onChange={(e) => setQuestion(e.target.value)}
                       placeholder="Enter the application question you need to answer..."
                       rows={3}
-                      className="w-full px-4 py-3 pr-4 md:pr-24 text-sm border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-400 resize-none transition-all"
+                      className="field resize-none pr-4 md:pr-24"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault()
@@ -739,8 +735,8 @@ export default function Dashboard() {
                         }
                       }}
                     />
-                    <div className="hidden md:flex absolute right-3 top-3 items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                      <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-mono text-xs flex items-center gap-1">
+                    <div className="hidden md:flex absolute right-3 top-3 items-center gap-1 text-xs text-muted-foreground">
+                      <kbd className="flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 font-mono text-xs">
                         <span>Enter</span>
                         <span>↵</span>
                       </kbd>
@@ -749,8 +745,9 @@ export default function Dashboard() {
                   </div>
                   <Button
                     onClick={handleAnswerQuestion}
+                    variant="brand"
                     disabled={isGeneratingAnswer || !jobDescription.trim() || !question.trim()}
-                    className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                    className="w-full font-semibold sm:w-auto"
                   >
                     {isGeneratingAnswer ? (
                       <>
@@ -774,9 +771,9 @@ export default function Dashboard() {
             <div className="space-y-6">
               {/* Resume Results */}
               {generatedResumePdf && activeTab === 'resume' && (
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
+                <div className="surface p-4 md:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    <h3 className="text-lg font-semibold">
                       Your Tailored Resume
                     </h3>
                     <div className="flex flex-wrap gap-2">
@@ -784,9 +781,9 @@ export default function Dashboard() {
                         onClick={handleDownloadResume}
                         variant="outline"
                         size="sm"
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs md:text-sm"
+                        className="text-xs md:text-sm"
                       >
-                        <Download className="h-4 w-4 mr-1 md:mr-2" />
+                        <Download className="h-4 w-4 mr-1 md:mr-2 text-brand" />
                         <span className="hidden sm:inline">Download </span>PDF
                       </Button>
                       <Button
@@ -794,12 +791,12 @@ export default function Dashboard() {
                         disabled={isDownloadingTeX}
                         variant="outline"
                         size="sm"
-                        className="text-green-600 border-green-200 hover:bg-green-50 text-xs md:text-sm"
+                        className="text-xs md:text-sm"
                       >
                         {isDownloadingTeX ? (
                           <Loader2 className="h-4 w-4 mr-1 md:mr-2 animate-spin" />
                         ) : (
-                          <FileCode className="h-4 w-4 mr-1 md:mr-2" />
+                          <FileCode className="h-4 w-4 mr-1 md:mr-2 text-[var(--success)]" />
                         )}
                         <span className="hidden sm:inline">Download </span>TeX
                       </Button>
@@ -808,18 +805,18 @@ export default function Dashboard() {
                         disabled={isPreparingOverleaf}
                         variant="outline"
                         size="sm"
-                        className="text-orange-600 border-orange-200 hover:bg-orange-50 text-xs md:text-sm"
+                        className="text-xs md:text-sm"
                       >
                         {isPreparingOverleaf ? (
                           <Loader2 className="h-4 w-4 mr-1 md:mr-2 animate-spin" />
                         ) : (
-                          <ExternalLink className="h-4 w-4 mr-1 md:mr-2" />
+                          <ExternalLink className="h-4 w-4 mr-1 md:mr-2 text-[#e85d2c] dark:text-[#ff8a5e]" />
                         )}
                         <span className="hidden lg:inline">Edit in </span>Overleaf
                       </Button>
                     </div>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <div className="overflow-hidden rounded-xl border border-border">
                     <PdfViewer pdfUrl={generatedResumePdf} />
                   </div>
                 </div>
@@ -827,9 +824,9 @@ export default function Dashboard() {
 
               {/* Cover Letter Results */}
               {coverLetter && activeTab === 'cover-letter' && (
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
+                <div className="surface p-4 md:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    <h3 className="text-lg font-semibold">
                       Your Cover Letter
                     </h3>
                     <div className="flex flex-wrap gap-2">
@@ -837,9 +834,9 @@ export default function Dashboard() {
                         onClick={handleCopyCoverLetter}
                         variant="outline"
                         size="sm"
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs md:text-sm"
+                        className="text-xs md:text-sm"
                       >
-                        <CopyIcon className="h-4 w-4 mr-1 md:mr-2" />
+                        <CopyIcon className="h-4 w-4 mr-1 md:mr-2 text-brand" />
                         {isCoverLetterCopied ? 'Copied!' : 'Copy'}
                       </Button>
                       <Button
@@ -847,19 +844,19 @@ export default function Dashboard() {
                         disabled={isDownloadingCoverLetter}
                         variant="outline"
                         size="sm"
-                        className="text-green-600 border-green-200 hover:bg-green-50 text-xs md:text-sm"
+                        className="text-xs md:text-sm"
                       >
                         {isDownloadingCoverLetter ? (
                           <Loader2 className="h-4 w-4 mr-1 md:mr-2 animate-spin" />
                         ) : (
-                          <Download className="h-4 w-4 mr-1 md:mr-2" />
+                          <Download className="h-4 w-4 mr-1 md:mr-2 text-[var(--success)]" />
                         )}
                         <span className="hidden sm:inline">Download </span>PDF
                       </Button>
                     </div>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">
+                  <div className="rounded-xl bg-muted/60 p-4">
+                    <pre className="whitespace-pre-wrap font-mono text-sm text-foreground/90">
                       {coverLetter}
                     </pre>
                   </div>
@@ -868,23 +865,23 @@ export default function Dashboard() {
 
               {/* Answer Results */}
               {answer && activeTab === 'question' && (
-                <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-4 md:p-6">
+                <div className="surface p-4 md:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                    <h3 className="text-lg font-semibold">
                       Your Answer
                     </h3>
                     <Button
                       onClick={handleCopyAnswer}
                       variant="outline"
                       size="sm"
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs md:text-sm w-full sm:w-auto"
+                      className="w-full text-xs sm:w-auto md:text-sm"
                     >
-                      <CopyIcon className="h-4 w-4 mr-1 md:mr-2" />
+                      <CopyIcon className="h-4 w-4 mr-1 md:mr-2 text-brand" />
                       {isAnswerCopied ? 'Copied!' : 'Copy Answer'}
                     </Button>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-mono">
+                  <div className="rounded-xl bg-muted/60 p-4">
+                    <pre className="whitespace-pre-wrap font-mono text-sm text-foreground/90">
                       {answer}
                     </pre>
                   </div>
@@ -896,14 +893,14 @@ export default function Dashboard() {
                 (activeTab === 'cover-letter' && coverLetter) || 
                 (activeTab === 'question' && answer)) && (
                 <div className="fixed bottom-0 left-0 right-0 p-4 z-40 animate-in slide-in-from-bottom-4 fade-in duration-500 md:bottom-6 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-4xl md:px-8">
-                  <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl rounded-t-2xl md:rounded-2xl shadow-2xl border border-white/30 dark:border-gray-700/30 p-4">
+                  <div className="rounded-t-2xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur-2xl md:rounded-2xl">
                     {/* Mobile: Stack vertically, Desktop: Single line */}
                     <div className="space-y-3 md:space-y-0">
                       {/* Title and quick actions */}
                       <div className="flex flex-col md:flex-row md:items-center gap-3 md:mb-3">
                         <div className="flex items-center gap-2">
-                          <MessageSquare className="h-5 w-5 text-blue-600" />
-                          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                          <MessageSquare className="h-5 w-5 text-brand" />
+                          <h3 className="text-lg font-semibold">
                             Make it better
                           </h3>
                         </div>
@@ -949,7 +946,7 @@ export default function Dashboard() {
                             value={followUpInstruction}
                             onChange={(e) => setFollowUpInstruction(e.target.value)}
                             placeholder="Or describe what you want to improve..."
-                            className="w-full h-12 px-4 pr-4 md:pr-16 text-sm bg-white/20 dark:bg-gray-800/20 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white dark:placeholder-gray-400 transition-all"
+                            className="field h-12 pr-4 md:pr-16"
                             onKeyPress={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault()
@@ -958,8 +955,8 @@ export default function Dashboard() {
                             }}
                             disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
                           />
-                          <div className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                            <kbd className="px-2 py-1 bg-gray-100/70 dark:bg-gray-700/70 rounded border border-gray-300/50 dark:border-gray-600/50 font-mono text-xs flex items-center gap-1 backdrop-blur-sm">
+                          <div className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-1 text-xs text-muted-foreground">
+                            <kbd className="flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 font-mono text-xs">
                               <span>Enter</span>
                               <span>↵</span>
                             </kbd>
@@ -968,9 +965,10 @@ export default function Dashboard() {
                         </div>
                         <Button
                           type="button"
+                          variant="brand"
                           onClick={handleFollowUpSubmit}
                           disabled={!followUpInstruction.trim() || isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                          className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-50 w-full md:w-auto"
+                          className="h-12 w-full px-6 font-semibold md:w-auto"
                         >
                           {(isEditingResume || isEditingCoverLetter || isEditingAnswer) ? (
                             <>

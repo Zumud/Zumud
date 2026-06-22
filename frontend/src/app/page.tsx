@@ -10,6 +10,7 @@ import CompanyLogosSection from "@/components/landing/company-logos-section"
 import HowItWorksSection from "@/components/landing/how-it-works-section"
 import FeaturesSection from "@/components/landing/features-section"
 import PricingSection from "@/components/landing/pricing-section"
+import FaqSection from "@/components/landing/faq-section"
 import CallToActionSection from "@/components/landing/call-to-action-section"
 import Footer from "@/components/landing/footer"
 
@@ -50,6 +51,7 @@ function LandingPageContent() {
         <HowItWorksSection />
         <FeaturesSection />
         <PricingSection onAuthModalOpen={handleAuthModalOpen} />
+        <FaqSection />
         <CallToActionSection onAuthModalOpen={handleAuthModalOpen} />
       </main>
       <Footer />
@@ -66,7 +68,13 @@ function LandingPageContent() {
 
 export default function LandingPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <div className="size-10 animate-spin rounded-full border-2 border-border border-t-brand" />
+        </div>
+      }
+    >
       <LandingPageContent />
     </Suspense>
   )

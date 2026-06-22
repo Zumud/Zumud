@@ -1,156 +1,159 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckIcon, DollarSignIcon, ZapIcon, GiftIcon } from "lucide-react";
+import { CheckIcon, GiftIcon, SparklesIcon } from "lucide-react";
 import { PRICING_PLANS } from "@/data/pricing-data";
 
 interface PricingSectionProps {
-  onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
+  onAuthModalOpen?: (mode?: "login" | "signup") => void;
 }
 
 export default function PricingSection({ onAuthModalOpen }: PricingSectionProps) {
-  const freePlan = PRICING_PLANS.find(plan => plan.id === "free");
-  const paygPlan = PRICING_PLANS.find(plan => plan.id === "payg");
+  const freePlan = PRICING_PLANS.find((plan) => plan.id === "free");
+  const paygPlan = PRICING_PLANS.find((plan) => plan.id === "payg");
 
   return (
-    <section id="pricing" className="py-24 bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
-      <div className="mx-auto max-w-7xl px-4 md:px-6">
+    <section id="pricing" className="section scroll-mt-20">
+      <div className="container-page">
         {/* Header */}
-        <div className="text-center space-y-4 mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            Simple, Transparent Pricing
+        <div className="mx-auto mb-14 max-w-2xl text-center">
+          <span className="badge-soft mb-4">Pricing</span>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Simple, transparent pricing
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Start with <span className="font-semibold text-blue-600">10 FREE generations</span>, 
-            then just €0.50 per generation. No subscriptions, no hidden fees.
+          <p className="mt-4 text-lg text-muted-foreground">
+            <span className="font-semibold text-foreground">10 free generations.</span>{" "}
+            Then €0.10 each. No subscriptions.
           </p>
         </div>
 
-        {/* Main Pricing Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
-          {/* Free Trial - Featured */}
+        {/* Pricing cards */}
+        <div className="mx-auto grid max-w-4xl grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+          {/* Free trial (featured) */}
           {freePlan && (
-            <Card className="relative border-2 border-blue-500 shadow-xl">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-gradient-to-r from-blue-600 to-violet-600 text-white px-6 py-2 rounded-full text-sm font-medium flex items-center gap-1">
-                  <GiftIcon className="h-4 w-4" />
+            <div className="surface relative flex flex-col p-7 ring-2 ring-brand md:p-8">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-gradient px-4 py-1.5 text-xs font-semibold text-white shadow-sm">
+                  <GiftIcon className="size-3.5" />
                   {freePlan.highlight}
                 </span>
               </div>
-              <CardHeader className="text-center pb-6 pt-8">
-                <CardTitle className="text-2xl">{freePlan.name}</CardTitle>
-                <CardDescription className="text-base">{freePlan.description}</CardDescription>
+
+              <div className="mt-3 text-center">
+                <h3 className="text-xl font-semibold">{freePlan.name}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {freePlan.description}
+                </p>
                 <div className="mt-6">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                      FREE
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {freePlan.generations} generations
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    No credit card required
+                  <span className="text-5xl font-bold tracking-tight text-brand-gradient">
+                    Free
+                  </span>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {freePlan.generations} generations, no credit card
                   </p>
                 </div>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-lg font-medium text-blue-600 mb-2">
-                  Perfect for trying Zumud
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Experience all features with 10 generations to see the difference Zumud makes.
-                </p>
-              </CardContent>
-              <CardFooter className="pt-6">
-                <Button 
-                  className="w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-lg py-6"
-                  onClick={() => onAuthModalOpen?.('signup')}
-                >
-                  {freePlan.cta}
-                </Button>
-              </CardFooter>
-            </Card>
+              </div>
+
+              <ul className="mt-7 space-y-3">
+                {freePlan.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3 text-sm">
+                    <CheckIcon className="mt-0.5 size-4 shrink-0 text-brand" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                variant="brand"
+                size="lg"
+                className="mt-7 w-full"
+                onClick={() => onAuthModalOpen?.("signup")}
+              >
+                {freePlan.cta}
+              </Button>
+            </div>
           )}
 
           {/* Pay As You Go */}
           {paygPlan && (
-            <Card className="relative border border-gray-200 dark:border-gray-800">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-6 py-2 rounded-full text-sm font-medium">
+            <div className="surface relative flex flex-col p-7 md:p-8">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-4 py-1.5 text-xs font-semibold text-secondary-foreground">
                   {paygPlan.highlight}
                 </span>
               </div>
-              <CardHeader className="text-center pb-6 pt-8">
-                <CardTitle className="text-2xl">{paygPlan.name}</CardTitle>
-                <CardDescription className="text-base">{paygPlan.description}</CardDescription>
+
+              <div className="mt-3 text-center">
+                <h3 className="text-xl font-semibold">{paygPlan.name}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {paygPlan.description}
+                </p>
                 <div className="mt-6">
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-5xl font-bold">
-                      ${paygPlan.price}
-                    </span>
-                    <span className="text-lg text-muted-foreground">
-                      per generation
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Each resume, cover letter, or edit
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <span className="text-5xl font-bold tracking-tight">
+                    €{paygPlan.price.toFixed(2)}
+                  </span>
+                  <p className="mt-2 text-sm text-muted-foreground">
                     Pay only when you generate
                   </p>
                 </div>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-lg font-medium text-violet-600 mb-2">
-                  Use when you need it
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Generate resumes, cover letters, and job answers individually.
-                </p>
-              </CardContent>
-              <CardFooter className="pt-6">
-                <Button 
-                  variant="outline"
-                  className="w-full text-lg py-6 border-2 border-blue-200 hover:border-blue-300 dark:border-blue-800 dark:hover:border-blue-700"
-                  onClick={() => onAuthModalOpen?.('signup')}
-                >
-                  {paygPlan.cta}
-                </Button>
-              </CardFooter>
-            </Card>
+              </div>
+
+              <ul className="mt-7 space-y-3">
+                {paygPlan.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3 text-sm">
+                    <CheckIcon className="mt-0.5 size-4 shrink-0 text-[var(--accent2)]" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                variant="outline"
+                size="lg"
+                className="mt-7 w-full"
+                onClick={() => onAuthModalOpen?.("signup")}
+              >
+                {paygPlan.cta}
+              </Button>
+            </div>
           )}
         </div>
 
-        {/* Value Proposition */}
-        <div className="text-center max-w-4xl mx-auto">
-          <div className="bg-blue-50 dark:bg-blue-950/30 rounded-2xl p-8 mb-8">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <GiftIcon className="h-6 w-6 text-blue-600" />
-              <h3 className="text-xl font-semibold">Why start with 10 free generations?</h3>
+        {/* Value proposition */}
+        <div className="mx-auto mt-12 max-w-4xl">
+          <div className="bg-brand-gradient-soft rounded-2xl border border-border/60 p-8 text-center">
+            <div className="mb-3 flex items-center justify-center gap-2">
+              <SparklesIcon className="size-5 text-brand" />
+              <h3 className="text-lg font-semibold">
+                Why start with 10 free generations?
+              </h3>
             </div>
-            <p className="text-muted-foreground leading-relaxed">
-              We're confident you'll love Zumud's results. Try it completely free with 10 generations 
-              to see how much better your resumes can be. No credit card required, no strings attached.
+            <p className="mx-auto max-w-2xl leading-relaxed text-muted-foreground">
+              Try it free for 10 generations. No card, no strings. The results speak
+              for themselves.
             </p>
           </div>
-          
-          {/* Trust indicators */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+
+          <div className="mt-8 grid grid-cols-1 gap-6 text-center sm:grid-cols-3">
             <div>
-              <div className="text-2xl font-bold text-blue-600 mb-1">100% Free Trial</div>
-              <p className="text-sm text-muted-foreground">10 generations, no credit card</p>
+              <div className="text-2xl font-bold text-brand-gradient">100% free trial</div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                10 generations, no card
+              </p>
             </div>
             <div>
-              <div className="text-2xl font-bold text-violet-600 mb-1">Fair Pricing</div>
-              <p className="text-sm text-muted-foreground">Just 10¢ after your free trial</p>
+              <div className="text-2xl font-bold text-brand-gradient">Fair pricing</div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Just €0.10 after your trial
+              </p>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-600 mb-1">No Subscriptions</div>
-              <p className="text-sm text-muted-foreground">Pay only when you generate</p>
+              <div className="text-2xl font-bold text-brand-gradient">No subscriptions</div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Pay only when you generate
+              </p>
             </div>
           </div>
         </div>
       </div>
     </section>
   );
-} 
+}

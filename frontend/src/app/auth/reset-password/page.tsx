@@ -51,21 +51,21 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-white to-blue-50/30 dark:from-gray-950 dark:to-blue-950/30 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-xl border border-gray-200/60 dark:border-gray-700/60 p-6 md:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl md:p-8">
         {status === 'checking' && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand" />
           </div>
         )}
 
         {status === 'invalid' && (
           <div className="text-center space-y-4">
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Link invalid or expired</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <h1 className="text-xl font-semibold">Link invalid or expired</h1>
+            <p className="text-sm text-muted-foreground">
               This password reset link is invalid or has expired. Please request a new one.
             </p>
-            <Button onClick={() => router.push('/')} className="w-full bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={() => router.push('/')} variant="brand" className="w-full">
               Request a new link
             </Button>
           </div>
@@ -74,22 +74,22 @@ export default function ResetPasswordPage() {
         {status === 'ready' && (
           done ? (
             <div className="text-center space-y-3 py-4">
-              <CheckCircle className="mx-auto h-10 w-10 text-emerald-500" />
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Password updated</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Taking you to your dashboard…</p>
+              <CheckCircle className="mx-auto h-10 w-10 text-brand" />
+              <h1 className="text-xl font-semibold">Password updated</h1>
+              <p className="text-sm text-muted-foreground">Taking you to your dashboard…</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Set a new password</h1>
+              <h1 className="text-xl font-semibold">Set a new password</h1>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
                   <span className="block sm:inline">{error}</span>
                 </div>
               )}
 
               <div>
-                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="new-password" className="block text-sm font-medium">
                   New password
                 </label>
                 <div className="relative">
@@ -101,21 +101,21 @@ export default function ResetPasswordPage() {
                     autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="mt-1 block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                    className="field mt-1.5 pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Password must be at least 6 characters</p>
+                <p className="mt-1 text-xs text-muted-foreground">Password must be at least 6 characters</p>
               </div>
 
-              <Button type="submit" disabled={isLoading} className="w-full bg-emerald-600 hover:bg-emerald-700">
+              <Button type="submit" variant="brand" disabled={isLoading} className="w-full">
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
