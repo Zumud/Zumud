@@ -56,8 +56,8 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
 
   if (!isMounted) {
     return (
-      <div 
-        className="h-[400px] md:h-[500px] w-full bg-gray-100 animate-pulse rounded-lg" 
+      <div
+        className="h-[400px] md:h-[500px] w-full bg-muted animate-pulse rounded-lg"
         aria-label="Loading PDF viewer"
         role="status"
       >
@@ -72,23 +72,23 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
       <section aria-labelledby="pdf-viewer-title" className="w-full">
         <h2 id="pdf-viewer-title" className="sr-only">Your Interview-Ready Resume</h2>
         
-        <div className="w-full min-h-[300px] md:min-h-[400px] border border-gray-200 rounded-lg overflow-hidden shadow-md bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+        <div className="w-full min-h-[300px] md:min-h-[400px] border border-border rounded-lg overflow-hidden shadow-sm bg-muted/40">
           <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-6">
             {/* PDF Icon */}
-            <div className="w-20 h-20 md:w-24 md:h-24 bg-red-100 dark:bg-red-900/20 rounded-2xl flex items-center justify-center">
-              <svg className="w-10 h-10 md:w-12 md:h-12 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+            <div className="w-20 h-20 md:w-24 md:h-24 bg-destructive/10 rounded-2xl flex items-center justify-center">
+              <svg className="w-10 h-10 md:w-12 md:h-12 text-destructive" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
               </svg>
             </div>
 
             {/* Message */}
             <div className="space-y-2">
-              <h3 className="text-lg md:text-xl font-semibold text-gray-800 dark:text-gray-200">
-                Your PDF is Ready!
+              <h3 className="text-lg md:text-xl font-semibold">
+                Your PDF is ready
               </h3>
-              <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 max-w-md">
-                {isMobile ? 
-                  "Your browser doesn't support inline PDF preview. Click below to view your resume." :
+              <p className="text-sm md:text-base text-muted-foreground max-w-md">
+                {isMobile ?
+                  "Your browser doesn't support inline PDF preview. Tap below to view your resume." :
                   "Choose how you'd like to view your PDF document."
                 }
               </p>
@@ -98,7 +98,8 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
             <div className="w-full max-w-md">
               <Button
                 onClick={handleOpenInNewTab}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                variant="brand"
+                className="w-full font-semibold"
                 size="lg"
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
@@ -120,7 +121,7 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
   return (
     <section aria-labelledby="pdf-viewer-title" className="w-full">
       <h2 id="pdf-viewer-title" className="sr-only">Your Interview-Ready Resume</h2>
-      <div className="w-full h-[70vh] min-h-[400px] max-h-[800px] md:h-[600px] border border-gray-200 rounded-lg overflow-hidden shadow-md">
+      <div className="w-full h-[70vh] min-h-[400px] max-h-[800px] md:h-[600px] border border-border rounded-lg overflow-hidden shadow-sm">
         <iframe 
           src={`${pdfUrl}#toolbar=0&view=FitH`} 
           className="w-full h-full" 

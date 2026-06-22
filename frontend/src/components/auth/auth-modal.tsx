@@ -177,14 +177,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     }
   }
 
-  const inputClass =
-    "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+  const inputClass = "field mt-1.5"
 
   const emailPill = (
     <button
       type="button"
       onClick={resetToEmail}
-      className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+      className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft className="h-4 w-4" />
       <span className="truncate max-w-[16rem]">{email.trim()}</span>
@@ -193,7 +192,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
   const passwordField = (id: string, label: string, autoComplete: string) => (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+      <label htmlFor={id} className="block text-sm font-medium">
         {label}
       </label>
       <div className="relative">
@@ -211,7 +210,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
           type="button"
           onClick={() => setShowPassword((s) => !s)}
           aria-label={showPassword ? 'Hide password' : 'Show password'}
-          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground transition-colors hover:text-foreground"
         >
           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
@@ -232,13 +231,13 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         </DialogHeader>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
             <span className="block sm:inline">{error}</span>
           </div>
         )}
 
         {info && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded" role="status">
+          <div className="rounded-lg border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-brand" role="status">
             <span className="block sm:inline">{info}</span>
           </div>
         )}
@@ -250,7 +249,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
               variant="outline"
               disabled={isLoading}
               onClick={handleGoogle}
-              className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="w-full"
             >
               <span className="mr-2 inline-flex"><GoogleIcon /></span>
               Continue with Google
@@ -258,16 +257,16 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-200" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-2 text-gray-400">or</span>
+                <span className="bg-background px-2 text-muted-foreground">or</span>
               </div>
             </div>
 
             <form onSubmit={handleEmailContinue} className="space-y-4">
               <div>
-                <label htmlFor="auth-email" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="auth-email" className="block text-sm font-medium">
                   Email
                 </label>
                 <input
@@ -287,16 +286,17 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
               </div>
 
               {googleHint && (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   This email is registered with Google — use{' '}
-                  <span className="font-medium">Continue with Google</span> above.
+                  <span className="font-medium text-foreground">Continue with Google</span> above.
                 </p>
               )}
 
               <Button
                 type="submit"
+                variant="brand"
                 disabled={isLoading}
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                className="w-full"
               >
                 {isLoading ? (
                   <>
@@ -317,8 +317,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             {passwordField('signin-password', 'Password', 'current-password')}
             <Button
               type="submit"
+              variant="brand"
               disabled={isLoading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              className="w-full"
             >
               {isLoading ? (
                 <>
@@ -333,7 +334,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
               type="button"
               onClick={handleForgotPassword}
               disabled={isLoading || isResetting}
-              className="block w-full text-center text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              className="block w-full text-center text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
             >
               Forgot password?
             </button>
@@ -344,11 +345,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
           <form onSubmit={handleCreate} className="space-y-4">
             {emailPill}
             {passwordField('create-password', 'Password', 'new-password')}
-            <p className="text-xs text-gray-500">Password must be at least 6 characters</p>
+            <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
             <Button
               type="submit"
+              variant="brand"
               disabled={isLoading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              className="w-full"
             >
               {isLoading ? (
                 <>
@@ -367,14 +369,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             <button
               type="button"
               onClick={() => { setError(null); setStep('password') }}
-              className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to sign in
             </button>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-muted-foreground">
               We sent a password reset link to{' '}
-              <span className="font-medium">{email.trim()}</span>. Open it to choose a new password.
+              <span className="font-medium text-foreground">{email.trim()}</span>. Open it to choose a new password.
             </p>
           </div>
         )}

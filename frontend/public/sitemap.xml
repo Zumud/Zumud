@@ -2,20 +2,26 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://zumud.com/</loc>
-    <lastmod>2023-12-01</lastmod>
-    <changefreq>monthly</changefreq>
+    <lastmod>2026-06-22</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://zumud.com/terms</loc>
-    <lastmod>2023-12-01</lastmod>
+    <loc>https://zumud.com/privacy</loc>
+    <lastmod>2026-06-22</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://zumud.com/privacy</loc>
-    <lastmod>2023-12-01</lastmod>
+    <loc>https://zumud.com/terms</loc>
+    <lastmod>2026-06-22</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
-</urlset> 
+  <url>
+    <loc>https://zumud.com/cookies</loc>
+    <lastmod>2026-06-22</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+</urlset>
