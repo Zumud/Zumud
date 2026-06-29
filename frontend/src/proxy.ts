@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { supabaseCookieOptions } from '@/lib/supabase/shared';
 
 // Next.js 16 renamed the "middleware" file convention to "proxy".
 // Runs for requests matched by `config.matcher` below.
@@ -37,9 +38,12 @@ export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_LOCAL_PROXY_TARGET ?? process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      // Pin the cookie name in local dev so it matches the browser client (which
+      // uses a different URL via the proxy). No-op in production.
+      ...(supabaseCookieOptions ? { cookieOptions: supabaseCookieOptions } : {}),
       cookies: {
         getAll() {
           return request.cookies.getAll();
