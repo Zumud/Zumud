@@ -18,7 +18,16 @@ const nextConfig = {
   async rewrites() {
     const apiUrl = process.env.API_URL || 'http://localhost:8000';
     console.log('Next.js rewrites configured with API_URL:', apiUrl);
+    // Local dev only: route supabase-js (browser) through the dev server so the host
+    // browser doesn't need to reach the Docker-published Supabase port directly.
+    const sbProxy = process.env.SUPABASE_LOCAL_PROXY_TARGET;
+    const supabaseRewrites = sbProxy ? [
+      { source: '/auth/v1/:path*', destination: `${sbProxy}/auth/v1/:path*` },
+      { source: '/rest/v1/:path*', destination: `${sbProxy}/rest/v1/:path*` },
+      { source: '/storage/v1/:path*', destination: `${sbProxy}/storage/v1/:path*` },
+    ] : [];
     return [
+      ...supabaseRewrites,
       {
         source: '/applications/:path*',
         destination: `${apiUrl}/applications/:path*`,
