@@ -1,41 +1,62 @@
 import React from "react";
-import { BrainIcon, FileTextIcon, ClockIcon, DownloadIcon, MessageSquareIcon, RefreshCwIcon } from "lucide-react";
+import {
+  BrainIcon,
+  ClockIcon,
+  DownloadIcon,
+  FileCode2,
+  FileTextIcon,
+  MessageSquareIcon,
+  RefreshCwIcon,
+  ScanText,
+} from "lucide-react";
 
 const FEATURES = [
   {
     icon: BrainIcon,
-    title: "AI-powered tailoring",
-    description: "We rewrite your resume to match each job's skills and keywords.",
+    title: "AI resume tailoring",
+    description: "Rewrites your resume around the job post.",
     tint: "brand",
   },
   {
-    icon: FileTextIcon,
-    title: "ATS optimization",
-    description: "Clean formatting that gets you past the bots to a human.",
+    icon: ScanText,
+    title: "ATS friendly formatting",
+    description: "Clean structure that is easy to scan.",
     tint: "violet",
   },
   {
     icon: ClockIcon,
-    title: "Lightning fast",
-    description: "A tailored resume in about 30 seconds, not an afternoon.",
+    title: "Fast generation",
+    description: "Get a tailored resume in about 30 seconds.",
     tint: "orange",
   },
   {
-    icon: MessageSquareIcon,
-    title: "Cover letters & answers",
-    description: "Matching cover letters and application answers from the same job post.",
+    icon: FileTextIcon,
+    title: "Cover letters",
+    description: "Create matching cover letters from the same job post.",
     tint: "violet",
   },
   {
+    icon: MessageSquareIcon,
+    title: "Application answers",
+    description: "Generate strong answers for job application questions.",
+    tint: "brand",
+  },
+  {
     icon: RefreshCwIcon,
-    title: "Refine in one click",
-    description: "Shorter, more formal, more keywords. Edit in plain English.",
+    title: "Easy refinements",
+    description: "Make it shorter, sharper, more formal, or keyword focused.",
     tint: "brand",
   },
   {
     icon: DownloadIcon,
-    title: "Export anywhere",
-    description: "Download as PDF, export the LaTeX, or open it in Overleaf.",
+    title: "PDF export",
+    description: "Download a polished resume ready to send.",
+    tint: "violet",
+  },
+  {
+    icon: FileCode2,
+    title: "LaTeX and Overleaf",
+    description: "Export the source or open it in Overleaf.",
     tint: "orange",
   },
 ];
@@ -53,14 +74,14 @@ function FeaturesSection() {
         <div className="mx-auto mb-14 max-w-2xl text-center">
           <span className="badge-soft mb-4">Features</span>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Everything you need to get hired
+            Everything you need to apply faster
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            One resume becomes the right resume for every job.
+            Turn one resume into the right resume for each job.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((feature, index) => {
             const Icon = feature.icon;
             return (

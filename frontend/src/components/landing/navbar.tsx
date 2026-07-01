@@ -13,9 +13,10 @@ interface NavbarProps {
 }
 
 const NAV_LINKS = [
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#features", label: "Features" },
+  { href: "#ats-friendly", label: "ATS friendly" },
+  { href: "#latex", label: "LaTeX" },
   { href: "#pricing", label: "Pricing" },
+  { href: "#faq", label: "FAQ" },
 ];
 
 export default function Navbar({ onAuthModalOpen }: NavbarProps) {

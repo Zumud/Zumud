@@ -9,13 +9,13 @@ const STEPS = [
   },
   {
     icon: ClipboardIcon,
-    title: "Paste the job description",
-    description: "Drop in the role. We read the must-have skills and keywords.",
+    title: "Paste the job post",
+    description: "Zumud finds the key skills, keywords, and role requirements.",
   },
   {
     icon: RocketIcon,
-    title: "Get your tailored resume",
-    description: "Download an ATS-ready resume built for that job in ~30 seconds.",
+    title: "Download your tailored resume",
+    description: "Get an ATS friendly PDF built for that role in about 30 seconds.",
   },
 ];
 
@@ -26,7 +26,7 @@ function HowItWorksSection() {
         <div className="mx-auto mb-14 max-w-2xl text-center">
           <span className="badge-soft mb-4">How it works</span>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Three steps to a tailored resume
+            Three steps. One better resume.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
             Minutes per application, not hours.

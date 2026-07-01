@@ -9,24 +9,21 @@ interface PricingSectionProps {
 export default function PricingSection({ onAuthModalOpen }: PricingSectionProps) {
   const freePlan = PRICING_PLANS.find((plan) => plan.id === "free");
   const paygPlan = PRICING_PLANS.find((plan) => plan.id === "payg");
+  const unlimitedPlan = PRICING_PLANS.find((plan) => plan.id === "unlimited");
 
   return (
     <section id="pricing" className="section scroll-mt-20">
       <div className="container-page">
-        {/* Header */}
         <div className="mx-auto mb-14 max-w-2xl text-center">
-          <span className="badge-soft mb-4">Pricing</span>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Simple, transparent pricing
+            Simple pricing
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            <span className="font-semibold text-foreground">10 free generations.</span>{" "}
-            Then €0.10 each. No subscriptions.
+          <p className="mt-3 text-lg text-muted-foreground">
+            Start free. Pay per use. Or go unlimited.
           </p>
         </div>
 
-        {/* Pricing cards */}
-        <div className="mx-auto grid max-w-4xl grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
           {/* Free trial (featured) */}
           {freePlan && (
             <div className="surface relative flex flex-col p-7 ring-2 ring-brand md:p-8">
@@ -46,9 +43,6 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
                   <span className="text-5xl font-bold tracking-tight text-brand-gradient">
                     Free
                   </span>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {freePlan.generations} generations, no credit card
-                  </p>
                 </div>
               </div>
 
@@ -90,9 +84,7 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
                   <span className="text-5xl font-bold tracking-tight">
                     €{paygPlan.price.toFixed(2)}
                   </span>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Pay only when you generate
-                  </p>
+                  <span className="ml-2 text-sm text-muted-foreground">per generation</span>
                 </div>
               </div>
 
@@ -115,43 +107,52 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
               </Button>
             </div>
           )}
+
+          {unlimitedPlan && (
+            <div className="surface relative flex flex-col p-7 md:p-8">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-brand/20 bg-brand/10 px-4 py-1.5 text-xs font-semibold text-brand">
+                  {unlimitedPlan.highlight}
+                </span>
+              </div>
+
+              <div className="mt-3 text-center">
+                <h3 className="text-xl font-semibold">{unlimitedPlan.name}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {unlimitedPlan.description}
+                </p>
+                <div className="mt-6">
+                  <span className="text-5xl font-bold tracking-tight">
+                    €{unlimitedPlan.price.toFixed(2)}
+                  </span>
+                  <span className="ml-2 text-sm text-muted-foreground">per month</span>
+                </div>
+              </div>
+
+              <ul className="mt-7 space-y-3">
+                {unlimitedPlan.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3 text-sm">
+                    <CheckIcon className="mt-0.5 size-4 shrink-0 text-brand" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                variant="outline"
+                size="lg"
+                className="mt-7 w-full"
+                onClick={() => onAuthModalOpen?.("signup")}
+              >
+                {unlimitedPlan.cta}
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Value proposition */}
-        <div className="mx-auto mt-12 max-w-4xl">
-          <div className="bg-brand-gradient-soft rounded-2xl border border-border/60 p-8 text-center">
-            <div className="mb-3 flex items-center justify-center gap-2">
-              <SparklesIcon className="size-5 text-brand" />
-              <h3 className="text-lg font-semibold">
-                Why start with 10 free generations?
-              </h3>
-            </div>
-            <p className="mx-auto max-w-2xl leading-relaxed text-muted-foreground">
-              Try it free for 10 generations. No card, no strings. The results speak
-              for themselves.
-            </p>
-          </div>
-
-          <div className="mt-8 grid grid-cols-1 gap-6 text-center sm:grid-cols-3">
-            <div>
-              <div className="text-2xl font-bold text-brand-gradient">100% free trial</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                10 generations, no card
-              </p>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-brand-gradient">Fair pricing</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Just €0.10 after your trial
-              </p>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-brand-gradient">No subscriptions</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Pay only when you generate
-              </p>
-            </div>
-          </div>
+        <div className="mx-auto mt-10 flex max-w-6xl items-center justify-center gap-2 rounded-2xl border border-brand/15 bg-brand/5 px-5 py-4 text-center">
+          <SparklesIcon className="size-5 shrink-0 text-brand" />
+          <p className="font-medium">Try it first. Pay only when it helps.</p>
         </div>
       </div>
     </section>
