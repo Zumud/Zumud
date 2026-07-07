@@ -47,6 +47,10 @@ dev-backend: ## Run the FastAPI backend against the local stack
 	.venv/bin/uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
 
 dev-frontend: ## Run the Next.js frontend against the local stack (uses frontend/.env.local)
+	# Clear the build cache first. Turbopack's incremental CSS/compile cache can go stale
+	# on the slow WSL filesystem (e.g. after a pull that changes globals.css), silently
+	# serving old styles. A fresh start costs a few seconds but keeps dev matching prod.
+	rm -rf frontend/.next
 	cd frontend && npm run dev
 
 seed: ## Create a confirmed local test user ([email protected] / password123)
