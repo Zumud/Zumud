@@ -28,6 +28,14 @@ status: ## Show local stack URLs/keys
 dev-backend: ## Run the FastAPI backend against the local stack
 	set -a; \
 	eval "$$(supabase status -o env 2>/dev/null | grep -E '^[A-Z0-9_]+=')"; \
+	if [ -z "$$DB_URL" ]; then \
+	  echo "ERROR: couldn't read local Supabase creds (DATABASE_URL would be empty)."; \
+	  echo "  - Run 'make up' first if the stack isn't running."; \
+	  echo "  - Docker must be reachable from this shell ('docker ps' must work). On snap-Docker/WSL"; \
+	  echo "    the 'docker' group needs a fresh login: run 'newgrp docker' (or restart WSL), or use:"; \
+	  echo "    sg docker -c 'make dev-backend'"; \
+	  exit 1; \
+	fi; \
 	export SUPABASE_URL="$$API_URL" \
 	       SUPABASE_PUBLISHABLE_KEY="$$PUBLISHABLE_KEY" \
 	       SUPABASE_SECRET_KEY="$$SECRET_KEY" \
