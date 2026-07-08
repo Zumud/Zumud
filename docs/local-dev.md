@@ -6,7 +6,9 @@ and tested locally before anything ships. No cloud project required; the databas
 plain Postgres you can point any tool at.
 
 ## Prerequisites
-- Docker, the Supabase CLI, a Python 3.12 venv at `.venv`, Node 22.
+- Docker, the [Supabase CLI](https://supabase.com/docs/guides/cli), Node 20+, a Python 3.12
+  venv at `.venv` (`python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt`;
+  no 3.12 on your system? `uv python install 3.12` gives you one without touching system Python).
 - snap-Docker note: the socket must be group `docker`. If `docker ps` is denied:
   `sudo chown root:docker /var/run/docker.sock` (and you're in the `docker` group).
   After joining the group, start a fresh login shell so it's active — otherwise prefix
@@ -26,8 +28,10 @@ make down          # stop the stack
 - App tables are created by SQLAlchemy `create_all()` on first backend connect, so the
   local schema matches prod with no manual SQL.
 - `make dev-backend` reads the local creds from `supabase status` and exports them ahead
-  of uvicorn (they override the committed cloud `.env`).
-- The frontend uses `frontend/.env.local` (local Supabase URL + publishable key).
+  of uvicorn (they override the committed cloud `.env`). The only secret you supply is
+  `OPEN_AI_KEY` in `.env`.
+- `make dev-frontend` auto-creates `frontend/.env.local` from the local stack on first run
+  (deterministic local keys, no secrets), so a fresh clone needs no manual frontend config.
 
 ## Testing auth locally
 - The browser talks to Supabase **through the Next dev server** (same-origin): the
