@@ -4,25 +4,25 @@ import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
-import { MoonIcon, SunIcon } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { Menu, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface NavbarProps {
-  onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
+  onAuthModalOpen?: (mode?: "login" | "signup") => void;
 }
 
+const NAV_LINKS = [
+  { href: "#ats-friendly", label: "ATS friendly" },
+  { href: "#latex", label: "LaTeX" },
+  { href: "#pricing", label: "Pricing" },
+  { href: "#faq", label: "FAQ" },
+];
+
 export default function Navbar({ onAuthModalOpen }: NavbarProps) {
-  const [theme, setTheme] = React.useState<"light" | "dark">("light");
   const [userAuthenticated, setUserAuthenticated] = React.useState(false);
+  const [scrolled, setScrolled] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   // Reflect Supabase auth state on mount and whenever it changes.
   React.useEffect(() => {
@@ -41,138 +41,138 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
     };
   }, []);
 
-  const toggleTheme = React.useCallback(() => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    document.documentElement.classList.toggle("dark");
-  }, [theme]);
-
-  const handleLogin = React.useCallback(() => {
-    onAuthModalOpen?.('login');
-  }, [onAuthModalOpen]);
+  React.useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleSignup = React.useCallback(() => {
-    onAuthModalOpen?.('signup');
+    onAuthModalOpen?.("signup");
+  }, [onAuthModalOpen]);
+
+  const handleLogin = React.useCallback(() => {
+    onAuthModalOpen?.("login");
   }, [onAuthModalOpen]);
 
   return (
-    <div className="border-b bg-background sticky top-0 z-50 shadow-sm">
-      <div className="mx-auto max-w-7xl flex h-16 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-6 md:gap-10">
-          <Link href="/" className="flex items-center space-x-2">
-            <img 
-              src="/logos/zumud/combined.svg" 
-              alt="Zumud" 
-              className="h-8 w-auto hover:opacity-90 transition-opacity duration-200"
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full transition-all duration-300",
+        scrolled
+          ? "border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65"
+          : "border-b border-transparent bg-background/0"
+      )}
+    >
+      <div className="container-page flex h-16 items-center justify-between gap-4">
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center" aria-label="Zumud home">
+            <img
+              src="/logos/zumud/combined.svg"
+              alt="Zumud"
+              className="h-7 w-auto transition-opacity duration-200 hover:opacity-90"
             />
           </Link>
-          <NavigationMenu className="hidden md:flex">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger>Features</NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-2">
-                    <li className="row-span-3">
-                      <NavigationMenuLink asChild>
-                        <Link
-                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-blue-50 to-violet-100 p-6 no-underline outline-none focus:shadow-md dark:from-blue-950 dark:to-violet-900"
-                          href="#features"
-                        >
-                          <div className="mb-2 mt-4 text-lg font-medium text-blue-600 dark:text-blue-300">
-                            AI-Powered Resume Builder
-                          </div>
-                          <p className="text-sm leading-tight text-blue-700/90 dark:text-blue-300/90">
-                            Tailor your resume for every job application with
-                            our advanced AI technology
-                          </p>
-                        </Link>
-                      </NavigationMenuLink>
-                    </li>
-                    <ListItem href="#features" title="ATS Optimization">
-                      Get past applicant tracking systems with optimized
-                      keywords
-                    </ListItem>
-                    <ListItem href="#how-it-works" title="Resume Analysis">
-                      Detailed feedback on how to improve your resume
-                    </ListItem>
-                    <ListItem href="#features" title="Job Match Score">
-                      See how well your resume matches the job description
-                    </ListItem>
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()} asChild>
-                  <Link href="#pricing">
-                    Pricing
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()} asChild>
-                  <Link href="#how-it-works">
-                    How It Works
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Toggle theme"
-            className="mr-2"
-            onClick={toggleTheme}
-          >
-            {theme === "dark" ? (
-              <SunIcon className="h-5 w-5" />
-            ) : (
-              <MoonIcon className="h-5 w-5" />
-            )}
-          </Button>
-          {userAuthenticated ? (
-            <Button asChild>
-              <Link href="/dashboard">
-                Dashboard
+
+          <nav className="hidden items-center gap-1 md:flex">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                {link.label}
               </Link>
+            ))}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+
+          {userAuthenticated ? (
+            <Button asChild variant="brand" className="hidden sm:inline-flex">
+              <Link href="/dashboard">Dashboard</Link>
             </Button>
           ) : (
-            <Button onClick={handleSignup}>
-              Get Started Free
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                onClick={handleLogin}
+                className="hidden sm:inline-flex"
+              >
+                Sign in
+              </Button>
+              <Button variant="brand" onClick={handleSignup} className="hidden sm:inline-flex">
+                Get started free
+              </Button>
+            </>
           )}
+
+          {/* Mobile menu toggle */}
+          <button
+            type="button"
+            aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((v) => !v)}
+            className="inline-flex size-9 items-center justify-center rounded-full border border-border/70 bg-background/60 text-foreground/80 backdrop-blur transition-colors hover:bg-accent hover:text-accent-foreground md:hidden"
+          >
+            {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
         </div>
       </div>
-    </div>
+
+      {/* Mobile menu panel */}
+      <div
+        className={cn(
+          "overflow-hidden border-t border-border/60 bg-background/95 backdrop-blur-xl transition-[max-height,opacity] duration-300 md:hidden",
+          mobileOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        )}
+      >
+        <div className="container-page flex flex-col gap-1 py-4">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              {link.label}
+            </Link>
+          ))}
+          <div className="mt-2 flex flex-col gap-2">
+            {userAuthenticated ? (
+              <Button asChild variant="brand" className="w-full">
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleLogin();
+                  }}
+                >
+                  Sign in
+                </Button>
+                <Button
+                  variant="brand"
+                  className="w-full"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleSignup();
+                  }}
+                >
+                  Get started free
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </header>
   );
 }
-
-const ListItem = React.memo(React.forwardRef<
-  React.ElementRef<typeof Link>,
-  React.ComponentPropsWithoutRef<typeof Link> & {
-    title: string;
-  }
->(({ className, title, children, ...props }, ref) => {
-  return (
-    <li>
-      <NavigationMenuLink asChild>
-        <Link
-          ref={ref}
-          className={cn(
-            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-            className
-          )}
-          {...props}
-        >
-          <div className="text-sm font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-            {children}
-          </p>
-        </Link>
-      </NavigationMenuLink>
-    </li>
-  );
-}));
-ListItem.displayName = "ListItem"; 

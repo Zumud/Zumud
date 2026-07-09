@@ -1,14 +1,18 @@
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowRightIcon, PlayIcon, Upload, FileText, Loader2 } from "lucide-react";
-import { useState, useRef, useMemo } from "react";
+import {
+  AlertCircle,
+  Clock3,
+  Loader2,
+  MousePointerClick,
+  ShieldCheck,
+  Upload,
+  X,
+  Zap,
+} from "lucide-react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { applications } from "@/lib/api";
 import ResumeProgress from "@/components/ui/resume-progress";
-
-interface HeroSectionProps {
-  onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
-}
 
 // Move large constants outside component to prevent recreation on every render
 const SAMPLE_RESUME = `John Smith
@@ -75,13 +79,14 @@ BENEFITS:
 • Professional development budget
 • Latest MacBook Pro and equipment budget`;
 
-export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
+export default function HeroSection() {
   const router = useRouter();
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,17 +94,18 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-      alert('Please upload a PDF file');
+      setError('That needs to be a PDF.');
       return;
     }
 
     // Check file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size exceeds 5MB limit');
+      setError('That file is over the 5MB limit.');
       return;
     }
 
     // Store the file and clear any existing text
+    setError(null);
     setResumeFile(file);
     setResumeText("");
   };
@@ -117,11 +123,12 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
     const hasResumeContent = resumeText.trim() || resumeFile;
     
     if (!hasResumeContent || !jobDescription.trim()) {
-      alert("Please provide both your resume and job description");
+      setError("Add a resume and job post.");
       return;
     }
-    
+
     // Show progress modal and start generation in background
+    setError(null);
     setShowProgress(true);
     setIsGenerating(true);
     
@@ -144,11 +151,11 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
       // Wait for progress animation to complete before redirecting
       // The progress component will call handleProgressComplete when done
       
-    } catch (error) {
-      console.error('Error generating resume:', error);
+    } catch (err) {
+      console.error('Error generating resume:', err);
       setShowProgress(false);
       setIsGenerating(false);
-      alert('Failed to generate resume. Please try again.');
+      setError('Something went wrong. Please try again.');
     }
   };
 
@@ -171,58 +178,62 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
   };
 
   return (
-    <section className="relative overflow-hidden py-16 md:py-24 lg:py-32 bg-gradient-to-b from-white to-blue-50 dark:from-gray-950 dark:to-blue-950">
-      {/* Decorative elements - reduced blur intensity for better performance */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/4 top-1/4 h-48 w-48 md:h-64 md:w-64 rounded-full bg-blue-200/20 blur-xl dark:bg-blue-900/20"></div>
-        <div className="absolute right-1/4 bottom-1/3 h-64 w-64 md:h-96 md:w-96 rounded-full bg-purple-200/20 blur-xl dark:bg-purple-900/20"></div>
-      </div>
+    <section id="hero" className="ambient-glow relative overflow-hidden pb-16 pt-14 md:pb-24 md:pt-20">
+      {/* Subtle grid texture behind the hero */}
+      <div className="bg-grid pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
 
-      <div className="mx-auto max-w-7xl px-4 md:px-6">
-        {/* Centered headline and subheadline */}
-        <div className="text-center space-y-6 lg:space-y-8 mb-12">
-          <div className="space-y-4 lg:space-y-6">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tighter bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent leading-tight">
-              Instant job-specific resumes
-            </h1>
-            <p className="text-base md:text-lg lg:text-xl text-gray-500 dark:text-gray-400 max-w-[800px] mx-auto">
-              Our users report 3× more interviews — and save 15+ minutes per application
-            </p>
-          </div>
+      <div className="container-page">
+        {/* Headline */}
+        <div className="mx-auto mb-10 max-w-3xl text-center md:mb-14">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            <span className="text-brand-gradient">Instant job specific resumes</span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
+            Our users report 3× more interviews and save 15+ minutes per application.
+          </p>
         </div>
 
-        {/* Action form - reduced backdrop blur for better performance */}
-        <div className="max-w-5xl mx-auto">
-          <div className="bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-2xl border border-white/50 dark:border-gray-700/50 p-8 md:p-10">
-            <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
+        {/* Action form */}
+        <div id="hero-form" className="mx-auto max-w-5xl scroll-mt-24">
+          <div className="surface p-5 shadow-xl shadow-brand/5 md:p-8">
+            {error && (
+              <div
+                role="alert"
+                className="mb-5 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              >
+                <AlertCircle className="size-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+            <div className="flex flex-col gap-5 lg:flex-row lg:gap-6">
               {/* Resume Input */}
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-4">
-                  <label className="text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    Your Resume
+                <div className="mb-2.5 flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-sm font-semibold">
+                    <span className="size-2 rounded-full bg-brand" />
+                    Your resume
                   </label>
                   <button
                     type="button"
                     onClick={handleUseSampleResume}
-                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    className="rounded-md px-2 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand/10"
                   >
-                    Use Sample
+                    Use sample
                   </button>
                 </div>
-                <div className="relative group">
+                <div className="relative">
                   <textarea
                     value={resumeFile ? `📄 ${resumeFile.name} uploaded` : resumeText}
                     onChange={(e) => {
                       setResumeText(e.target.value);
-                      // Clear file if user starts typing
+                      setError(null);
                       if (resumeFile) {
                         setResumeFile(null);
                       }
                     }}
-                    placeholder="Paste your resume text here or upload a resume PDF"
-                    rows={5}
-                    className="w-full px-6 py-5 text-base border-2 border-gray-200/60 dark:border-gray-700/60 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-500 resize-none transition-all duration-300 shadow-sm hover:shadow-md group-hover:border-blue-300 dark:group-hover:border-blue-700"
+                    placeholder="Paste your resume or upload a PDF"
+                    rows={6}
+                    className="field resize-none pr-14"
                     disabled={!!resumeFile}
                   />
                   {resumeFile ? (
@@ -231,22 +242,24 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
                       onClick={() => {
                         setResumeFile(null);
                         if (fileInputRef.current) {
-                          fileInputRef.current.value = '';
+                          fileInputRef.current.value = "";
                         }
                       }}
-                      className="absolute bottom-5 right-5 p-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all duration-200 hover:scale-110 shadow-lg hover:shadow-xl"
+                      className="absolute bottom-3 right-3 inline-flex size-9 items-center justify-center rounded-lg bg-destructive text-white shadow-sm transition-transform hover:scale-105"
                       title="Remove PDF and switch to text input"
+                      aria-label="Remove uploaded PDF"
                     >
-                      ✕
+                      <X className="size-4" />
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-5 right-5 p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 rounded-xl transition-all duration-200 hover:scale-110 shadow-lg hover:shadow-xl"
-                      title="Upload PDF Resume"
+                      className="absolute bottom-3 right-3 inline-flex size-9 items-center justify-center rounded-lg bg-brand-gradient text-white shadow-sm transition-transform hover:scale-105"
+                      title="Upload PDF resume"
+                      aria-label="Upload PDF resume"
                     >
-                      <Upload className="h-5 w-5" />
+                      <Upload className="size-4" />
                     </button>
                   )}
                   <input
@@ -261,72 +274,68 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
 
               {/* Job Description Input */}
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-4">
-                  <label className="text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                    <div className="w-2 h-2 bg-violet-500 rounded-full"></div>
-                    Job Description
+                <div className="mb-2.5 flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-sm font-semibold">
+                    <span className="size-2 rounded-full bg-[var(--accent2)]" />
+                    Job description
                   </label>
                   <button
                     type="button"
                     onClick={handleUseSampleJob}
-                    className="text-xs font-medium text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 bg-violet-50 dark:bg-violet-900/30 px-3 py-1.5 rounded-lg transition-colors hover:bg-violet-100 dark:hover:bg-violet-900/50"
+                    className="rounded-md px-2 py-1 text-xs font-medium text-[var(--accent2)] transition-colors hover:bg-[var(--accent2)]/10"
                   >
-                    Use Sample
+                    Use sample
                   </button>
                 </div>
-                <div className="relative group">
-                  <textarea
-                    value={jobDescription}
-                    onChange={(e) => setJobDescription(e.target.value)}
-                    placeholder="Paste the job description"
-                    rows={5}
-                    className="w-full px-6 py-5 text-base border-2 border-gray-200/60 dark:border-gray-700/60 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-800/50 dark:text-white dark:placeholder-gray-500 resize-none transition-all duration-300 shadow-sm hover:shadow-md group-hover:border-blue-300 dark:group-hover:border-blue-700"
-                  />
-                </div>
-              </div>
-
-                              {/* Action Button */}
-                <div className="lg:w-auto w-full flex flex-col">
-                  {/* Match exact label structure and spacing */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="h-6"></div> {/* Invisible spacer matching label height */}
-                  </div>
-                  {/* Center button in textarea area */}
-                  <div className="relative flex items-center justify-center h-auto lg:h-[165px] pt-2 lg:pt-0">
-                  <Button
-                    size="lg"
-                    onClick={handleGetTailoredResume}
-                    disabled={isGenerating}
-                    className="bg-gradient-to-r from-blue-600 via-blue-700 to-violet-600 hover:from-blue-700 hover:via-blue-800 hover:to-violet-700 hover:scale-105 active:scale-95 shadow-xl hover:shadow-2xl h-auto py-6 px-10 text-lg font-bold w-full lg:w-auto transition-all duration-300 rounded-2xl border border-white/20 disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:scale-100"
-                  >
-                    {isGenerating && !showProgress ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Starting...
-                      </>
-                    ) : (
-                      "Free Tailored Resume"
-                    )}
-                  </Button>
-                </div>
+                <textarea
+                  value={jobDescription}
+                  onChange={(e) => {
+                    setJobDescription(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="Paste the job description"
+                  rows={6}
+                  className="field resize-none"
+                />
               </div>
             </div>
-            
-            {/* Trust indicators - removed continuous animations for better performance */}
-            <div className="mt-8 pt-6 border-t border-gray-200/30 dark:border-gray-700/30">
-              <div className="flex flex-wrap justify-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-400">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Instant results</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>ATS-friendly</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span>Try it free - no signup needed</span>
-                </div>
+
+            {/* Action Button */}
+            <Button
+              size="xl"
+              variant="brand"
+              onClick={handleGetTailoredResume}
+              disabled={isGenerating}
+              className="mt-5 w-full text-base font-semibold"
+            >
+              {isGenerating && !showProgress ? (
+                <>
+                  <Loader2 className="size-5 animate-spin" />
+                  Starting…
+                </>
+              ) : (
+                <>
+                  <Zap className="size-5" />
+                  Build my free resume
+                </>
+              )}
+            </Button>
+
+            {/* Trust indicators */}
+            <div className="mt-6 border-t border-border/60 pt-5">
+              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <ShieldCheck className="size-4 text-brand" />
+                  ATS-ready
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock3 className="size-4 text-brand" />
+                  Ready in 30 seconds
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MousePointerClick className="size-4 text-brand" />
+                  No sign-up
+                </span>
               </div>
             </div>
           </div>
@@ -334,11 +343,11 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
       </div>
 
       {/* Progress Modal */}
-      <ResumeProgress 
-        isVisible={showProgress} 
+      <ResumeProgress
+        isVisible={showProgress}
         onComplete={handleProgressComplete}
         onClose={handleProgressClose}
       />
     </section>
   );
-} 
+}

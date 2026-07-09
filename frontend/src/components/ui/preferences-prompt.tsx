@@ -69,47 +69,49 @@ export default function PreferencesPrompt({
   if (!isVisible) return null
 
   return (
-    <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg p-3 mb-3 mx-3 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="bg-brand-gradient-soft mx-3 mb-3 rounded-xl border border-brand/20 p-3 animate-in fade-in slide-in-from-top-2 duration-300">
       <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center flex-1">
-          <div className="bg-emerald-100 p-1.5 rounded-full mr-3 flex-shrink-0">
-            <Sparkles className="h-4 w-4 text-emerald-600" />
+        <div className="flex flex-1 items-center">
+          <div className="mr-3 flex-shrink-0 rounded-full bg-brand/15 p-1.5">
+            <Sparkles className="h-4 w-4 text-brand" />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-900">
+              <h3 className="text-sm font-medium">
                 Save as preference?
               </h3>
-              <button 
+              <button
                 onClick={onDismiss}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 ml-2 flex-shrink-0"
+                className="ml-2 flex-shrink-0 p-1 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Dismiss"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-xs text-gray-600 mb-2">
-              <span className="font-medium text-emerald-700">Your edit is already being applied!</span> Would you also like to save "<span className="font-medium text-emerald-700">{editInstruction}</span>" as a preference for future resumes?
+            <p className="mb-2 text-xs text-muted-foreground">
+              <span className="font-medium text-brand">Your edit is already being applied!</span> Would you also like to save &quot;<span className="font-medium text-foreground">{editInstruction}</span>&quot; as a preference for future resumes?
             </p>
-            
+
             <div className="flex items-center space-x-2">
               <Button
                 onClick={handleSavePreference}
                 disabled={isLoading || isSaved}
+                variant="brand"
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-xs px-3 py-1.5 h-7"
+                className="h-7 px-3 text-xs"
               >
-                {isSaved ? 'Saved!' : isLoading ? 'Saving...' : 'Yes, Save'}
+                {isSaved ? 'Saved!' : isLoading ? 'Saving...' : 'Yes, save'}
               </Button>
               <Button
                 onClick={onDismiss}
                 disabled={isLoading}
                 variant="ghost"
                 size="sm"
-                className="text-xs px-3 py-1.5 h-7 text-gray-600 hover:text-gray-800"
+                className="h-7 px-3 text-xs"
               >
-                No, Skip
+                No, skip
               </Button>
-              <span className="text-xs text-gray-400 ml-auto">
+              <span className="ml-auto text-xs text-muted-foreground">
                 Auto-dismisses in {countdown}s
               </span>
             </div>
