@@ -28,7 +28,7 @@ const FAQ_ITEMS = [
   },
   {
     question: "How much does it cost?",
-    answer: "10 free. Then €0.10 each or €19.99 a month.",
+    answer: "10 free. Then €0.10 each.",
   },
 ];
 

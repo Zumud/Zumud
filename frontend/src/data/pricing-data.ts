@@ -35,22 +35,4 @@ export const PRICING_PLANS = [
     popular: false,
     highlight: "Pay per use",
   },
-  {
-    id: "unlimited",
-    name: "Unlimited",
-    description: "No generation limits.",
-    price: 19.99,
-    generations: -1,
-    pricePerGeneration: 0,
-    features: [
-      "Unlimited generations",
-      "Job-matched tailoring",
-      "LaTeX source export",
-      "Edit in Overleaf",
-      "Cover letters and answers",
-    ],
-    cta: "Choose Unlimited",
-    popular: false,
-    highlight: "For frequent use",
-  },
 ];

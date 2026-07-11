@@ -41,8 +41,8 @@ function LandingPageContent() {
       <Navbar onAuthModalOpen={handleAuthModalOpen} />
       <main className="flex-1">
         <HeroSection />
-        <SolutionSection />
         <ProblemSection />
+        <SolutionSection />
         <LatexSection />
         <PricingSection onAuthModalOpen={handleAuthModalOpen} />
         <FaqSection />

@@ -186,7 +186,7 @@ export default function HeroSection() {
         {/* Headline */}
         <div className="mx-auto mb-10 max-w-3xl text-center md:mb-14">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            <span className="text-brand-gradient">Instant job specific resumes</span>
+            <span className="text-brand-gradient">Instant job-specific resumes</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
             Our users report 3× more interviews and save 15+ minutes per application.
