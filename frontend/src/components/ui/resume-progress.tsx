@@ -55,6 +55,7 @@ export default function ResumeProgress({ isVisible, onComplete, onClose }: Resum
 
   useEffect(() => {
     if (!isVisible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: refactor to key-based reset
       setCurrentStepIndex(0)
       setProgress(0)
       setTimeRemaining(42)

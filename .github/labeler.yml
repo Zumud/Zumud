@@ -1,0 +1,20 @@
+# Risk-tier auto-labeling (dependency tripwire + sensitive paths).
+# tier:T2 PRs never auto-merge: they wait for the maintainer's click.
+
+"tier:T2":
+  - changed-files:
+      - any-glob-to-any-file:
+          # Dependency changes carry the highest slop/supply-chain risk.
+          - requirements.txt
+          - requirements-dev.txt
+          - frontend/package.json
+          # Auth, billing, and schema.
+          - backend/api/auth.py
+          - backend/core/supabase_auth.py
+          - backend/core/stripe_billing_service.py
+          - backend/api/billing.py
+          - migrations/**
+          # The pipeline itself.
+          - .github/**
+          - deploy/**
+          - scripts/**

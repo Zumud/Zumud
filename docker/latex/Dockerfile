@@ -1,19 +1,22 @@
-# Local LaTeX compiler for development — mirrors the production image.
+# LaTeX compiler service — canonical image for prod, local dev, and CI e2e.
 #
-# Production runs a fork of aslushnikov/latex-online (a self-hosted "compile a tar of
-# .tex -> PDF" HTTP API) rebuilt on the TeX Live 2024 base so templates that use
-# fontawesome5 (and other recent packages) compile. The upstream aslushnikov image is
-# abandoned and ships TL2016 (missing fontawesome5), so we do NOT use it.
+# A fork of aslushnikov/latex-online (a self-hosted "compile a tar of .tex ->
+# PDF" HTTP API) rebuilt on the TeX Live 2024 base so templates that use
+# fontawesome5 (and other recent packages) compile. The upstream aslushnikov
+# image is abandoned and ships TL2016 (missing fontawesome5); do NOT use it.
 #
-# The app source isn't baked in: the entrypoint clones latex-online at startup and
-# serves it on :2700 (same as prod). Build context only needs this file + the entrypoint.
+# The app source is baked in at build time (instant startup, no network needed
+# at boot). Published to GHCR by .github/workflows/latex-image.yml whenever
+# this directory changes; prod and CI pull that image instead of building.
 FROM registry.gitlab.com/islandoftex/images/texlive:TL2024-historic
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates git-core nodejs npm \
  && update-ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-WORKDIR /
+RUN git clone https://github.com/aslushnikov/latex-online /var/www \
+ && cd /var/www \
+ && npm ci
+WORKDIR /var/www
+ENV NODE_ENV=production
 EXPOSE 2700
-CMD ["/docker-entrypoint.sh"]
+CMD ["node", "app.js"]

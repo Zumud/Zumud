@@ -1,15 +1,16 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from backend.api import api_router
-from backend.models.db import Base, engine, check_db_connection, create_tables
-from backend.utils.log import logger
 import os
-import uvicorn
 
 # Sentry setup for API monitoring
 import sentry_sdk
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
+
+from backend.api import api_router
+from backend.models.db import Base, check_db_connection, engine
+from backend.utils.log import logger
 
 # Initialize Sentry
 sentry_sdk.init(
@@ -45,7 +46,7 @@ except Exception as e:
 app = FastAPI(
     title="Resume Tailorer API",
     description="API for Zumud - AI-powered job application assistant",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Allowed CORS origins = the frontend sites whose browser JS may read API
@@ -77,7 +78,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition"],  # Expose Content-Disposition header to frontend
+    expose_headers=[
+        "Content-Disposition"
+    ],  # Expose Content-Disposition header to frontend
 )
 
 # # Create tables on startup
@@ -88,6 +91,7 @@ app.add_middleware(
 # Include API router
 app.include_router(api_router)
 
+
 @app.get("/", tags=["Root"])
 def root():
     logger.info("Root endpoint accessed")
@@ -96,30 +100,29 @@ def root():
         "version": "1.0.0",
         "database": "Supabase PostgreSQL",
         "docs_url": "/docs",
-        "redoc_url": "/redoc"
+        "redoc_url": "/redoc",
     }
+
 
 @app.get("/health", tags=["Health"])
 def health_check():
     """Health check endpoint that includes database connectivity."""
     logger.info("Health check endpoint accessed")
-    
+
     # Check database connection
     db_healthy = check_db_connection()
-    
+
     health_status = {
         "status": "healthy" if db_healthy else "unhealthy",
         "database": "connected" if db_healthy else "disconnected",
-        "version": "1.0.0"
+        "version": "1.0.0",
     }
-    
+
     if not db_healthy:
-        raise HTTPException(
-            status_code=503, 
-            detail="Database connection failed"
-        )
-    
+        raise HTTPException(status_code=503, detail="Database connection failed")
+
     return health_status
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

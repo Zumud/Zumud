@@ -37,7 +37,7 @@ Generate a concise and impactful cover letter (maximum two paragraphs) tailored 
 """
 
 
-convert_plain_resume_to_latex = """I have a resume in text format and a LaTeX resume template. I need you to help me populate the LaTeX template with the information from my resume. Please parse the resume text, extract all relevant information, and fill in the LaTeX template accordingly. Make sure to:
+convert_plain_resume_to_latex = r"""I have a resume in text format and a LaTeX resume template. I need you to help me populate the LaTeX template with the information from my resume. Please parse the resume text, extract all relevant information, and fill in the LaTeX template accordingly. Make sure to:
 
 - Add or remove sections in the LaTeX template based on the content of the resume.
 - Populate all fields such as personal information, summary, experience, skills, education, projects, certifications.

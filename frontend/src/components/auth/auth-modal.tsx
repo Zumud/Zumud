@@ -51,6 +51,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   // Reset the flow whenever the modal opens.
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: refactor to key-based reset
       setStep('email')
       setPassword('')
       setShowPassword(false)

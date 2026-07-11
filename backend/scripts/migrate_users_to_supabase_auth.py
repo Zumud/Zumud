@@ -128,8 +128,12 @@ def _link_profile(db, user_id, auth_id):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--commit", action="store_true", help="Apply changes (default: dry run)")
-    parser.add_argument("--limit", type=int, default=None, help="Only process the first N users")
+    parser.add_argument(
+        "--commit", action="store_true", help="Apply changes (default: dry run)"
+    )
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Only process the first N users"
+    )
     args = parser.parse_args()
 
     host = engine.url.host
@@ -167,11 +171,15 @@ def main() -> int:
                     _link_profile(db, user_id, auth_id)
                     db.commit()
 
-                print(f"  [{action}] users.id={user_id} email={email} -> auth.users.id={auth_id}")
+                print(
+                    f"  [{action}] users.id={user_id} email={email} -> auth.users.id={auth_id}"
+                )
             except Exception as e:  # noqa: BLE001 - report and continue per-row
                 db.rollback()
                 failed += 1
-                print(f"  [FAILED] users.id={user_id} email={email}: {e}", file=sys.stderr)
+                print(
+                    f"  [FAILED] users.id={user_id} email={email}: {e}", file=sys.stderr
+                )
     finally:
         db.close()
 

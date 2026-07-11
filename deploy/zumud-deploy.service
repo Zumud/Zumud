@@ -1,0 +1,8 @@
+[Unit]
+Description=Zumud pull-based deployer (fetch main, build, migrate, restart, health-check, rollback)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/zumud/repo/deploy/zumud-deploy.sh
+TimeoutStartSec=30min

@@ -1,0 +1,43 @@
+name: Scope gate
+
+# Semantic scope-coherence review (see scripts/scope_gate.py). No line-count
+# caps: the gate judges one-purpose/proportionality against the PR's stated
+# intent and .cursor/rules/principles.mdc.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scope-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    name: Scope coherence
+    runs-on: ubuntu-latest
+    steps:
+      # In the merge queue the PR-level verdict has already gated this exact
+      # diff; report success so the required check completes.
+      - name: Merge queue pass-through
+        if: github.event_name == 'merge_group'
+        run: echo "Scope gate applied at PR level."
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        if: github.event_name == 'pull_request'
+        with:
+          python-version: "3.12"
+      - run: pip install openai
+        if: github.event_name == 'pull_request'
+      - name: Judge scope coherence
+        if: github.event_name == 'pull_request'
+        env:
+          OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
+        run: python scripts/scope_gate.py

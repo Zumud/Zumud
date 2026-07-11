@@ -24,6 +24,7 @@ export default function PreferencesPrompt({
   // Auto-dismiss countdown
   useEffect(() => {
     if (!isVisible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: refactor to key-based reset
       setCountdown(15)
       return
     }

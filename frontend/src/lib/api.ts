@@ -50,7 +50,7 @@ const getTimeoutForEndpoint = (endpoint: string): number => {
 async function apiCall(
   endpoint: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
-  data?: any,
+  data?: Record<string, unknown> | FormData,
   isFormData = false
 ) {
   const token = await getAccessToken();
@@ -79,7 +79,7 @@ async function apiCall(
         params.append(key, String(value));
       });
       endpoint = `${endpoint}?${params.toString()}`;
-    } else if (isFormData) {
+    } else if (data instanceof FormData) {
       options.body = data;
     } else {
       options.body = JSON.stringify(data);
@@ -212,11 +212,11 @@ async function apiCall(
       
       return await response.text();
       
-    } catch (error: any) {
-      lastError = error;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
       
       // Handle timeout errors
-      if (error.name === 'AbortError') {
+      if (lastError.name === 'AbortError') {
         clearTimeout(timeoutId);
         const timeoutSeconds = Math.floor(timeoutMs / 1000);
         throw new Error(`The request took too long to complete (over ${timeoutSeconds} seconds). This typically happens when generating complex resumes. Please try again or use a shorter job description.`);
@@ -230,7 +230,7 @@ async function apiCall(
       }
       
       // Otherwise, log the error and try the next URL
-      console.warn(`API call to ${url} failed, trying next URL:`, error.message);
+      console.warn(`API call to ${url} failed, trying next URL:`, lastError.message);
     }
   }
   
@@ -273,35 +273,10 @@ export const preferences = {
     apiCall('users/me/preferences', 'POST', { preference }),
 };
 
-// Simple application session management
-const applicationSessionManager = {
-  // Extract company name for display purposes (simple version)
-  extractCompanyName: (jobDescription: string): string => {
-    const text = jobDescription.toLowerCase();
-    
-    // Look for simple patterns like "Company Name | Salary" or "Company Name - Job Title"  
-    const patterns = [
-      /^([^|\n]+?)\s*\|/,  // "Company | Rest"
-      /^([^-\n]+?)\s*-/,   // "Company - Rest"
-    ];
-    
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        return match[1].trim().replace(/\b(inc|corp|llc|ltd|company|solutions|technologies|systems)\b/gi, '').trim();
-      }
-    }
-    
-    // Fallback: take first line up to 50 chars
-    const firstLine = jobDescription.split('\n')[0];
-    return firstLine.length > 50 ? firstLine.substring(0, 50).replace(/\W+$/, '') : firstLine;
-  }
-};
-
 // Application endpoints
 export const applications = {
   generateResume: (jobDescription: string, isNewApplication?: boolean) => {
-    const params: any = { job_description: jobDescription };
+    const params: Record<string, unknown> = { job_description: jobDescription };
     if (isNewApplication !== undefined) {
       params.is_new_application = isNewApplication;
     }
@@ -319,7 +294,7 @@ export const applications = {
     apiCall('applications/resume/json', 'GET'),
   
   generateCoverLetter: (jobDescription: string, isNewApplication?: boolean) => {
-    const params: any = { job_description: jobDescription };
+    const params: Record<string, unknown> = { job_description: jobDescription };
     if (isNewApplication !== undefined) {
       params.is_new_application = isNewApplication;
     }
@@ -334,7 +309,7 @@ export const applications = {
     apiCall('applications/cover-letter/text', 'GET'),
   
   answerQuestion: (jobDescription: string, question: string, isNewApplication?: boolean) => {
-    const params: any = { 
+    const params: Record<string, unknown> = { 
       job_description: jobDescription, 
       question 
     };
@@ -394,13 +369,3 @@ export const billing = {
   createCustomerPortalSession: (returnUrl?: string) => 
     apiCall('billing/manage-subscription', 'POST', returnUrl ? { return_url: returnUrl } : {}),
 };
-
-export { applicationSessionManager };
-
-export default {
-  auth,
-  resume,
-  applications,
-  preferences,
-  billing
-}; 

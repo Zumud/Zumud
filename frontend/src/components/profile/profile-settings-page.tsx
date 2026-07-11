@@ -6,7 +6,7 @@ import { Loader2, Upload, CheckCircle, ArrowLeft, Save, LogIn } from "lucide-rea
 import { resume } from "@/lib/api"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { signOut } from "@/lib/utils"
+import { errorMessage, signOut } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 export default function ProfileSettingsPage() {
@@ -29,11 +29,6 @@ export default function ProfileSettingsPage() {
     router.push('/')
   }
 
-  // Load current resume data
-  useEffect(() => {
-    fetchResumeData()
-  }, [])
-
   const fetchResumeData = async () => {
     try {
       const data = await resume.getResume()
@@ -41,27 +36,35 @@ export default function ProfileSettingsPage() {
         setResumeData(data.resume_content)
       }
       setIsAuthError(false)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to load resume:', err)
+      const message = errorMessage(err)
       
       // Check if this is an authentication error
-      if (err.message && (
-          err.message.includes('session has expired') || 
-          err.message.includes('login') || 
-          err.message.includes('token') || 
-          err.message.includes('unauthorized') ||
-          err.message.includes('authentication')
+      if (message && (
+          message.includes('session has expired') || 
+          message.includes('login') || 
+          message.includes('token') || 
+          message.includes('unauthorized') ||
+          message.includes('authentication')
       )) {
         // Show authentication error message
         setError('Your session has expired. Please log in again to continue.')
         setIsAuthError(true)
       } else {
         // For other errors, show the appropriate message
-        setError(err.message || 'Failed to load your current resume. Please try again later.')
+        setError(message || 'Failed to load your current resume. Please try again later.')
         setIsAuthError(false)
       }
     }
   }
+
+  // Load current resume data
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: all setState here runs after awaits
+    fetchResumeData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, [])
 
   const handleUpdateResume = async () => {
     setIsLoading(true)
@@ -72,20 +75,21 @@ export default function ProfileSettingsPage() {
     try {
       await resume.updateResume(resumeData)
       setSuccess('Resume text updated successfully!')
-    } catch (err: any) {
+    } catch (err) {
+      const message = errorMessage(err)
       // Check if this is an authentication error
-      if (err.message && (
-          err.message.includes('session has expired') || 
-          err.message.includes('login') || 
-          err.message.includes('token') || 
-          err.message.includes('unauthorized') ||
-          err.message.includes('authentication')
+      if (message && (
+          message.includes('session has expired') || 
+          message.includes('login') || 
+          message.includes('token') || 
+          message.includes('unauthorized') ||
+          message.includes('authentication')
       )) {
         // Show authentication error message
         setError('Your session has expired. Please log in again to continue.')
         setIsAuthError(true)
       } else {
-        setError(err.message || 'Failed to update resume text')
+        setError(message || 'Failed to update resume text')
         setIsAuthError(false)
       }
     } finally {
@@ -144,14 +148,15 @@ export default function ProfileSettingsPage() {
           fileInputRef.current.value = ''
         }
       }, 3000)
-    } catch (err: any) {
+    } catch (err) {
+      const message = errorMessage(err)
       // Check if this is an authentication error
-      if (err.message && (
-          err.message.includes('session has expired') || 
-          err.message.includes('login') || 
-          err.message.includes('token') || 
-          err.message.includes('unauthorized') ||
-          err.message.includes('authentication')
+      if (message && (
+          message.includes('session has expired') || 
+          message.includes('login') || 
+          message.includes('token') || 
+          message.includes('unauthorized') ||
+          message.includes('authentication')
       )) {
         // Show authentication error message
         setUploadStatus('error')
@@ -159,7 +164,7 @@ export default function ProfileSettingsPage() {
         setIsAuthError(true)
       } else {
         setUploadStatus('error')
-        setError(err.message || 'Failed to upload resume')
+        setError(message || 'Failed to upload resume')
         setIsAuthError(false)
       }
     }

@@ -79,9 +79,9 @@ export default function GeneratedResumePage() {
         const url = URL.createObjectURL(blob)
         setPdfUrl(url)
         setIsLoading(false)
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error fetching resume from server:", err)
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env.NODE_ENV === 'development' && err instanceof Error) {
           console.error("Error details:", {
             message: err.message,
             stack: err.stack,

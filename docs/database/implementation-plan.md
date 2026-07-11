@@ -270,12 +270,12 @@ def test_edit_operations_with_db():
 cd backend
 uvicorn main:app --reload
 
-# Test endpoints
+# Test endpoints (placeholder token, not a secret)
 curl -X GET "http://localhost:8000/applications/job-applications" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+  -H "Authorization: Bearer YOUR_TOKEN" # gitleaks:allow
 
 curl -X GET "http://localhost:8000/applications/job-applications/{id}/documents" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+  -H "Authorization: Bearer YOUR_TOKEN" # gitleaks:allow
 ```
 
 ### **Step 4.4: Database Validation**

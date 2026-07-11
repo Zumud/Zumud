@@ -1,4 +1,5 @@
 from enum import Enum
+
 template_1 = r"""\documentclass[11pt,a4paper,sans]{moderncv}
 
 \moderncvstyle{classic}
@@ -766,30 +767,31 @@ mteck_resume = r"""
 
 # Define name of classes
 class ResumeTemplate(str, Enum):
-  Blue_Modern_Resume = "Blue Modern CV"
-  One_page_Simple_Resume = "One_page Simple CV"
-  MTeck_resume = "MTeck's Resume"
+    Blue_Modern_Resume = "Blue Modern CV"
+    One_page_Simple_Resume = "One_page Simple CV"
+    MTeck_resume = "MTeck's Resume"
+
 
 # Define details of classes
 Template_Details = {
-  ResumeTemplate.Blue_Modern_Resume: {
-    'num_pages': 2,
-    'structure': template_1,
-    'compiler': 'xelatex',
-    'version': 'texlive2020'
-  },
-  ResumeTemplate.One_page_Simple_Resume: {
-    'num_pages': 1,
-    'structure': template_2,
-    'compiler': 'pdflatex',
-    'version': 'texlive2020'
-  },
-  ResumeTemplate.MTeck_resume: {
-    'num_pages': 2,
-    'structure': mteck_resume,
-    'compiler': 'pdflatex',
-    'version': 'texlive2020'
-  }
+    ResumeTemplate.Blue_Modern_Resume: {
+        "num_pages": 2,
+        "structure": template_1,
+        "compiler": "xelatex",
+        "version": "texlive2020",
+    },
+    ResumeTemplate.One_page_Simple_Resume: {
+        "num_pages": 1,
+        "structure": template_2,
+        "compiler": "pdflatex",
+        "version": "texlive2020",
+    },
+    ResumeTemplate.MTeck_resume: {
+        "num_pages": 2,
+        "structure": mteck_resume,
+        "compiler": "pdflatex",
+        "version": "texlive2020",
+    },
 }
 
 

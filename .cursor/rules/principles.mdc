@@ -1,0 +1,28 @@
+---
+description: Engineering principles and working mindset for Zumud — read before planning, suggesting, or building.
+alwaysApply: true
+---
+
+# Working Principles
+
+The mindset to hold before planning, recommending, or building here.
+
+- **Less is more.** Pick the smallest change that solves the problem; improve by removing or changing lines, not piling on. Don't over-engineer or build for hypothetical futures.
+
+- **Reuse, don't reinvent.** Lean on well-chosen managed services (e.g. Supabase Auth, Resend, Caddy, the LaTeX container) over building and maintaining our own infrastructure. We won't run our own mail server or hand-roll OAuth.
+
+- **Judge tools on present merit, not age.** "Old/established" is not a proxy for good, and "new" is not a proxy for risky. Zumud is new — if age were the value, no one would pick us. Recommend the genuinely best fit today (quality, DX, economics, reliability, trajectory), not the safest-sounding incumbent.
+
+- **Make switching cheap by design.** Earn "we won't need to migrate" through standard interfaces and owning our own data/domain (SMTP, our own sending domain, portable data) — not by betting on incumbents. Then even a long-term choice stays inexpensive to swap.
+
+- **Propose before building.** For anything non-trivial or user-facing, show a short plan or wireframe, surface the 1–2 decisions that genuinely matter, get approval, then build. Default sensibly on everything else; don't ask redundant questions.
+
+- **Verify with evidence; small, reversible steps.** Prove it works (health checks, logs, test on Dev before Prod) instead of assuming. Treat deploys as careful, verified cutovers.
+
+- **Handle secrets and trade-offs honestly.** Never hard-code or echo secrets, and flag anything that should be rotated. Proactively surface security and UX trade-offs (e.g. data exposure, email enumeration) rather than burying them.
+
+- **Commit as you go, one purpose per commit.** When you make a change, commit it. Each commit does a single, easily identifiable thing with a message that reads clearly on its own — no bundling unrelated changes into one large commit. A feature can span several small commits, each a discrete step.
+
+- **Always branch and go through a PR.** Team convention: never commit directly to `main`. Create a topic branch for the work and open a PR for review — even small changes. (Still only push/open the PR when the user asks.)
+
+- **Low barrier to contribute; degrade gracefully.** This is open source: a contributor should clone, add a single key (the AI model key, e.g. `OPENAI_API_KEY`), and run the whole thing locally. Only add a *required* env var when the core product genuinely cannot function without it (the AI brain is the one true hard dependency). Every other integration — email (Resend), billing (Stripe), Google OAuth, Zapier, etc. — must be **optional**: when its key is absent, the app still boots and the core flow works, that one feature is cleanly disabled (fail-open / feature-off, never a crash or cryptic error), and where useful the affected path returns a clear "not configured locally" signal. When adding any new dependency, wire in the missing-key fallback in the same change. (Existing examples: Stripe fail-opens when unset; Gmail/email off when no password.)

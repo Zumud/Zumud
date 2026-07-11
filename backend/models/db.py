@@ -1,8 +1,10 @@
+import logging
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
 from backend.config.envs import DATABASE_URL
-import logging
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -18,12 +20,13 @@ engine = create_engine(
     max_overflow=20,
     pool_pre_ping=True,
     pool_recycle=3600,
-    echo=False  # Set to True for SQL query logging in development
+    echo=False,  # Set to True for SQL query logging in development
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
 
 # Dependency
 def get_db():
@@ -32,6 +35,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 # Health check function
 def check_db_connection():
@@ -46,6 +50,7 @@ def check_db_connection():
         logger.error(f"Database connection failed: {e}")
         return False
 
+
 def create_tables():
     """Create all database tables"""
-    Base.metadata.create_all(bind=engine) 
+    Base.metadata.create_all(bind=engine)

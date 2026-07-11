@@ -1,0 +1,52 @@
+name: T2 approval
+
+# The risk-tier merge policy's only human step. PRs labeled tier:T2 (auth,
+# billing, migrations, dependencies, pipeline files — see labeler.yml) fail
+# this required check until the maintainer approves the PR; everything else
+# passes automatically and can auto-merge on green.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, dismissed]
+  merge_group:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  t2:
+    name: T2 approval
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge queue pass-through
+        if: github.event_name == 'merge_group'
+        run: echo "Tier policy already satisfied at PR level."
+      - name: Check tier policy
+        if: github.event_name != 'merge_group'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          labels=$(gh api "repos/$REPO/pulls/$PR" --jq '[.labels[].name] | join(",")')
+          if ! grep -q 'tier:T2' <<<"$labels"; then
+            echo "Not tier:T2 — no human approval required."
+            exit 0
+          fi
+          # Latest review per reviewer must include an APPROVED from someone
+          # with write access (owner/member/collaborator).
+          approved=$(gh api "repos/$REPO/pulls/$PR/reviews" --paginate --jq '
+            [ .[] | select(.author_association == "OWNER"
+                        or .author_association == "MEMBER"
+                        or .author_association == "COLLABORATOR") ]
+            | group_by(.user.login) | map(last)
+            | map(select(.state == "APPROVED")) | length')
+          if [ "$approved" -ge 1 ]; then
+            echo "tier:T2 with maintainer approval — pass."
+          else
+            echo "::error::This PR is tier:T2 (auth/billing/schema/deps/pipeline) and needs maintainer approval before it can merge."
+            exit 1
+          fi

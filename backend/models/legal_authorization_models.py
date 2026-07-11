@@ -1,11 +1,15 @@
-from pydantic import BaseModel
 from datetime import datetime
+
+from pydantic import BaseModel
+
 
 class LegalAuthorizationBase(BaseModel):
     work_authorization: str
 
+
 class LegalAuthorizationCreate(LegalAuthorizationBase):
     pass
+
 
 class LegalAuthorization(LegalAuthorizationBase):
     id: int

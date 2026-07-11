@@ -1,0 +1,49 @@
+name: LaTeX image
+
+# Publishes the LaTeX compiler image to GHCR when its definition changes.
+# CI e2e and the production deployer pull ghcr.io/zumud/zumud-latex:latest,
+# so nothing ever hand-builds this ~5GB image on the VPS again.
+
+on:
+  push:
+    branches: [main]
+    paths: [docker/latex/**]
+  pull_request:
+    paths: [docker/latex/**]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t ghcr.io/zumud/zumud-latex:latest docker/latex
+      - name: Smoke-test compile endpoint
+        run: |
+          docker run -d --name latex -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
+          for i in $(seq 1 30); do
+            curl -sfo /dev/null http://127.0.0.1:2700/ && break
+            sleep 2
+          done
+          printf '\\documentclass{article}\\begin{document}ok\\end{document}\n' > smoke.tex
+          tar -cf smoke.tar smoke.tex
+          # Multipart upload — the same contract the backend uses (file_ops.py).
+          curl -sf -F 'file=@smoke.tar;type=application/x-tar' \
+            'http://127.0.0.1:2700/data?target=smoke.tex&force=true&command=pdflatex' \
+            -o smoke.pdf
+          file smoke.pdf | grep -q 'PDF document'
+      # Fork PRs have no package write access; publish only from this repo.
+      - name: Push to GHCR
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker tag ghcr.io/zumud/zumud-latex:latest ghcr.io/zumud/zumud-latex:${GITHUB_SHA::12}
+          docker push ghcr.io/zumud/zumud-latex:latest
+          docker push ghcr.io/zumud/zumud-latex:${GITHUB_SHA::12}
