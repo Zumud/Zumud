@@ -1,26 +1,28 @@
 import logging
-from typing import Optional, Tuple, Dict, List
+from typing import Dict, List, Optional, Tuple
+
 from fastapi import HTTPException, status
+
 from backend.config.envs import (
     STRIPE_API_KEY,
-    STRIPE_COVERLETTER_PRICE_ID,
-    STRIPE_COVERLETTER_PRODUCT_NAME,
-    STRIPE_COVERLETTER_METER_NAME,
-    STRIPE_RESUME_PRICE_ID,
-    STRIPE_RESUME_PRODUCT_NAME,
-    STRIPE_RESUME_METER_NAME,
-    STRIPE_QA_PRICE_ID,
-    STRIPE_QA_PRODUCT_NAME,
-    STRIPE_QA_METER_NAME,
+    STRIPE_COVERLETTER_EDIT_METER_NAME,
     STRIPE_COVERLETTER_EDIT_PRICE_ID,
     STRIPE_COVERLETTER_EDIT_PRODUCT_NAME,
-    STRIPE_COVERLETTER_EDIT_METER_NAME,
-    STRIPE_RESUME_EDIT_PRICE_ID,
-    STRIPE_RESUME_EDIT_PRODUCT_NAME,
-    STRIPE_RESUME_EDIT_METER_NAME,
+    STRIPE_COVERLETTER_METER_NAME,
+    STRIPE_COVERLETTER_PRICE_ID,
+    STRIPE_COVERLETTER_PRODUCT_NAME,
+    STRIPE_QA_EDIT_METER_NAME,
     STRIPE_QA_EDIT_PRICE_ID,
     STRIPE_QA_EDIT_PRODUCT_NAME,
-    STRIPE_QA_EDIT_METER_NAME,
+    STRIPE_QA_METER_NAME,
+    STRIPE_QA_PRICE_ID,
+    STRIPE_QA_PRODUCT_NAME,
+    STRIPE_RESUME_EDIT_METER_NAME,
+    STRIPE_RESUME_EDIT_PRICE_ID,
+    STRIPE_RESUME_EDIT_PRODUCT_NAME,
+    STRIPE_RESUME_METER_NAME,
+    STRIPE_RESUME_PRICE_ID,
+    STRIPE_RESUME_PRODUCT_NAME,
 )
 
 try:
@@ -34,13 +36,11 @@ logger = logging.getLogger(__name__)
 
 class PaymentMethodRequiredException(Exception):
     """Exception raised when a payment method is required but not available."""
+
     def __init__(self, message: str, amount_euros: float = 0.0):
         self.message = message
         self.amount_euros = amount_euros
         super().__init__(message)
-
-
-
 
 
 def _init_stripe_client() -> bool:
@@ -51,7 +51,9 @@ def _init_stripe_client() -> bool:
 
     api_key = STRIPE_API_KEY
     if not api_key:
-        logger.warning("STRIPE_API_KEY/STRIPE_SECRET_KEY not set; skipping billing operations.")
+        logger.warning(
+            "STRIPE_API_KEY/STRIPE_SECRET_KEY not set; skipping billing operations."
+        )
         return False
     stripe.api_key = api_key
     # Set API version to support flexible billing mode
@@ -59,7 +61,9 @@ def _init_stripe_client() -> bool:
     return True
 
 
-def _discover_product_and_price(product_name: str, explicit_price_id: Optional[str]) -> Tuple[str, str]:
+def _discover_product_and_price(
+    product_name: str, explicit_price_id: Optional[str]
+) -> Tuple[str, str]:
     """
     Locate the Stripe Product (by name) and an active metered recurring Price in EUR for Cover Letter Generation.
 
@@ -76,7 +80,9 @@ def _discover_product_and_price(product_name: str, explicit_price_id: Optional[s
             price = stripe.Price.retrieve(explicit_price_id)  # type: ignore[attr-defined]
             return price["product"], price["id"]
         except Exception as e:  # Fall through to discovery if invalid
-            logger.error(f"Failed to retrieve explicit STRIPE_COVERLETTER_PRICE_ID: {e}")
+            logger.error(
+                f"Failed to retrieve explicit STRIPE_COVERLETTER_PRICE_ID: {e}"
+            )
 
     if not _init_stripe_client():
         raise RuntimeError("Stripe client not initialized")
@@ -93,7 +99,9 @@ def _discover_product_and_price(product_name: str, explicit_price_id: Optional[s
             if result and result.data:
                 product = result.data[0]
     except Exception as e:
-        logger.info(f"Stripe Product.search unavailable or failed ({e}); falling back to list/filter.")
+        logger.info(
+            f"Stripe Product.search unavailable or failed ({e}); falling back to list/filter."
+        )
 
     if product is None:
         # Fallback: list and filter by name
@@ -114,10 +122,7 @@ def _discover_product_and_price(product_name: str, explicit_price_id: Optional[s
     candidate_price = None
     for pr in prices.data:
         recurring = pr.get("recurring") or {}
-        if (
-            recurring.get("usage_type") == "metered"
-            and pr.get("currency") == "eur"
-        ):
+        if recurring.get("usage_type") == "metered" and pr.get("currency") == "eur":
             # Prefer €0.50 if present
             if pr.get("unit_amount") == 50:
                 candidate_price = pr
@@ -128,14 +133,15 @@ def _discover_product_and_price(product_name: str, explicit_price_id: Optional[s
 
     if candidate_price is None:
         raise ValueError(
-            "No active EUR metered recurring price found for product '"
-            f"{product_name}'."
+            f"No active EUR metered recurring price found for product '{product_name}'."
         )
 
     return product["id"], candidate_price["id"]
 
 
-def _discover_price_id(product_name: str, explicit_price_id: Optional[str]) -> Optional[str]:
+def _discover_price_id(
+    product_name: str, explicit_price_id: Optional[str]
+) -> Optional[str]:
     try:
         _, price_id = _discover_product_and_price(product_name, explicit_price_id)
         return price_id
@@ -170,33 +176,34 @@ def _get_or_create_customer(email: str, name: Optional[str]) -> Optional[object]
         customers = stripe.Customer.list(email=email, limit=1)  # type: ignore[attr-defined]
         if customers and customers.data:
             return customers.data[0]
-        
+
         # Create new customer
         new_customer = stripe.Customer.create(email=email, name=name or email)  # type: ignore[attr-defined]
-        
+
         # Add €5 initial credit to new customers using Credit Grants
         try:
             credit_amount_cents = 500  # €5 = 500 cents
-            
+
             # Check if billing.CreditGrant is available (newer Stripe versions)
             billing = getattr(stripe, "billing", None)
-            if billing is not None and hasattr(billing, "CreditGrant") and hasattr(billing.CreditGrant, "create"):
+            if (
+                billing is not None
+                and hasattr(billing, "CreditGrant")
+                and hasattr(billing.CreditGrant, "create")
+            ):
                 billing.CreditGrant.create(
                     customer=new_customer["id"],
                     name="Initial promotional credit",
-                    applicability_config={
-                        "scope": {"price_type": "metered"}
-                    },
+                    applicability_config={"scope": {"price_type": "metered"}},
                     category="promotional",
                     amount={
                         "type": "monetary",
-                        "monetary": {
-                            "value": credit_amount_cents,
-                            "currency": "eur"
-                        }
-                    }
+                        "monetary": {"value": credit_amount_cents, "currency": "eur"},
+                    },
                 )
-                logger.info(f"Successfully created €5 credit grant for new customer {new_customer['id']} (email: {email})")
+                logger.info(
+                    f"Successfully created €5 credit grant for new customer {new_customer['id']} (email: {email})"
+                )
             else:
                 # Fallback: Use raw API request for older SDK versions
                 requestor = stripe.api_requestor.APIRequestor()
@@ -208,17 +215,21 @@ def _get_or_create_customer(email: str, name: Optional[str]) -> Optional[object]
                     "category": "promotional",
                     "amount[type]": "monetary",
                     "amount[monetary][value]": credit_amount_cents,
-                    "amount[monetary][currency]": "eur"
+                    "amount[monetary][currency]": "eur",
                 }
                 requestor.request("post", url, params=body)
-                logger.info(f"Successfully created €5 credit grant for new customer {new_customer['id']} (email: {email}) via raw API")
-                
+                logger.info(
+                    f"Successfully created €5 credit grant for new customer {new_customer['id']} (email: {email}) via raw API"
+                )
+
         except Exception as credit_error:
-            logger.error(f"Failed to create initial credit grant for new customer {email}: {credit_error}")
+            logger.error(
+                f"Failed to create initial credit grant for new customer {email}: {credit_error}"
+            )
             # Don't fail customer creation if credit grant fails
-        
+
         return new_customer
-        
+
     except Exception as e:
         logger.error(f"Stripe customer lookup/create failed for {email}: {e}")
         return None
@@ -227,82 +238,83 @@ def _get_or_create_customer(email: str, name: Optional[str]) -> Optional[object]
 def check_payment_method_required(email: str, name: Optional[str]) -> None:
     """
     Check if user needs to add payment method before proceeding with generation.
-    
+
     Uses Stripe's upcoming invoice to determine if the user would be charged.
     If next invoice amount > €0, requires payment method.
-    
+
     Args:
         email: Customer email address
         name: Customer name (optional)
-        
+
     Raises:
         PaymentMethodRequiredException: If payment method is required but not available
     """
     if not _init_stripe_client():
         # If Stripe not configured, allow generation (fail-open)
         return
-    
+
     customer = _get_or_create_customer(email=email, name=name)
     if customer is None:
         # If can't get customer, allow generation (fail-open)
         return
-    
+
     try:
         # Get customer's subscription to preview the upcoming invoice
         # We need at least one subscription to preview charges
         subscriptions = stripe.Subscription.list(  # type: ignore[attr-defined]
-            customer=customer["id"],
-            status="active",
-            limit=1
+            customer=customer["id"], status="active", limit=1
         )
-        
+
         # If no active subscription, check for trialing subscriptions
         if not subscriptions.data:
             subscriptions = stripe.Subscription.list(  # type: ignore[attr-defined]
-                customer=customer["id"],
-                status="trialing",
-                limit=1
+                customer=customer["id"], status="trialing", limit=1
             )
-        
+
         # If still no subscription, customer won't be charged yet
         if not subscriptions.data:
-            logger.info(f"No active subscription found for {email}, no payment method check needed")
+            logger.info(
+                f"No active subscription found for {email}, no payment method check needed"
+            )
             return
-        
+
         subscription = subscriptions.data[0]
-        
+
         # Get the upcoming invoice to see what would be charged
         upcoming_invoice = stripe.Invoice.create_preview(  # type: ignore[attr-defined]
-            customer=customer["id"],
-            subscription=subscription["id"]
+            customer=customer["id"], subscription=subscription["id"]
         )
-        
+
         # Check the amount that would be charged (after credits applied)
-        amount_due = upcoming_invoice.amount_due if upcoming_invoice.amount_due is not None else 0
-        
+        amount_due = (
+            upcoming_invoice.amount_due
+            if upcoming_invoice.amount_due is not None
+            else 0
+        )
+
         if amount_due > 0:
             # User would be charged, check if they have a payment method
             payment_methods = stripe.PaymentMethod.list(  # type: ignore[attr-defined]
-                customer=customer["id"],
-                type="card"
+                customer=customer["id"], type="card"
             )
-            
+
             if not payment_methods.data:
                 # No payment method available, but charge would be required
                 amount_euros = amount_due / 100  # Convert cents to euros
                 raise PaymentMethodRequiredException(
                     f"Please add a payment method to continue. Your current balance is -€{amount_euros:.2f}",
-                    amount_euros
+                    amount_euros,
                 )
-        
+
         # Either amount_due is 0 (covered by credit) or payment method exists
-        logger.info(f"Payment method check passed for {email}. Amount due: €{amount_due/100:.2f}")
-        
+        logger.info(
+            f"Payment method check passed for {email}. Amount due: €{amount_due / 100:.2f}"
+        )
+
     except PaymentMethodRequiredException as e:
         # Convert business exception to HTTP exception
         raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail=e.message
+            status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=e.message
         )
     except Exception as e:
         # For any other error, log and allow generation (fail-open)
@@ -310,43 +322,47 @@ def check_payment_method_required(email: str, name: Optional[str]) -> None:
         return
 
 
-def create_customer_portal_session(email: str, name: Optional[str], return_url: str) -> Optional[str]:
+def create_customer_portal_session(
+    email: str, name: Optional[str], return_url: str
+) -> Optional[str]:
     """
     Create a Stripe Customer Portal session for the user to manage their billing.
-    
+
     Args:
         email: Customer email address
         name: Optional customer name
         return_url: URL to redirect back to after portal session (required)
-        
+
     Returns:
         Portal session URL if successful, None if failed
     """
     if not _init_stripe_client():
         logger.error("Stripe client not initialized for customer portal session")
         return None
-    
+
     customer = _get_or_create_customer(email=email, name=name)
     if customer is None:
         logger.error(f"Failed to get or create customer for {email}")
         return None
-    
+
     try:
         # Create a billing portal session
         session = stripe.billing_portal.Session.create(  # type: ignore[attr-defined]
             customer=customer["id"],
             return_url=return_url,
         )
-        
+
         logger.info(f"Created customer portal session for {email}: {session['id']}")
         return session["url"]
-        
+
     except Exception as e:
         logger.error(f"Failed to create customer portal session for {email}: {e}")
         return None
 
 
-def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[str]) -> Tuple[Optional[object], Dict[str, Optional[str]]]:
+def _find_or_create_subscription_with_items(
+    customer_id: str, price_ids: List[str]
+) -> Tuple[Optional[object], Dict[str, Optional[str]]]:
     """
     Ensure the customer has a subscription containing the given price.
     Ensure a single subscription that contains all provided prices.
@@ -363,6 +379,7 @@ def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[st
         trial_subs = stripe.Subscription.list(  # type: ignore[attr-defined]
             customer=customer_id, status="trialing", limit=100
         )
+
         def prices_to_item_map(sub) -> Dict[str, str]:
             mapping: Dict[str, str] = {}
             for item in sub["items"]["data"]:
@@ -397,8 +414,8 @@ def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[st
                 payment_settings={"save_default_payment_method": "on_subscription"},
                 billing_thresholds={
                     "amount_gte": 2000,  # €20.00 threshold (2000 cents)
-                    "reset_billing_cycle_anchor": True  # Reset billing cycle when threshold is reached
-                }
+                    "reset_billing_cycle_anchor": True,  # Reset billing cycle when threshold is reached
+                },
             )
             mapping = prices_to_item_map(created)
             return created, {pid: mapping.get(pid) for pid in price_ids}
@@ -412,7 +429,9 @@ def _find_or_create_subscription_with_items(customer_id: str, price_ids: List[st
                 )
                 base_mapping[pid] = added["id"]
             except Exception as add_err:
-                logger.error(f"Failed adding price {pid} to subscription {base_sub['id']}: {add_err}")
+                logger.error(
+                    f"Failed adding price {pid} to subscription {base_sub['id']}: {add_err}"
+                )
 
         return base_sub, {pid: base_mapping.get(pid) for pid in price_ids}
     except Exception as e:
@@ -433,14 +452,20 @@ def _record_meter_event(customer_id: str, meter_event_name: str) -> bool:
     # Prefer official SDK method if present
     try:
         billing = getattr(stripe, "billing", None)
-        if billing is not None and hasattr(billing, "MeterEvent") and hasattr(billing.MeterEvent, "create"):
+        if (
+            billing is not None
+            and hasattr(billing, "MeterEvent")
+            and hasattr(billing.MeterEvent, "create")
+        ):
             billing.MeterEvent.create(  # type: ignore[attr-defined]
                 event_name=meter_event_name,
                 payload={"stripe_customer_id": customer_id},
             )
             return True
     except Exception as e:
-        logger.info(f"Stripe billing.MeterEvent.create failed ({e}); attempting raw request.")
+        logger.info(
+            f"Stripe billing.MeterEvent.create failed ({e}); attempting raw request."
+        )
 
     # Raw request fallback (for older SDK versions)
     try:
@@ -476,20 +501,26 @@ def _record_usage_with_subscription_item(subscription_item_id: str) -> bool:
         return False
 
 
-def _ensure_products_and_record(customer_id: str, price_to_meter: Dict[str, str]) -> None:
+def _ensure_products_and_record(
+    customer_id: str, price_to_meter: Dict[str, str]
+) -> None:
     # Ensure single subscription with all known items
     ensure_price_ids = _discover_all_price_ids()
     # Always include the target prices
     for pid in price_to_meter.keys():
         if pid not in ensure_price_ids:
             ensure_price_ids.append(pid)
-    subscription, item_map = _find_or_create_subscription_with_items(customer_id, ensure_price_ids or list(price_to_meter.keys()))
+    subscription, item_map = _find_or_create_subscription_with_items(
+        customer_id, ensure_price_ids or list(price_to_meter.keys())
+    )
     if not subscription:
         return
 
     # Record events per product
     for price_id, meter_name in price_to_meter.items():
-        recorded = _record_meter_event(customer_id=customer_id, meter_event_name=meter_name)
+        recorded = _record_meter_event(
+            customer_id=customer_id, meter_event_name=meter_name
+        )
         if recorded:
             continue
         item_id = item_map.get(price_id)
@@ -510,7 +541,7 @@ def process_coverletter_billing(email: str, name: Optional[str]) -> None:
     """
     # Check if payment method is required before proceeding
     check_payment_method_required(email, name)
-    
+
     # If Stripe not configured, no-op
     if not _init_stripe_client():
         return
@@ -520,52 +551,65 @@ def process_coverletter_billing(email: str, name: Optional[str]) -> None:
         return
 
     try:
-        _, price_id = _discover_product_and_price(STRIPE_COVERLETTER_PRODUCT_NAME, STRIPE_COVERLETTER_PRICE_ID)
+        _, price_id = _discover_product_and_price(
+            STRIPE_COVERLETTER_PRODUCT_NAME, STRIPE_COVERLETTER_PRICE_ID
+        )
     except Exception as e:
         logger.error(f"Unable to locate CoverLetter Generation price in Stripe: {e}")
         return
 
-    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_COVERLETTER_METER_NAME})
+    _ensure_products_and_record(
+        customer_id=customer["id"],
+        price_to_meter={price_id: STRIPE_COVERLETTER_METER_NAME},
+    )
 
 
 def process_resume_billing(email: str, name: Optional[str]) -> None:
     # Check if payment method is required before proceeding
     check_payment_method_required(email, name)
-    
+
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
     if customer is None:
         return
     try:
-        _, price_id = _discover_product_and_price(STRIPE_RESUME_PRODUCT_NAME, STRIPE_RESUME_PRICE_ID)
+        _, price_id = _discover_product_and_price(
+            STRIPE_RESUME_PRODUCT_NAME, STRIPE_RESUME_PRICE_ID
+        )
     except Exception as e:
         logger.error(f"Unable to locate Resume Generation price in Stripe: {e}")
         return
-    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_RESUME_METER_NAME})
+    _ensure_products_and_record(
+        customer_id=customer["id"], price_to_meter={price_id: STRIPE_RESUME_METER_NAME}
+    )
 
 
 def process_qa_billing(email: str, name: Optional[str]) -> None:
     # Check if payment method is required before proceeding
     check_payment_method_required(email, name)
-    
+
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
     if customer is None:
         return
     try:
-        _, price_id = _discover_product_and_price(STRIPE_QA_PRODUCT_NAME, STRIPE_QA_PRICE_ID)
+        _, price_id = _discover_product_and_price(
+            STRIPE_QA_PRODUCT_NAME, STRIPE_QA_PRICE_ID
+        )
     except Exception as e:
         logger.error(f"Unable to locate Q&A Generation price in Stripe: {e}")
         return
-    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_QA_METER_NAME})
+    _ensure_products_and_record(
+        customer_id=customer["id"], price_to_meter={price_id: STRIPE_QA_METER_NAME}
+    )
 
 
 def process_coverletter_edit_billing(email: str, name: Optional[str]) -> None:
     # Check if payment method is required before proceeding
     check_payment_method_required(email, name)
-    
+
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
@@ -578,13 +622,16 @@ def process_coverletter_edit_billing(email: str, name: Optional[str]) -> None:
     except Exception as e:
         logger.error(f"Unable to locate CoverLetter Edit price in Stripe: {e}")
         return
-    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_COVERLETTER_EDIT_METER_NAME})
+    _ensure_products_and_record(
+        customer_id=customer["id"],
+        price_to_meter={price_id: STRIPE_COVERLETTER_EDIT_METER_NAME},
+    )
 
 
 def process_resume_edit_billing(email: str, name: Optional[str]) -> None:
     # Check if payment method is required before proceeding
     check_payment_method_required(email, name)
-    
+
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
@@ -597,13 +644,16 @@ def process_resume_edit_billing(email: str, name: Optional[str]) -> None:
     except Exception as e:
         logger.error(f"Unable to locate Resume Edit price in Stripe: {e}")
         return
-    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_RESUME_EDIT_METER_NAME})
+    _ensure_products_and_record(
+        customer_id=customer["id"],
+        price_to_meter={price_id: STRIPE_RESUME_EDIT_METER_NAME},
+    )
 
 
 def process_qa_edit_billing(email: str, name: Optional[str]) -> None:
     # Check if payment method is required before proceeding
     check_payment_method_required(email, name)
-    
+
     if not _init_stripe_client():
         return
     customer = _get_or_create_customer(email=email, name=name)
@@ -616,7 +666,6 @@ def process_qa_edit_billing(email: str, name: Optional[str]) -> None:
     except Exception as e:
         logger.error(f"Unable to locate Q&A Edit price in Stripe: {e}")
         return
-    _ensure_products_and_record(customer_id=customer["id"], price_to_meter={price_id: STRIPE_QA_EDIT_METER_NAME})
-
-
-
+    _ensure_products_and_record(
+        customer_id=customer["id"], price_to_meter={price_id: STRIPE_QA_EDIT_METER_NAME}
+    )

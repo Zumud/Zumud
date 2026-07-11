@@ -1,9 +1,12 @@
 from dataclasses import dataclass, field
+
 from .legal_authorization_models import LegalAuthorization
+
 
 @dataclass
 class Resume:
     text: str
+
 
 @dataclass
 class Profile:

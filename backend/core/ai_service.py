@@ -1,61 +1,78 @@
 import json
-from loguru import logger
-from openai import OpenAI, AsyncOpenAI
+
 from jinja2 import Template
+from openai import AsyncOpenAI, OpenAI
 from sqlalchemy.orm import Session
 
 import backend.utils.prompts as prompts
 from backend.config.envs import OPEN_AI_KEY
-from backend.models.ai_models import AIModel
-from backend.models.templates import ResumeTemplate, Template_Details
 from backend.models import db_models
-from backend.utils.file_ops import generate_pdf_from_latex, save_application_qa, escape_latex
+from backend.models.ai_models import AIModel
+from backend.models.resume_models import (
+    CompanyName,
+    StructuredResume,
+    TailoredAnswer,
+    TailoredCoverLetter,
+    TailoredResume,
+)
+from backend.models.templates import ResumeTemplate, Template_Details
+from backend.utils.file_ops import (
+    escape_latex,
+    generate_pdf_from_latex,
+    save_application_qa,
+)
 from backend.utils.log import logger
-from backend.models.resume_models import TailoredResume, TailoredCoverLetter, TailoredAnswer, StructuredResume, CompanyName
 
 client = OpenAI(api_key=OPEN_AI_KEY)
 
 # Async client for async operations
 async_client = AsyncOpenAI(api_key=OPEN_AI_KEY)
 
+
 def get_user_template(user_id: int, db: Session) -> dict:
     """
     Get the active template for a user. Returns user's custom template if available,
     otherwise returns the default template from their tailoring options.
-    
+
     Returns:
         dict: Template data with 'structure' and 'compiler' keys
     """
     # First, check for user's custom template
-    user_template = db.query(db_models.UserTemplate).filter(
-        db_models.UserTemplate.user_id == user_id,
-        db_models.UserTemplate.is_active == True
-    ).first()
-    
+    user_template = (
+        db.query(db_models.UserTemplate)
+        .filter(
+            db_models.UserTemplate.user_id == user_id,
+            db_models.UserTemplate.is_active.is_(True),
+        )
+        .first()
+    )
+
     if user_template:
         return {
-            'structure': user_template.latex_content,
-            'compiler': user_template.compiler
+            "structure": user_template.latex_content,
+            "compiler": user_template.compiler,
         }
-    
+
     # Fallback to user's default template preference
     user = db.query(db_models.User).filter(db_models.User.id == user_id).first()
     if user and user.tailoring_options:
         template_enum = user.tailoring_options.resume_template
         return Template_Details[template_enum]
-    
+
     # Final fallback to system default
     return Template_Details[ResumeTemplate.MTeck_resume]
+
 
 def ai_prompt(prompt: str, model=AIModel.gpt_4_1_nano) -> str:
     completion = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": prompt},
         ],
     )
     return completion.choices[0].message.content
+
 
 def get_company_name(job_description):
     """
@@ -69,102 +86,126 @@ def get_company_name(job_description):
         f"set the company_name to null.\n\n"
         f"Job description: {job_description}"
     )
-    
+
     completion = client.beta.chat.completions.parse(
         model=AIModel.gpt_4_1_nano,  # Using the cheapest AI as per original comment
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that extracts company names from job descriptions. Only provide a company name if it's clearly identifiable."},
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that extracts company names from job descriptions. Only provide a company name if it's clearly identifiable.",
+            },
+            {"role": "user", "content": prompt},
         ],
-        response_format=CompanyName
+        response_format=CompanyName,
     )
-    
+
     result = json.loads(completion.choices[0].message.content)
     return result.get("company_name")
 
-def generate_tailored_resume_text(resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None) -> str:
+
+def generate_tailored_resume_text(
+    resume: str,
+    job_description: str,
+    model=AIModel.gpt_4_1_nano,
+    template=ResumeTemplate.MTeck_resume,
+    user_preferences: str = None,
+) -> str:
     # Format the user preferences section
     if user_preferences:
         user_preferences_section = f"""**User Preferences:**
 {user_preferences}"""
     else:
         user_preferences_section = ""
-        
+
     # Use standard system content
     system_content = "You are an expert in resume writing."
-    
+
     # Format the prompt with user preferences
     prompt = prompts.create_tailored_resume.format(
-        resume=resume, 
-        job_description=job_description, 
-        num_pages=Template_Details[template]['num_pages'],
-        user_preferences_section=user_preferences_section
+        resume=resume,
+        job_description=job_description,
+        num_pages=Template_Details[template]["num_pages"],
+        user_preferences_section=user_preferences_section,
     )
-    
+
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {"role": "system", "content": system_content},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": prompt},
         ],
-        response_format=TailoredResume
+        response_format=TailoredResume,
     )
-    tailored_resume = json.loads(completion.choices[0].message.content)["tailored_resume"]
+    tailored_resume = json.loads(completion.choices[0].message.content)[
+        "tailored_resume"
+    ]
     logger.debug(f"The tailored resume plain text is: {tailored_resume}")
     return tailored_resume
 
-async def generate_structured_latex_resume_async(save_folder: str, resume: str, job_description: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_preferences: str = None, user_id: int = None, db: Session = None, is_anonymous: bool = False):
+
+async def generate_structured_latex_resume_async(
+    save_folder: str,
+    resume: str,
+    job_description: str,
+    model=AIModel.gpt_4_1_nano,
+    template=ResumeTemplate.MTeck_resume,
+    user_preferences: str = None,
+    user_id: int = None,
+    db: Session = None,
+    is_anonymous: bool = False,
+):
     """
     Async version of generate_structured_latex_resume with better timeout handling.
     Convert a plain resume to LaTeX using structured output and Jinja2 templating.
     Now supports user templates when user_id and db are provided.
-    
+
     Returns:
         tuple: (latex_compiler_response, rendered_latex, structured_resume_json)
     """
-    
+
     # Use standard system content
     system_content = """You are a world-class resume writer, career strategist, and ATS optimization expert. You specialize in transforming general resumes into sharply focused, high-impact documents tailored for specific job applications — increasing interview rates significantly."""
-    
+
     # Format the prompt with user preferences
     prompt = prompts.structured_resume_prompt.format(
         resume=resume,
         job_description=job_description,
-        user_preferences= user_preferences if user_preferences else "No specific preferences provided."
+        user_preferences=user_preferences
+        if user_preferences
+        else "No specific preferences provided.",
     )
-    
+
     # First, get structured resume data from GPT using async client
     completion = await async_client.beta.chat.completions.parse(
         model=model,
         messages=[
             {"role": "system", "content": system_content},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": prompt},
         ],
-        response_format=StructuredResume
+        response_format=StructuredResume,
     )
-    
+
     structured_resume_json = completion.choices[0].message.content
     structured_resume = json.loads(structured_resume_json)
-    
+
     logger.debug(f"Structured resume: {structured_resume}")
-    
+
     # Escape LaTeX special characters in the resume data
     escaped_resume = escape_latex(structured_resume)
     logger.debug(f"Escaped resume: {escaped_resume}")
-    
+
     # Get the LaTeX template - use user template if available
     if user_id and db:
         template_data = get_user_template(user_id, db)
-        latex_template = template_data['structure']
-        compiler = template_data['compiler']
+        latex_template = template_data["structure"]
+        compiler = template_data["compiler"]
         logger.debug(f"Using user template for user {user_id}")
     else:
         template_data = Template_Details[template]
-        latex_template = template_data['structure']
-        compiler = template_data['compiler']
+        latex_template = template_data["structure"]
+        compiler = template_data["compiler"]
         logger.debug(f"Using default template: {template}")
 
-    
     # Add watermark for anonymous users
     if is_anonymous:
         # Add watermark package and commands before \begin{document}
@@ -176,59 +217,86 @@ async def generate_structured_latex_resume_async(save_folder: str, resume: str, 
 \begin{document}
 """
         # Insert watermark packages after the last \usepackage line but before \begin{document}
-        if '\\begin{document}' in latex_template:
-            latex_template = latex_template.replace('\\begin{document}', watermark_packages)
+        if "\\begin{document}" in latex_template:
+            latex_template = latex_template.replace(
+                "\\begin{document}", watermark_packages
+            )
         else:
-            logger.warning("Could not find \\begin{document} in template, watermark may not be added correctly")
+            logger.warning(
+                "Could not find \\begin{document} in template, watermark may not be added correctly"
+            )
 
-    logger.debug(f"LaTeX template: {latex_template}") 
+    logger.debug(f"LaTeX template: {latex_template}")
     # Create Jinja2 template and render
     jinjatex_template = Template(latex_template)
     logger.debug(f"Jinjatex Template: {jinjatex_template}")
     rendered_latex = jinjatex_template.render(escaped_resume)
     logger.debug(f"Rendered LaTeX: {rendered_latex}")
-    
+
     # Try to compile
-    latex_compiler_response = generate_pdf_from_latex(save_folder, rendered_latex, compiler)
-    
+    latex_compiler_response = generate_pdf_from_latex(
+        save_folder, rendered_latex, compiler
+    )
+
     if b"error: " in latex_compiler_response.content:
-        error_msg = latex_compiler_response.content.decode('utf-8')
+        error_msg = latex_compiler_response.content.decode("utf-8")
         logger.error(f"LaTeX compilation error: {error_msg}")
         raise ValueError(f"Failed to compile LaTeX document: {error_msg}")
-    
+
     logger.debug("Successfully compiled LaTeX document")
     return latex_compiler_response, rendered_latex, structured_resume_json
 
-def generate_tailored_coverletter_text(resume: str, job_description: str, model=AIModel.gpt_4_1_nano) -> str:
+
+def generate_tailored_coverletter_text(
+    resume: str, job_description: str, model=AIModel.gpt_4_1_nano
+) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": "You are an expert career coach and professional writer."},
-            {"role": "user", "content": prompts.create_tailored_coverletter_prompt.format(resume=resume, job_description=job_description)}
+            {
+                "role": "system",
+                "content": "You are an expert career coach and professional writer.",
+            },
+            {
+                "role": "user",
+                "content": prompts.create_tailored_coverletter_prompt.format(
+                    resume=resume, job_description=job_description
+                ),
+            },
         ],
-        response_format=TailoredCoverLetter
+        response_format=TailoredCoverLetter,
     )
     return json.loads(completion.choices[0].message.content)["tailored_coverletter"]
 
+
 def ai_messages(messages: list[tuple[str, str]], model=AIModel.gpt_4_1_nano) -> str:
-    completion = client.chat.completions.create(
-        model=model,
-        messages=messages
-    )
+    completion = client.chat.completions.create(model=model, messages=messages)
     return completion.choices[0].message.content
 
-def generate_answer_questions(resume: str, job_description: str, question: str, save_folder: str = None, model=AIModel.gpt_4_1_nano):
+
+def generate_answer_questions(
+    resume: str,
+    job_description: str,
+    question: str,
+    save_folder: str = None,
+    model=AIModel.gpt_4_1_nano,
+):
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assisstant."},
-            {"role": "user", "content": prompts.answer_application_question.format(resume=resume, job_description=job_description, question=question)}
+            {
+                "role": "user",
+                "content": prompts.answer_application_question.format(
+                    resume=resume, job_description=job_description, question=question
+                ),
+            },
         ],
-        response_format=TailoredAnswer
+        response_format=TailoredAnswer,
     )
-    
+
     answer = json.loads(completion.choices[0].message.content)["tailored_answer"]
-    
+
     # Save the question and answer if save_folder is provided
     if save_folder:
         try:
@@ -236,14 +304,24 @@ def generate_answer_questions(resume: str, job_description: str, question: str, 
             logger.debug(f"Application Q&A saved to {file_path}")
         except Exception as e:
             logger.error(f"Error saving application Q&A: {str(e)}")
-    
+
     return answer
 
-def update_resume_with_instructions(original_structured_resume: str, job_description: str, instructions: str, save_path: str, model=AIModel.gpt_4_1_nano, template=ResumeTemplate.MTeck_resume, user_id: int = None, db: Session = None):
+
+def update_resume_with_instructions(
+    original_structured_resume: str,
+    job_description: str,
+    instructions: str,
+    save_path: str,
+    model=AIModel.gpt_4_1_nano,
+    template=ResumeTemplate.MTeck_resume,
+    user_id: int = None,
+    db: Session = None,
+):
     """
     Update a structured resume based on free-form text instructions and regenerate the PDF.
     Now supports user templates when user_id and db are provided.
-    
+
     Args:
         original_structured_resume (str): The original structured resume JSON
         job_description (str): The job description for context
@@ -253,7 +331,7 @@ def update_resume_with_instructions(original_structured_resume: str, job_descrip
         template: The template to use (ignored if user has custom template)
         user_id: User ID for custom template lookup
         db: Database session for template lookup
-        
+
     Returns:
         tuple: (latex_compiler_response, updated_resume_json, tex_content)
     """
@@ -273,58 +351,70 @@ def update_resume_with_instructions(original_structured_resume: str, job_descrip
         f"Instructions for changes:\n{instructions}\n\n"
         f"Please provide the updated structured resume JSON."
     )
-    
+
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a professional resume editor. Update the provided structured resume JSON according to the instructions while maintaining proper JSON structure and professional quality."},
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": "You are a professional resume editor. Update the provided structured resume JSON according to the instructions while maintaining proper JSON structure and professional quality.",
+            },
+            {"role": "user", "content": prompt},
         ],
-        response_format=StructuredResume
+        response_format=StructuredResume,
     )
-    
+
     updated_resume_json = completion.choices[0].message.content
-    
+
     # Parse the updated JSON to get the structured resume
     structured_resume = json.loads(updated_resume_json)
-    
+
     # Escape LaTeX special characters
     escaped_resume = escape_latex(structured_resume)
-    
+
     # Get the LaTeX template - use user template if available
     if user_id and db:
         template_data = get_user_template(user_id, db)
-        latex_template = template_data['structure']
-        compiler = template_data['compiler']
+        latex_template = template_data["structure"]
+        compiler = template_data["compiler"]
     else:
         template_data = Template_Details[template]
-        latex_template = template_data['structure']
-        compiler = template_data['compiler']
-    
+        latex_template = template_data["structure"]
+        compiler = template_data["compiler"]
+
     # Create Jinja2 template and render
     jinjatex_template = Template(latex_template)
     rendered_latex = jinjatex_template.render(escaped_resume)
-    
+
     # Compile LaTeX to PDF
-    latex_compiler_response = generate_pdf_from_latex(save_path, rendered_latex, compiler)
-    
+    latex_compiler_response = generate_pdf_from_latex(
+        save_path, rendered_latex, compiler
+    )
+
     if b"error: " in latex_compiler_response.content:
-        error_msg = latex_compiler_response.content.decode('utf-8')
+        error_msg = latex_compiler_response.content.decode("utf-8")
         raise ValueError(f"Failed to compile LaTeX document: {error_msg}")
-    
+
     return latex_compiler_response, updated_resume_json, rendered_latex
 
-def update_cover_letter_with_instructions(cover_letter: str, resume_content: str, job_description: str, instructions: str, model=AIModel.gpt_4_1_nano) -> str:
+
+def update_cover_letter_with_instructions(
+    cover_letter: str,
+    resume_content: str,
+    job_description: str,
+    instructions: str,
+    model=AIModel.gpt_4_1_nano,
+) -> str:
     """
     Update a cover letter based on free-form text instructions.
-    
+
     Args:
         cover_letter (str): The original cover letter text
         resume_content (str): The user's resume content for reference
         job_description (str): The job description for context
         instructions (str): Free-form text instructions describing changes to make
         model: The AI model to use
-        
+
     Returns:
         str: The updated cover letter text
     """
@@ -349,23 +439,36 @@ def update_cover_letter_with_instructions(cover_letter: str, resume_content: str
         f"Original Cover Letter:\n{cover_letter}\n\n"
         f"Instructions:\n{instructions}"
     )
-    
+
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a professional cover letter editor. Provide the updated cover letter with the requested changes."},
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": "You are a professional cover letter editor. Provide the updated cover letter with the requested changes.",
+            },
+            {"role": "user", "content": prompt},
         ],
-        response_format=TailoredCoverLetter
+        response_format=TailoredCoverLetter,
     )
-    
-    updated_cover_letter = json.loads(completion.choices[0].message.content)["tailored_coverletter"]
+
+    updated_cover_letter = json.loads(completion.choices[0].message.content)[
+        "tailored_coverletter"
+    ]
     return updated_cover_letter
 
-def update_answer_with_instructions(original_answer: str, question: str, job_description: str, resume_content: str, instructions: str, model=AIModel.gpt_4_1_nano) -> str:
+
+def update_answer_with_instructions(
+    original_answer: str,
+    question: str,
+    job_description: str,
+    resume_content: str,
+    instructions: str,
+    model=AIModel.gpt_4_1_nano,
+) -> str:
     """
     Update an application question answer based on free-form text instructions.
-    
+
     Args:
         original_answer (str): The original answer text
         question (str): The application question being answered
@@ -373,7 +476,7 @@ def update_answer_with_instructions(original_answer: str, question: str, job_des
         resume_content (str): The user's resume content for reference
         instructions (str): Free-form text instructions describing changes to make
         model: The AI model to use
-        
+
     Returns:
         str: The updated answer text
     """
@@ -396,47 +499,57 @@ def update_answer_with_instructions(original_answer: str, question: str, job_des
         f"Original Answer:\n{original_answer}\n\n"
         f"Instructions:\n{instructions}"
     )
-    
+
     completion = client.beta.chat.completions.parse(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a professional job application answer editor. Provide the updated answer with the requested changes."},
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": "You are a professional job application answer editor. Provide the updated answer with the requested changes.",
+            },
+            {"role": "user", "content": prompt},
         ],
-        response_format=TailoredAnswer
+        response_format=TailoredAnswer,
     )
-    
-    updated_answer = json.loads(completion.choices[0].message.content)["tailored_answer"]
+
+    updated_answer = json.loads(completion.choices[0].message.content)[
+        "tailored_answer"
+    ]
     return updated_answer
 
-def format_user_preferences(existing_preferences: str, new_preference: str, model=AIModel.gpt_4_1_nano) -> str:
+
+def format_user_preferences(
+    existing_preferences: str, new_preference: str, model=AIModel.gpt_4_1_nano
+) -> str:
     """
     Format and combine user preferences into a clean, structured format suitable for resumes and cover letters.
-    
+
     Args:
         existing_preferences (str): The current stored preferences (can be empty/None)
         new_preference (str): The new preference to add
         model: The AI model to use
-        
+
     Returns:
         str: The formatted preferences as bullet points
     """
     # If no new preference to process, return existing preferences
     if not new_preference or not new_preference.strip():
         return existing_preferences
-    
+
     prompt = prompts.format_user_preferences_prompt.format(
-        existing_preferences=existing_preferences,
-        new_preference=new_preference
+        existing_preferences=existing_preferences, new_preference=new_preference
     )
 
     completion = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": "You are an expert career coach and professional writer."},
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": "You are an expert career coach and professional writer.",
+            },
+            {"role": "user", "content": prompt},
         ],
         temperature=0.3,  # Lower temperature for more consistent formatting
     )
-    
+
     return completion.choices[0].message.content.strip()

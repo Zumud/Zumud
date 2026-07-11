@@ -1,9 +1,12 @@
-from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Optional
 
+from pydantic import BaseModel
+
+
 class ResumeBase(BaseModel):
     resume_content: Optional[str] = None
+
 
 class Resume(ResumeBase):
     last_updated: datetime
@@ -11,29 +14,37 @@ class Resume(ResumeBase):
     class Config:
         from_attributes = True  # Allows the Pydantic model to read data from ORM models
 
+
 # AI Response Models
 class TailoredResume(BaseModel):
     tailored_resume: str
 
+
 class TailoredCoverLetter(BaseModel):
     tailored_coverletter: str
+
 
 class CustomizedResume(BaseModel):
     customized_resume: str
 
+
 class TailoredCL(BaseModel):
     customized_cover_letter: str
+
 
 class CompanyName(BaseModel):
     company_name: Optional[str] = None
 
+
 class TailoredAnswer(BaseModel):
     tailored_answer: str
+
 
 # Resume Structure Models
 class ResumeSection(BaseModel):
     category: str
     items: List[str]
+
 
 class Experience(BaseModel):
     company: str
@@ -43,6 +54,7 @@ class Experience(BaseModel):
     description: Optional[str] = None
     achievements: Optional[List[str]] = None
 
+
 class Education(BaseModel):
     institution: str
     degree: Optional[str] = None
@@ -50,14 +62,17 @@ class Education(BaseModel):
     date_range: Optional[str] = None
     minors: Optional[List[str]] = None
 
+
 class Certification(BaseModel):
     name: str
     issuer: Optional[str] = None
+
 
 class Project(BaseModel):
     name: str
     date_range: Optional[str] = None
     achievements: Optional[List[str]] = None
+
 
 class PersonalInfo(BaseModel):
     name: str
@@ -67,11 +82,13 @@ class PersonalInfo(BaseModel):
     linkedin: Optional[str] = None
     github: Optional[str] = None
 
+
 class Award(BaseModel):
     title: str
     issuer: Optional[str] = None
     date: Optional[str] = None
     description: Optional[str] = None
+
 
 class Publication(BaseModel):
     title: str
@@ -81,9 +98,12 @@ class Publication(BaseModel):
     issue: Optional[str] = None
     pages: Optional[str] = None
     date: Optional[str] = None
-    status: Optional[str] = None  # For "Under Review", "In Press", "Forthcoming", "Submitted"
+    status: Optional[str] = (
+        None  # For "Under Review", "In Press", "Forthcoming", "Submitted"
+    )
     doi: Optional[str] = None
     url: Optional[str] = None
+
 
 class StructuredResume(BaseModel):
     personal_info: PersonalInfo

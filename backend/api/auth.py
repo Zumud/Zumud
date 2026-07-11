@@ -1,7 +1,7 @@
 import logging
 import re
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 
 from backend.config.envs import ALGORITHM, SECRET_KEY
 from backend.core.supabase_auth import verify_supabase_jwt
-from backend.models.db import get_db
 from backend.models import db_models
+from backend.models.db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +69,7 @@ def _generate_unique_username(db: Session, email: str | None) -> str:
     candidate = base
     suffix = 0
     while (
-        db.query(db_models.User.id)
-        .filter(db_models.User.username == candidate)
-        .first()
+        db.query(db_models.User.id).filter(db_models.User.username == candidate).first()
         is not None
     ):
         suffix += 1
@@ -103,7 +101,9 @@ def _provision_user(db: Session, sub: str, email: str | None) -> db_models.User:
             )
             db.commit()
             db.refresh(user)
-            logger.info("Provisioned profile for Supabase user %s (username=%s)", sub, username)
+            logger.info(
+                "Provisioned profile for Supabase user %s (username=%s)", sub, username
+            )
             return user
         except IntegrityError:
             db.rollback()
@@ -135,13 +135,13 @@ def _get_or_create_user_from_claims(claims: dict, db: Session) -> db_models.User
         )
 
     raw_email = claims.get("email")
-    email = raw_email.strip().lower() if isinstance(raw_email, str) and raw_email.strip() else None
-
-    user = (
-        db.query(db_models.User)
-        .filter(db_models.User.supabase_uid == sub)
-        .first()
+    email = (
+        raw_email.strip().lower()
+        if isinstance(raw_email, str) and raw_email.strip()
+        else None
     )
+
+    user = db.query(db_models.User).filter(db_models.User.supabase_uid == sub).first()
     if user is not None:
         if email and not user.email:
             user.email = email
@@ -208,7 +208,9 @@ def _user_from_legacy_token(token: str, db: Session) -> db_models.User | None:
     return db.query(db_models.User).filter(db_models.User.id == uid).first()
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+):
     """Resolve the current user from a Supabase access token (legacy token as fallback)."""
     claims = None
     try:
