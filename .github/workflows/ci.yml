@@ -2,9 +2,13 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   merge_group:
   push:
     branches: [main]
+  schedule:
+    # Nightly real-AI run: catches model/provider drift the mocked lane can't.
+    - cron: "17 3 * * *"
 
 permissions:
   contents: read
@@ -16,6 +20,7 @@ concurrency:
 jobs:
   backend:
     name: Backend lint + unit tests
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +40,7 @@ jobs:
 
   integration:
     name: Integration tests (real Supabase stack)
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -67,6 +73,7 @@ jobs:
 
   frontend:
     name: Frontend lint + types + build
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -88,3 +95,122 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+
+  e2e:
+    name: E2E smoke (mocked AI, real LaTeX)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install -r requirements-dev.txt
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install chromium --with-deps
+        working-directory: frontend
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - name: Start LaTeX compiler (GHCR image, build fallback)
+        run: |
+          docker pull ghcr.io/zumud/zumud-latex:latest \
+            || docker build -t ghcr.io/zumud/zumud-latex:latest docker/latex
+          docker run -d --name zumud-latex -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
+      - run: ./scripts/e2e-stack.sh
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-artifacts
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 7
+
+  real-ai:
+    name: Real-AI lane (live model, no mocks)
+    # Gates the merge queue, runs nightly, and on PRs labeled 'real-ai'.
+    # Fork PRs have no secrets; the guard step skips them gracefully.
+    if: >-
+      github.event_name == 'merge_group' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.labels.*.name, 'real-ai'))
+    runs-on: ubuntu-latest
+    env:
+      OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
+    steps:
+      - name: Check for live key
+        id: key
+        run: |
+          if [ -z "$OPEN_AI_KEY" ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "No OPEN_AI_KEY available (fork PR) — skipping real-AI lane."
+              echo "has_key=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::OPEN_AI_KEY secret is not configured"; exit 1
+            fi
+          else
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.has_key == 'true'
+      - uses: actions/setup-python@v5
+        if: steps.key.outputs.has_key == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.has_key == 'true'
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install -r requirements-dev.txt
+        if: steps.key.outputs.has_key == 'true'
+      - name: Live-model contract tests
+        if: steps.key.outputs.has_key == 'true'
+        run: pytest -q -m real_ai
+      - run: npm ci
+        if: steps.key.outputs.has_key == 'true'
+        working-directory: frontend
+      - run: npx playwright install chromium --with-deps
+        if: steps.key.outputs.has_key == 'true'
+        working-directory: frontend
+      - uses: supabase/setup-cli@v1
+        if: steps.key.outputs.has_key == 'true'
+        with:
+          version: latest
+      - run: supabase start
+        if: steps.key.outputs.has_key == 'true'
+      - name: Start LaTeX compiler (GHCR image, build fallback)
+        if: steps.key.outputs.has_key == 'true'
+        run: |
+          docker pull ghcr.io/zumud/zumud-latex:latest \
+            || docker build -t ghcr.io/zumud/zumud-latex:latest docker/latex
+          docker run -d --name zumud-latex -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
+      - name: E2E with live model
+        if: steps.key.outputs.has_key == 'true'
+        run: E2E_REAL_AI=1 ./scripts/e2e-stack.sh
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: real-ai-artifacts
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 7

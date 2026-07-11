@@ -13,3 +13,7 @@ Applications
 user_database*.db
 production_server*.db
 database_backup*.sql
+
+# Playwright artifacts
+frontend/test-results/
+frontend/playwright-report/
