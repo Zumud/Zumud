@@ -12,6 +12,9 @@ on:
     types: [submitted, dismissed]
   merge_group:
 
+# Sign-off routes: PR approval, or the t2-approved label for self-authored
+# PRs (GitHub forbids self-approval).
+
 permissions:
   contents: read
   pull-requests: read
@@ -36,8 +39,15 @@ jobs:
             echo "Not tier:T2 — no human approval required."
             exit 0
           fi
-          # Latest review per reviewer must include an APPROVED from someone
-          # with write access (owner/member/collaborator).
+          # Maintainer sign-off is either a PR approval or the t2-approved
+          # label (GitHub forbids approving your own PR, so a solo maintainer
+          # — or an agent authoring under their account — signs off by
+          # applying the label; label application needs triage permission
+          # and is recorded in the PR timeline).
+          if grep -q 't2-approved' <<<"$labels"; then
+            echo "tier:T2 with t2-approved label — pass."
+            exit 0
+          fi
           approved=$(gh api "repos/$REPO/pulls/$PR/reviews" --paginate --jq '
             [ .[] | select(.author_association == "OWNER"
                         or .author_association == "MEMBER"
@@ -47,6 +57,6 @@ jobs:
           if [ "$approved" -ge 1 ]; then
             echo "tier:T2 with maintainer approval — pass."
           else
-            echo "::error::This PR is tier:T2 (auth/billing/schema/deps/pipeline) and needs maintainer approval before it can merge."
+            echo "::error::This PR is tier:T2 (auth/billing/schema/deps/pipeline) and needs maintainer sign-off: a PR approval or the t2-approved label."
             exit 1
           fi

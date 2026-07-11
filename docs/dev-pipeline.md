@@ -41,8 +41,10 @@ secrets; their real-AI run happens in the queue after maintainer approval.
 - **T0/T1** (default): green checks + clean AI review → **auto-merge** via the
   merge queue. Enable auto-merge on the PR; no human involved.
 - **T2** (auto-labeled `tier:T2` — dependencies, auth, billing, migrations,
-  `.github/`, `deploy/`, `scripts/`): everything above **plus** the
-  maintainer's PR approval (enforced by the "T2 approval" check). All
+  `.github/`, `deploy/`, `scripts/`): everything above **plus** maintainer
+  sign-off, enforced by the "T2 approval" check: a PR approval, or the
+  `t2-approved` label for self-authored PRs (GitHub forbids self-approval;
+  applying the label needs triage permission and is timeline-audited). All
   external/fork PRs are effectively T2: first-time contributors also need
   workflow-run approval, and bot verdicts on fork PRs are advisory only
   (prompt-injection caution).

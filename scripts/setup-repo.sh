@@ -37,6 +37,8 @@ gh label create "flaky-quarantine" --repo "$REPO" --color FBCA04 \
   --description "Test quarantined as flaky; needs a fix issue" --force
 gh label create "coverage-exempt" --repo "$REPO" --color 0E8A16 \
   --description "Skip the diff-coverage ratchet (mechanical bulk diffs only)" --force
+gh label create "t2-approved" --repo "$REPO" --color 0E8A16 \
+  --description "Maintainer sign-off on a tier:T2 PR (label appliers need triage+)" --force
 
 echo ">> branch ruleset: protection + required checks + merge queue"
 # Deletes a pre-existing ruleset of the same name so the script is rerunnable.

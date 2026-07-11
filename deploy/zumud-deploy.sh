@@ -35,8 +35,14 @@ health_check() {
 build_and_restart() { # $1 = space-separated list of changed paths
   local changed="$1"
   if grep -q '^requirements.txt' <<<"$changed"; then
-    log "requirements.txt changed -> pip install"
-    sudo -u zumud "$REPO/.venv/bin/pip" install -q -r "$REPO/requirements.txt"
+    log "requirements.txt changed -> installing deps"
+    if [ -x "$REPO/.venv/bin/pip" ]; then
+      sudo -u zumud "$REPO/.venv/bin/pip" install -q -r "$REPO/requirements.txt"
+    else
+      # The prod venv is uv-managed (no pip inside).
+      sudo -u zumud -H bash -lc \
+        "cd $REPO && uv pip install -q -r requirements.txt --python .venv/bin/python"
+    fi
   fi
   if grep -q '^docker/latex/' <<<"$changed"; then
     # Degrade gracefully (repo principle: optional pieces fail open): if the
