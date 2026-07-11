@@ -120,11 +120,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: gitleaks (working tree)
-        run: >
-          docker run --rm -v "$PWD:/repo"
-          ghcr.io/gitleaks/gitleaks:latest
-          detect --no-git --redact --source /repo
+      - name: gitleaks (tracked files)
+        # Scan a clean export, not the checkout dir: the checkout's .git/config
+        # holds the runner's credential header, which --no-git would flag.
+        run: |
+          mkdir -p /tmp/scan
+          git archive HEAD | tar -x -C /tmp/scan
+          docker run --rm -v /tmp/scan:/repo \
+            ghcr.io/gitleaks/gitleaks:latest \
+            detect --no-git --redact --source /repo
 
   e2e:
     name: E2E smoke (mocked AI, real LaTeX)

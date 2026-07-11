@@ -25,7 +25,8 @@ secrets; their real-AI run happens in the queue after maintainer approval.
   config`), knip (dead files/exports/deps; `src/components/ui/**` shadcn kit
   exempt), diff-coverage ratchet (changed lines need 80%; no absolute-%
   theater), Alembic drift check (model change without migration fails).
-- **Security**: gitleaks, pip-audit, npm audit, CodeQL.
+- **Security**: gitleaks, pip-audit, npm audit, CodeQL (GitHub default setup,
+  already enabled on the repo).
 - **Scope coherence** (`scripts/scope_gate.py`): judges one-purpose,
   diff-vs-description proportionality, unrequested abstractions, duplication,
   and dependency justification against

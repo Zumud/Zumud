@@ -4,3 +4,4 @@ ruff==0.15.21
 pytest-cov==7.1.0
 import-linter==2.13
 diff-cover==10.3.0
+pip-audit==2.10.0
