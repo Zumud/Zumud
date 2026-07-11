@@ -7,6 +7,9 @@ SHELL := /bin/bash
 
 .PHONY: help up down reset status dev-backend dev-frontend seed test test-integration e2e latex-up latex-down latex-tunnel
 
+# Local dev uses the repo venv; CI overrides with PY=python.
+PY ?= .venv/bin/python
+
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
@@ -82,9 +85,9 @@ seed: ## Create a confirmed local test user ([email protected] / password123)
 	  && echo "seeded: [email protected] / password123" || echo "seed failed"
 
 test: ## Run the unit test lane (no DB, network, or secrets needed)
-	.venv/bin/python -m pytest -q
+	$(PY) -m pytest -q
 
-test-integration: ## Run integration tests against the local Supabase stack (make up first)
+test-integration: ## Run unit+integration lanes against the local Supabase stack (make up first)
 	@set -a; \
 	eval "$$(supabase status -o env 2>/dev/null | grep -E '^[A-Z0-9_]+=')"; \
 	if [ -z "$$DB_URL" ]; then echo "ERROR: local stack not running ('make up' first)"; exit 1; fi; \
@@ -96,7 +99,7 @@ test-integration: ## Run integration tests against the local Supabase stack (mak
 	       DATABASE_URL="$$DB_URL" \
 	       ENVIRONMENT="development"; \
 	set +a; \
-	.venv/bin/python -m pytest -q -m integration
+	$(PY) -m pytest -q -m "not real_ai" $(PYTEST_ARGS)
 
 e2e: ## Full-stack Playwright smoke (needs 'make up' + 'make latex-up' first)
 	./scripts/e2e-stack.sh

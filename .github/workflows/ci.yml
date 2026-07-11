@@ -62,22 +62,20 @@ jobs:
         with:
           version: latest
       - run: supabase start
-      - name: Run integration lane
-        # Same env mapping as `make test-integration`. OPEN_AI_KEY is a dummy:
-        # integration tests never call the live model (real_ai lane does).
-        run: |
-          eval "$(supabase status -o env | grep -E '^[A-Z0-9_]+=')"
-          export SUPABASE_URL="$API_URL" \
-                 SUPABASE_PUBLISHABLE_KEY="$PUBLISHABLE_KEY" \
-                 SUPABASE_SECRET_KEY="$SECRET_KEY" \
-                 SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
-                 SUPABASE_JWT_SECRET="$JWT_SECRET" \
-                 DATABASE_URL="$DB_URL" \
-                 ENVIRONMENT=development \
-                 OPEN_AI_KEY=ci-dummy-key
-          pytest -q -m "not real_ai" --cov=backend --cov-report=xml
+      - name: Run unit+integration lanes with coverage
+        # OPEN_AI_KEY is a dummy: these lanes never call the live model
+        # (the real_ai lane does).
+        run: >
+          OPEN_AI_KEY=ci-dummy-key
+          make test-integration PY=python
+          PYTEST_ARGS="--cov=backend --cov-report=xml"
       - name: Diff-coverage ratchet (changed lines need tests)
-        if: github.event_name == 'pull_request'
+        # Override label `coverage-exempt` is for mechanical bulk diffs
+        # (formatting, renames) where line coverage is meaningless — visible
+        # and deliberate, like scope-ok.
+        if: >-
+          github.event_name == 'pull_request' &&
+          !contains(github.event.pull_request.labels.*.name, 'coverage-exempt')
         run: >
           diff-cover coverage.xml
           --compare-branch origin/${{ github.base_ref }}
