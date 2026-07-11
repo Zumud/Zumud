@@ -17,3 +17,6 @@ database_backup*.sql
 # Playwright artifacts
 frontend/test-results/
 frontend/playwright-report/
+.coverage
+coverage.xml
+.pytest_cache/
