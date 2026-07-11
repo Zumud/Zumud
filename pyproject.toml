@@ -7,6 +7,22 @@ extend-exclude = ["backend/utils/old_codes.py"]
 # `ruff format`; we deliberately don't enable the wider stylistic rule sets.
 extend-select = ["I"]
 
+[tool.importlinter]
+root_package = "backend"
+
+# Architectural layering: routers call services, services use helpers and
+# schemas, nothing imports upward. Violations fail CI (backend job).
+[[tool.importlinter.contracts]]
+name = "Layered architecture (api -> core -> utils -> models -> config)"
+type = "layers"
+layers = [
+    "backend.api",
+    "backend.core",
+    "backend.utils",
+    "backend.models",
+    "backend.config",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [

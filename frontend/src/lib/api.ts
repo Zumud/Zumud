@@ -273,31 +273,6 @@ export const preferences = {
     apiCall('users/me/preferences', 'POST', { preference }),
 };
 
-// Simple application session management
-const applicationSessionManager = {
-  // Extract company name for display purposes (simple version)
-  extractCompanyName: (jobDescription: string): string => {
-    const text = jobDescription.toLowerCase();
-    
-    // Look for simple patterns like "Company Name | Salary" or "Company Name - Job Title"  
-    const patterns = [
-      /^([^|\n]+?)\s*\|/,  // "Company | Rest"
-      /^([^-\n]+?)\s*-/,   // "Company - Rest"
-    ];
-    
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        return match[1].trim().replace(/\b(inc|corp|llc|ltd|company|solutions|technologies|systems)\b/gi, '').trim();
-      }
-    }
-    
-    // Fallback: take first line up to 50 chars
-    const firstLine = jobDescription.split('\n')[0];
-    return firstLine.length > 50 ? firstLine.substring(0, 50).replace(/\W+$/, '') : firstLine;
-  }
-};
-
 // Application endpoints
 export const applications = {
   generateResume: (jobDescription: string, isNewApplication?: boolean) => {
@@ -394,13 +369,3 @@ export const billing = {
   createCustomerPortalSession: (returnUrl?: string) => 
     apiCall('billing/manage-subscription', 'POST', returnUrl ? { return_url: returnUrl } : {}),
 };
-
-export { applicationSessionManager };
-
-export default {
-  auth,
-  resume,
-  applications,
-  preferences,
-  billing
-}; 

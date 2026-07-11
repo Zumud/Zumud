@@ -3,7 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import Footer from "@/components/landing/footer";
 
-export interface LegalSection {
+interface LegalSection {
   heading: string;
   paragraphs: string[];
 }

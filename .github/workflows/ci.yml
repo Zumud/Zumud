@@ -32,11 +32,15 @@ jobs:
             requirements.txt
             requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      - run: ruff check backend/ tests/
-      - run: ruff format --check backend/ tests/
+      - run: ruff check backend/ tests/ migrations/
+      - run: ruff format --check backend/ tests/ migrations/
+      # Architectural layering contract (api -> core -> utils -> models -> config).
+      - run: lint-imports
       # Unit lane only (pyproject deselects integration/real_ai): no DB,
       # network, or secrets — safe for fork PRs.
       - run: pytest -q
+      # Dependency vulnerability audit of the pinned freeze.
+      - run: pip-audit
 
   integration:
     name: Integration tests (real Supabase stack)
@@ -44,6 +48,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # diff-cover needs the merge base with the PR base branch
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -69,7 +75,13 @@ jobs:
                  DATABASE_URL="$DB_URL" \
                  ENVIRONMENT=development \
                  OPEN_AI_KEY=ci-dummy-key
-          pytest -q -m integration
+          pytest -q -m "not real_ai" --cov=backend --cov-report=xml
+      - name: Diff-coverage ratchet (changed lines need tests)
+        if: github.event_name == 'pull_request'
+        run: >
+          diff-cover coverage.xml
+          --compare-branch origin/${{ github.base_ref }}
+          --fail-under=80
       - name: Migration drift check
         # upgrade head on a scratch DB + `alembic check`: fails when a model
         # change ships without its migration.
@@ -98,7 +110,23 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      # Dead files/exports/dependencies gate (shadcn ui kit dir is ignored
+      # via knip.json — unused kit sub-exports are convention, not slop).
+      - run: npx knip
+      - run: npm audit --audit-level=high
       - run: npm run build
+
+  gitleaks:
+    name: Secret scan
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: gitleaks (working tree)
+        run: >
+          docker run --rm -v "$PWD:/repo"
+          ghcr.io/gitleaks/gitleaks:latest
+          detect --no-git --redact --source /repo
 
   e2e:
     name: E2E smoke (mocked AI, real LaTeX)
