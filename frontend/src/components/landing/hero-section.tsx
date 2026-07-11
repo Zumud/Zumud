@@ -1,13 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, Sparkles, Zap, ShieldCheck, Clock, X, AlertCircle } from "lucide-react";
+import {
+  AlertCircle,
+  Clock3,
+  Loader2,
+  MousePointerClick,
+  ShieldCheck,
+  Upload,
+  X,
+  Zap,
+} from "lucide-react";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { applications } from "@/lib/api";
 import ResumeProgress from "@/components/ui/resume-progress";
-
-interface HeroSectionProps {
-  onAuthModalOpen?: (mode?: 'login' | 'signup') => void;
-}
 
 // Move large constants outside component to prevent recreation on every render
 const SAMPLE_RESUME = `John Smith
@@ -74,7 +79,7 @@ BENEFITS:
 • Professional development budget
 • Latest MacBook Pro and equipment budget`;
 
-export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
+export default function HeroSection() {
   const router = useRouter();
   const [resumeText, setResumeText] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -118,7 +123,7 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
     const hasResumeContent = resumeText.trim() || resumeFile;
     
     if (!hasResumeContent || !jobDescription.trim()) {
-      setError("Add your resume and a job description to continue.");
+      setError("Add a resume and job post.");
       return;
     }
 
@@ -173,17 +178,13 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
   };
 
   return (
-    <section className="ambient-glow relative overflow-hidden pt-14 pb-16 md:pt-20 md:pb-24">
+    <section id="hero" className="ambient-glow relative overflow-hidden pb-16 pt-14 md:pb-24 md:pt-20">
       {/* Subtle grid texture behind the hero */}
       <div className="bg-grid pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
 
       <div className="container-page">
         {/* Headline */}
         <div className="mx-auto mb-10 max-w-3xl text-center md:mb-14">
-          <span className="badge-soft mb-5">
-            <Sparkles className="size-3.5" />
-            AI-tailored in ~30 seconds
-          </span>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             <span className="text-brand-gradient">Instant job-specific resumes</span>
           </h1>
@@ -193,7 +194,7 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
         </div>
 
         {/* Action form */}
-        <div className="mx-auto max-w-5xl">
+        <div id="hero-form" className="mx-auto max-w-5xl scroll-mt-24">
           <div className="surface p-5 shadow-xl shadow-brand/5 md:p-8">
             {error && (
               <div
@@ -230,7 +231,7 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
                         setResumeFile(null);
                       }
                     }}
-                    placeholder="Paste your resume text here, or upload a PDF →"
+                    placeholder="Paste your resume or upload a PDF"
                     rows={6}
                     className="field resize-none pr-14"
                     disabled={!!resumeFile}
@@ -292,7 +293,7 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
                     setJobDescription(e.target.value);
                     setError(null);
                   }}
-                  placeholder="Paste the job description you're applying to"
+                  placeholder="Paste the job description"
                   rows={6}
                   className="field resize-none"
                 />
@@ -315,7 +316,7 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
               ) : (
                 <>
                   <Zap className="size-5" />
-                  Get my free tailored resume
+                  Build my free resume
                 </>
               )}
             </Button>
@@ -324,16 +325,16 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
             <div className="mt-6 border-t border-border/60 pt-5">
               <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
-                  <Clock className="size-4 text-brand" />
-                  Instant results
-                </span>
-                <span className="inline-flex items-center gap-1.5">
                   <ShieldCheck className="size-4 text-brand" />
-                  ATS-friendly
+                  ATS-ready
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Sparkles className="size-4 text-brand" />
-                  No signup needed to try
+                  <Clock3 className="size-4 text-brand" />
+                  Ready in 30 seconds
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MousePointerClick className="size-4 text-brand" />
+                  No sign-up
                 </span>
               </div>
             </div>
@@ -349,4 +350,4 @@ export default function HeroSection({ onAuthModalOpen }: HeroSectionProps) {
       />
     </section>
   );
-} 
+}

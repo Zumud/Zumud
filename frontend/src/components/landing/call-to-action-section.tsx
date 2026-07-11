@@ -22,11 +22,11 @@ export default function CallToActionSection({ onAuthModalOpen }: CallToActionSec
 
           <div className="relative mx-auto max-w-2xl">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-              Ready to land your dream job?
+              Build your ATS-friendly resume
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/85">
-              Join professionals who land more interviews with AI-tailored resumes.
-              Your first 10 are on us.
+              Job-specific. LaTeX-built. Ready in 30 seconds.
+              <br className="hidden sm:block" /> First 10 free.
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -51,11 +51,15 @@ export default function CallToActionSection({ onAuthModalOpen }: CallToActionSec
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/85">
               <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="size-4" />
-                Free to start, no card
+                No card needed
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="size-4" />
-                Ready in under a minute
+                Under a minute
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="size-4" />
+                ATS friendly
               </span>
             </div>
           </div>
