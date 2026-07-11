@@ -58,6 +58,7 @@ export default function InlineResumeProgress({ isVisible, onComplete, forceCompl
 
   useEffect(() => {
     if (!isVisible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: refactor to key-based reset
       setCurrentStepIndex(0)
       setProgress(0)
       setTimeRemaining(30)
@@ -143,6 +144,7 @@ export default function InlineResumeProgress({ isVisible, onComplete, forceCompl
         intervalRef.current = null
       }
       
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: refactor to key-based reset
       setIsCompleted(true)
       setProgress(100)
       setTimeout(() => {

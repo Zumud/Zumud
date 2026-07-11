@@ -23,6 +23,7 @@ function LandingPageContent() {
   useEffect(() => {
     // Check if we should open the signup modal from query params
     if (searchParams.get('signup') === 'true') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: refactor to derive-from-props
       setAuthMode('signup')
       setShowAuthModal(true)
     }

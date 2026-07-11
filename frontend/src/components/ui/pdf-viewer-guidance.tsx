@@ -27,7 +27,7 @@ export const PdfViewerGuidance = ({ className = "" }: PdfViewerGuidanceProps) =>
   return (
     <div className={`text-xs text-amber-600 dark:text-amber-400 ${className}`}>
       <p className="mb-2">
-        PDF inline preview isn't working. You may need to enable it in {browserInfo.name}.
+        PDF inline preview isn&apos;t working. You may need to enable it in {browserInfo.name}.
       </p>
       
       {browserInfo.settingsUrl && (

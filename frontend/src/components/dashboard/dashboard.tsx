@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { signOut } from "@/lib/utils"
+import { errorMessage, signOut } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { applications, preferences, billing } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
@@ -30,7 +30,7 @@ import { useRouter } from "next/navigation"
 
 export default function Dashboard() {
   const router = useRouter()
-  const [userData, setUserData] = useState<any>(null)
+  const [userData, setUserData] = useState<{ first_name: string } | null>(null)
   const [jobDescription, setJobDescription] = useState("")
   const [question, setQuestion] = useState("")
   const [answer, setAnswer] = useState("")
@@ -99,6 +99,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (jobDescription.trim()) {
       // Job description changed, so next generation should be a new application
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: derive instead of mirroring state
       setIsNewApplication(true)
     } else {
       setIsNewApplication(false)
@@ -142,47 +143,48 @@ export default function Dashboard() {
   }
 
   // Reusable function to handle errors, especially timeouts
-  const handleError = (err: any, defaultMessage: string) => {
+  const handleError = (err: unknown, defaultMessage: string) => {
     console.error(defaultMessage, err)
+    const message = errorMessage(err)
     
     // Check if this is a payment method error
-    if (err.message && (
-        err.message.includes('payment method') || 
-        err.message.includes('add a payment') ||
-        err.message.includes('current balance') ||
-        err.message.includes('€') ||
-        err.message.includes('402')
+    if (message && (
+        message.includes('payment method') || 
+        message.includes('add a payment') ||
+        message.includes('current balance') ||
+        message.includes('€') ||
+        message.includes('402')
     )) {
       // Show payment error message with add payment method option
-      setError(err.message)
+      setError(message)
       setIsPaymentError(true)
       setIsAuthError(false)
-    } else if (err.message && (
-        err.message.includes('session has expired') || 
-        err.message.includes('login') || 
-        err.message.includes('token') || 
-        err.message.includes('unauthorized') ||
-        err.message.includes('authentication')
+    } else if (message && (
+        message.includes('session has expired') || 
+        message.includes('login') || 
+        message.includes('token') || 
+        message.includes('unauthorized') ||
+        message.includes('authentication')
     )) {
       // Show authentication error message with login option
       setError('Your session has expired. Please log in again to continue.')
       setIsAuthError(true)
       setIsPaymentError(false)
-    } else if (err.name === 'AbortError' || (err.message && err.message.includes("took too long to complete"))) {
+    } else if ((err instanceof Error && err.name === 'AbortError') || message.includes("took too long to complete")) {
       setError("Timeout: The request took too long to complete. Try again with a shorter job description.")
       setIsAuthError(false)
       setIsPaymentError(false)
-    } else if (err.message && (
-      err.message.includes("414") || 
-      err.message.includes("Request-URI Too Large") || 
-      err.message.includes("too large") ||
-      err.message.toLowerCase().includes("request too large")
+    } else if (message && (
+      message.includes("414") || 
+      message.includes("Request-URI Too Large") || 
+      message.includes("too large") ||
+      message.toLowerCase().includes("request too large")
     )) {
       setError("The job description you provided is too long to process. Please try shortening it.")
       setIsAuthError(false)
       setIsPaymentError(false)
     } else {
-      setError(err.message || defaultMessage)
+      setError(message || defaultMessage)
       setIsAuthError(false)
       setIsPaymentError(false)
     }
@@ -204,12 +206,12 @@ export default function Dashboard() {
   }
 
   // Generic async operation handler with processing message
-  const asyncOperation = async (
-    operation: () => Promise<any>,
+  const asyncOperation = async <T,>(
+    operation: () => Promise<T>,
     setLoading: (loading: boolean) => void,
     operationName: string,
     processingMessage: string,
-    onSuccess: (result: any) => void,
+    onSuccess: (result: T) => void,
     defaultErrorMessage: string,
     validationFn?: () => string | null
   ) => {
@@ -232,7 +234,7 @@ export default function Dashboard() {
       setError(null)
       setIsAuthError(false)
       onSuccess(result)
-    } catch (err: any) {
+    } catch (err) {
       // Hide progress immediately on any error for resume generation
       if (operationName === "resume generation") {
         setShowResumeProgress(false)

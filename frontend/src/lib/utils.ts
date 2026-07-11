@@ -6,6 +6,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Narrow an unknown catch value to a printable message.
+export function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err ?? '')
+}
+
 // Auth utilities, backed by Supabase Auth. The session is managed by
 // @supabase/ssr (stored in cookies); these helpers expose the bits the app
 // needs: the bearer token for backend calls, a login check, and sign-out.

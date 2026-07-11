@@ -36,6 +36,7 @@ export default function PdfViewer({ pdfUrl }: PdfViewerProps) {
   const [iframeError, setIframeError] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: hydration mount-gate pattern
     setIsMounted(true)
     setIsMobile(isMobileDevice())
     

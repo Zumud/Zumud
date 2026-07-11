@@ -115,7 +115,7 @@ export default function InterviewReadyResume() {
             </h2>
             <p className="text-xl text-gray-600">
               Our advanced AI technology creates resumes that not only look professional 
-              but are specifically optimized for the job you're applying to.
+              but are specifically optimized for the job you&apos;re applying to.
             </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -205,7 +205,7 @@ export default function InterviewReadyResume() {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Paste the job description</h3>
-              <p className="text-gray-600">Add the job posting you're applying to and our AI will analyze the requirements.</p>
+              <p className="text-gray-600">Add the job posting you&apos;re applying to and our AI will analyze the requirements.</p>
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Get your optimized resume</h3>

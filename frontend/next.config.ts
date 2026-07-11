@@ -2,11 +2,6 @@ import type { NextConfig } from "next";
 
 // Using type assertion to avoid TypeScript errors with new config options
 const nextConfig = {
-  /* config options here */
-  // Disable TypeScript errors during builds
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   // Make environment variables available to the client
   env: {
     NEXT_PUBLIC_API_URL: process.env.API_URL,
