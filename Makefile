@@ -98,15 +98,17 @@ test-integration: ## Run integration tests against the local Supabase stack (mak
 	set +a; \
 	.venv/bin/python -m pytest -q -m integration
 
-# Local LaTeX compiler (PDF generation). Same image as prod: TeX Live 2024 +
-# latex-online served on 127.0.0.1:2700. First `latex-up` builds the image
-# (~4-5GB base pull); the first compile lags ~30s while the entrypoint clones
-# latex-online. The backend defaults LATEX_COMPILER_BASE_URL to this address.
-latex-up: ## Build (first run) + start the local LaTeX compiler on 127.0.0.1:2700
-	docker image inspect zumud-latex:modern >/dev/null 2>&1 || docker build -t zumud-latex:modern docker/latex
+# Local LaTeX compiler (PDF generation). Same image as prod and CI: TeX Live
+# 2024 + latex-online baked in, served on 127.0.0.1:2700. Pulled from GHCR
+# when available (fast); falls back to a local build (~4-5GB base pull).
+# The backend defaults LATEX_COMPILER_BASE_URL to this address.
+latex-up: ## Pull (or build) + start the local LaTeX compiler on 127.0.0.1:2700
+	docker image inspect ghcr.io/zumud/zumud-latex:latest >/dev/null 2>&1 \
+	  || docker pull ghcr.io/zumud/zumud-latex:latest \
+	  || docker build -t ghcr.io/zumud/zumud-latex:latest docker/latex
 	docker rm -f zumud-latex >/dev/null 2>&1 || true
-	docker run -d --name zumud-latex --restart unless-stopped -p 2700:2700 zumud-latex:modern
-	@echo "LaTeX compiler on http://127.0.0.1:2700 (first request lags ~30s while it clones latex-online)"
+	docker run -d --name zumud-latex --restart unless-stopped -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
+	@echo "LaTeX compiler on http://127.0.0.1:2700"
 
 # Note: published on 0.0.0.0:2700 (not 127.0.0.1) because snap-Docker's loopback port
 # proxy doesn't forward to containers under WSL; 0.0.0.0 is reachable via 127.0.0.1 from

@@ -55,16 +55,16 @@ redirect URIs. Local Google creds live in `supabase/.env.local` (gitignored).
 
 ## PDF generation (LaTeX)
 Resume / cover-letter PDFs are compiled by a local LaTeX service on `127.0.0.1:2700`
-(the backend defaults `LATEX_COMPILER_BASE_URL` there). It's the same image as prod —
-TeX Live 2024 + latex-online — built from `docker/latex/`:
+(the backend defaults `LATEX_COMPILER_BASE_URL` there). It's the same image as prod
+and CI — TeX Live 2024 + latex-online baked in — published to
+`ghcr.io/zumud/zumud-latex` from `docker/latex/`:
 
 ```
-make latex-up      # build (first run, ~4-5GB base pull) + start the compiler
+make latex-up      # pull from GHCR (or build locally) + start the compiler
 make latex-down    # stop + remove it
 ```
 
-The first compile lags ~30s while the container clones latex-online on startup. Auth and
-most API flows need no LaTeX; only PDF generation does.
+Auth and most API flows need no LaTeX; only PDF generation does.
 
 Alternative (no local build): tunnel `:2700` to a remote container —
 `make latex-tunnel LATEX_SSH="-i ~/.ssh/id_ed25519 root@<host>"` (see
