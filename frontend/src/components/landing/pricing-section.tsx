@@ -9,7 +9,6 @@ interface PricingSectionProps {
 export default function PricingSection({ onAuthModalOpen }: PricingSectionProps) {
   const freePlan = PRICING_PLANS.find((plan) => plan.id === "free");
   const paygPlan = PRICING_PLANS.find((plan) => plan.id === "payg");
-  const unlimitedPlan = PRICING_PLANS.find((plan) => plan.id === "unlimited");
 
   return (
     <section id="pricing" className="section scroll-mt-20">
@@ -19,11 +18,11 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
             Simple pricing
           </h2>
           <p className="mt-3 text-lg text-muted-foreground">
-            Start free. Pay per use. Or go unlimited.
+            Start free. Pay only when it helps.
           </p>
         </div>
 
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
+        <div className="mx-auto grid max-w-4xl grid-cols-1 items-stretch gap-6 md:grid-cols-2">
           {/* Free trial (featured) */}
           {freePlan && (
             <div className="surface relative flex flex-col p-7 ring-2 ring-brand md:p-8">
@@ -108,49 +107,9 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
             </div>
           )}
 
-          {unlimitedPlan && (
-            <div className="surface relative flex flex-col p-7 md:p-8">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-brand/20 bg-brand/10 px-4 py-1.5 text-xs font-semibold text-brand">
-                  {unlimitedPlan.highlight}
-                </span>
-              </div>
-
-              <div className="mt-3 text-center">
-                <h3 className="text-xl font-semibold">{unlimitedPlan.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {unlimitedPlan.description}
-                </p>
-                <div className="mt-6">
-                  <span className="text-5xl font-bold tracking-tight">
-                    €{unlimitedPlan.price.toFixed(2)}
-                  </span>
-                  <span className="ml-2 text-sm text-muted-foreground">per month</span>
-                </div>
-              </div>
-
-              <ul className="mt-7 space-y-3">
-                {unlimitedPlan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 text-sm">
-                    <CheckIcon className="mt-0.5 size-4 shrink-0 text-brand" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Button
-                variant="outline"
-                size="lg"
-                className="mt-7 w-full"
-                onClick={() => onAuthModalOpen?.("signup")}
-              >
-                {unlimitedPlan.cta}
-              </Button>
-            </div>
-          )}
         </div>
 
-        <div className="mx-auto mt-10 flex max-w-6xl items-center justify-center gap-2 rounded-2xl border border-brand/15 bg-brand/5 px-5 py-4 text-center">
+        <div className="mx-auto mt-10 flex max-w-4xl items-center justify-center gap-2 rounded-2xl border border-brand/15 bg-brand/5 px-5 py-4 text-center">
           <SparklesIcon className="size-5 shrink-0 text-brand" />
           <p className="font-medium">Try it first. Pay only when it helps.</p>
         </div>
