@@ -69,3 +69,22 @@ Auth and most API flows need no LaTeX; only PDF generation does.
 Alternative (no local build): tunnel `:2700` to a remote container —
 `make latex-tunnel LATEX_SSH="-i ~/.ssh/id_ed25519 root@<host>"` (see
 `.cursor/rules/local-context.mdc` for host/SSH options).
+
+## Running the test lanes
+
+```
+make test              # unit lane: no DB, network, or secrets
+make test-integration  # unit+integration against the local stack (make up first)
+make e2e               # full-stack Playwright smoke (make up + make latex-up first)
+```
+
+For `make e2e`, install the browser once: `cd frontend && npx playwright install
+chromium --with-deps` (needs sudo for system libs). No sudo (e.g. locked-down
+WSL)? Run the suite through the official Playwright image instead:
+
+```
+PLAYWRIGHT="docker run --rm --network host -v $PWD/frontend:/work -w /work \
+  mcr.microsoft.com/playwright:v1.61.1-noble npx playwright" make e2e
+```
+
+See `docs/dev-pipeline.md` for what runs in CI and the merge policy.
