@@ -4,7 +4,7 @@ import os
 import re
 import tarfile
 
-import PyPDF2
+import pypdf
 import requests
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
@@ -301,7 +301,7 @@ async def extract_text_from_pdf(pdf_contents: bytes) -> str:
     Returns:
         str: Extracted text from all pages
     """
-    pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_contents))
+    pdf_reader = pypdf.PdfReader(io.BytesIO(pdf_contents))
 
     # Extract text from all pages
     extracted_text = ""
