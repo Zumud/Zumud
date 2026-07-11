@@ -1,0 +1,4 @@
+# Dev/CI tooling on top of the runtime freeze.
+-r requirements.txt
+ruff==0.15.21
+pytest-cov==7.1.0
