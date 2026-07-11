@@ -24,12 +24,12 @@ export const viewport: Viewport = {
 };
 
 const SITE_DESCRIPTION =
-  "Tailor your resume and cover letter to any job in seconds. Beat the ATS, get 3× more interviews, and save 15+ minutes per application. First 10 free.";
+  "Build an ATS-friendly LaTeX resume for any job. Download the PDF, export the source, or edit in Overleaf.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://zumud.com"),
   title: {
-    default: "Zumud: Instant Job-Specific Resumes & Cover Letters",
+    default: "Zumud: ATS-Friendly LaTeX Resume Builder",
     template: "%s | Zumud",
   },
   description: SITE_DESCRIPTION,
@@ -38,6 +38,8 @@ export const metadata: Metadata = {
     "job-specific resume",
     "tailored resume",
     "ATS-optimized resume",
+    "LaTeX resume builder",
+    "Overleaf resume",
     "cover letter generator",
     "more interviews",
     "resume tailoring",
@@ -67,7 +69,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Zumud: Instant Job-Specific Resumes & Cover Letters",
+    title: "Zumud: ATS-Friendly LaTeX Resume Builder",
     description: SITE_DESCRIPTION,
     url: "https://zumud.com",
     siteName: "Zumud",
@@ -78,13 +80,13 @@ export const metadata: Metadata = {
         url: "/og-image.svg",
         width: 1200,
         height: 630,
-        alt: "Zumud AI resume builder for job-specific resumes",
+        alt: "Zumud ATS-friendly LaTeX resume builder",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Zumud: Instant Job-Specific Resumes & Cover Letters",
+    title: "Zumud: ATS-Friendly LaTeX Resume Builder",
     description: SITE_DESCRIPTION,
     images: ["/twitter-image.svg"],
     creator: "@zumudapp",

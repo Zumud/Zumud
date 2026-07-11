@@ -4,9 +4,10 @@ const COLUMNS: { heading: string; links: { label: string; href: string; external
   {
     heading: "Product",
     links: [
-      { label: "How it works", href: "/#how-it-works" },
-      { label: "Features", href: "/#features" },
+      { label: "ATS friendly", href: "/#ats-friendly" },
+      { label: "LaTeX resumes", href: "/#latex" },
       { label: "Pricing", href: "/#pricing" },
+      { label: "FAQ", href: "/#faq" },
     ],
   },
   {
@@ -39,8 +40,7 @@ export default function Footer() {
               />
             </Link>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              AI-powered resume tailoring to help you land more interviews and get
-              the job you deserve.
+              ATS-friendly, job-specific resumes built with LaTeX.
             </p>
             <div className="mt-6 flex gap-3">
               <a
