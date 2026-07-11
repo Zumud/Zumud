@@ -5,7 +5,7 @@ SHELL := /bin/bash
 # Requires Docker + the Supabase CLI. The backend's app tables are created by
 # SQLAlchemy create_all() on first connect; the local DB schema therefore matches prod.
 
-.PHONY: help up down reset status dev-backend dev-frontend seed latex-up latex-down latex-tunnel
+.PHONY: help up down reset status dev-backend dev-frontend seed test test-integration latex-up latex-down latex-tunnel
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -80,6 +80,23 @@ seed: ## Create a confirmed local test user ([email protected] / password123)
 	  -H "Content-Type: application/json" \
 	  -d '{"email":"[email protected]","password":"password123","email_confirm":true}' >/dev/null \
 	  && echo "seeded: [email protected] / password123" || echo "seed failed"
+
+test: ## Run the unit test lane (no DB, network, or secrets needed)
+	.venv/bin/python -m pytest -q
+
+test-integration: ## Run integration tests against the local Supabase stack (make up first)
+	@set -a; \
+	eval "$$(supabase status -o env 2>/dev/null | grep -E '^[A-Z0-9_]+=')"; \
+	if [ -z "$$DB_URL" ]; then echo "ERROR: local stack not running ('make up' first)"; exit 1; fi; \
+	export SUPABASE_URL="$$API_URL" \
+	       SUPABASE_PUBLISHABLE_KEY="$$PUBLISHABLE_KEY" \
+	       SUPABASE_SECRET_KEY="$$SECRET_KEY" \
+	       SUPABASE_SERVICE_ROLE_KEY="$$SERVICE_ROLE_KEY" \
+	       SUPABASE_JWT_SECRET="$$JWT_SECRET" \
+	       DATABASE_URL="$$DB_URL" \
+	       ENVIRONMENT="development"; \
+	set +a; \
+	.venv/bin/python -m pytest -q -m integration
 
 # Local LaTeX compiler (PDF generation). Same image as prod: TeX Live 2024 +
 # latex-online served on 127.0.0.1:2700. First `latex-up` builds the image
