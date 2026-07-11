@@ -1,5 +1,10 @@
 .DS_Store
-.cursor/
+# .cursor/ is local except the working principles, which the scope gate and
+# contributors' agents need (local-context.mdc etc. stay ignored).
+.cursor/*
+!.cursor/rules/
+.cursor/rules/*
+!.cursor/rules/principles.mdc
 .vscode/
 .venv/
 .env
