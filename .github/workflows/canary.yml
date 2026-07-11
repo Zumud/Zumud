@@ -1,0 +1,10 @@
+name: Canary
+on:
+  push:
+    branches: [feat/dev-pipeline]
+  pull_request:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "actions alive"
