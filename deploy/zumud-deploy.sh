@@ -39,11 +39,17 @@ build_and_restart() { # $1 = space-separated list of changed paths
     sudo -u zumud "$REPO/.venv/bin/pip" install -q -r "$REPO/requirements.txt"
   fi
   if grep -q '^docker/latex/' <<<"$changed"; then
-    log "docker/latex changed -> pulling new image"
-    docker pull "$LATEX_IMAGE"
-    docker rm -f zumud-latex || true
-    docker run -d --name zumud-latex --restart unless-stopped \
-      -p 127.0.0.1:2700:2700 "$LATEX_IMAGE"
+    # Degrade gracefully (repo principle: optional pieces fail open): if the
+    # pull fails (GHCR hiccup / package not public yet), keep the running
+    # compiler and deploy the rest — a stale LaTeX image beats a dead deploy.
+    if docker pull "$LATEX_IMAGE"; then
+      log "docker/latex changed -> swapping to freshly pulled image"
+      docker rm -f zumud-latex || true
+      docker run -d --name zumud-latex --restart unless-stopped \
+        -p 127.0.0.1:2700:2700 "$LATEX_IMAGE"
+    else
+      log "WARN: pull of $LATEX_IMAGE failed — keeping the current LaTeX container"
+    fi
   fi
   if grep -q '^frontend/' <<<"$changed"; then
     log "frontend changed -> npm ci && build"
