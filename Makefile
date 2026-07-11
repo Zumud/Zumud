@@ -5,7 +5,7 @@ SHELL := /bin/bash
 # Requires Docker + the Supabase CLI. The backend's app tables are created by
 # SQLAlchemy create_all() on first connect; the local DB schema therefore matches prod.
 
-.PHONY: help up down reset status dev-backend dev-frontend seed test test-integration latex-up latex-down latex-tunnel
+.PHONY: help up down reset status dev-backend dev-frontend seed test test-integration e2e latex-up latex-down latex-tunnel
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -97,6 +97,9 @@ test-integration: ## Run integration tests against the local Supabase stack (mak
 	       ENVIRONMENT="development"; \
 	set +a; \
 	.venv/bin/python -m pytest -q -m integration
+
+e2e: ## Full-stack Playwright smoke (needs 'make up' + 'make latex-up' first)
+	./scripts/e2e-stack.sh
 
 # Local LaTeX compiler (PDF generation). Same image as prod and CI: TeX Live
 # 2024 + latex-online baked in, served on 127.0.0.1:2700. Pulled from GHCR

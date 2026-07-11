@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the Zumud deployer every 10 minutes
+
+[Timer]
+OnCalendar=*:0/10
+Persistent=true
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,16 @@
+# T2 paths: auth, billing, schema, dependencies, and the pipeline itself.
+# Changes here are auto-labeled tier:T2 (see labeler.yml) and require the
+# maintainer's approval via the "T2 approval" required check. This file
+# additionally routes review requests.
+
+requirements.txt @mohammadi-com
+requirements-dev.txt @mohammadi-com
+/frontend/package.json @mohammadi-com
+/backend/api/auth.py @mohammadi-com
+/backend/api/billing.py @mohammadi-com
+/backend/core/supabase_auth.py @mohammadi-com
+/backend/core/stripe_billing_service.py @mohammadi-com
+/migrations/ @mohammadi-com
+/.github/ @mohammadi-com
+/deploy/ @mohammadi-com
+/scripts/ @mohammadi-com
