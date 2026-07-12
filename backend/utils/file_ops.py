@@ -303,9 +303,12 @@ async def extract_text_from_pdf(pdf_contents: bytes) -> str:
     """
     pdf_reader = pypdf.PdfReader(io.BytesIO(pdf_contents))
 
-    # Extract text from all pages
+    # Extract text from all pages, separating pages with a blank line so
+    # section headings at page boundaries don't run into each other.
     extracted_text = ""
-    for page in pdf_reader.pages:
-        extracted_text += page.extract_text()
+    for i, page in enumerate(pdf_reader.pages):
+        if i:
+            extracted_text += "\n\n"
+        extracted_text = page.extract_text()
 
     return extracted_text
