@@ -15,7 +15,7 @@
 ## Features
 
 - **Resume tailoring** — customize your resume for each job description.
-- **Cover letters & Q&A** — generate cover letters and answers to application questions.
+- **Cover letters - Q&A** — generate cover letters and answers to application questions.
 - **PDF upload & parsing** — drop in a PDF; AI extracts and structures the text.
 - **PDF / LaTeX output** — download a professional PDF or the LaTeX source.
 - **Dashboard** — manage resumes, applications, and settings behind secure auth.
