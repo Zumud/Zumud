@@ -6,7 +6,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Menu, X } from "lucide-react";
+import { GithubIcon } from "@/components/icons/github-icon";
 import { createClient } from "@/lib/supabase/client";
+
+const GITHUB_URL = "https://github.com/Zumud/Zumud";
 
 interface NavbarProps {
   onAuthModalOpen?: (mode?: "login" | "signup") => void;
@@ -89,6 +92,15 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Zumud on GitHub"
+            className="inline-flex size-9 items-center justify-center rounded-full border border-border/70 bg-background/60 text-foreground/80 backdrop-blur transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <GithubIcon className="size-4" />
+          </a>
           <ThemeToggle />
 
           {userAuthenticated ? (
@@ -141,6 +153,16 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
               {link.label}
             </Link>
           ))}
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <GithubIcon className="size-4" />
+            GitHub
+          </a>
           <div className="mt-2 flex flex-col gap-2">
             {userAuthenticated ? (
               <Button asChild variant="brand" className="w-full">
