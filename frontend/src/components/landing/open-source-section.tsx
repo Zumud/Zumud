@@ -29,12 +29,10 @@ export default function OpenSourceSection() {
         <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div className="max-w-xl">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Trust shouldn&apos;t require faith
+              Open source, top to bottom
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              The engine behind{" "}
-              <span className="font-semibold text-foreground">3× more interviews</span>{" "}
-              is fully open — read every line, run it yourself, keep your data.
+              Trust shouldn&apos;t require faith.
             </p>
 
             <Button asChild variant="brand" size="lg" className="mt-8 w-fit">
