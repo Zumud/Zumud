@@ -77,7 +77,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-image.svg",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Zumud ATS-friendly LaTeX resume builder",
@@ -88,7 +88,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Zumud: ATS-Friendly LaTeX Resume Builder",
     description: SITE_DESCRIPTION,
-    images: ["/twitter-image.svg"],
+    images: ["/twitter-image.png"],
     creator: "@zumudapp",
   },
   alternates: {
