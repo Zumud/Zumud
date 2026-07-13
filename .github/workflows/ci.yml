@@ -40,10 +40,7 @@ jobs:
       # network, or secrets — safe for fork PRs.
       - run: pytest -q
       # Dependency vulnerability audit of the pinned freeze.
-      # PYSEC-2026-1325 (ecdsa, python-jose transitive): timing side channel
-      # with no fixed release; goes away when the legacy-token fallback and
-      # python-jose are removed post-cutover.
-      - run: pip-audit --ignore-vuln PYSEC-2026-1325
+      - run: pip-audit
 
   integration:
     name: Integration tests (real Supabase stack)
