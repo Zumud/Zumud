@@ -1,0 +1,87 @@
+---
+title: "LaTeX Resumes: Why They Parse Cleanly and How to Get One Without Writing LaTeX"
+description: "Why LaTeX-generated resume PDFs are consistently ATS-friendly, when LaTeX is worth it, and the fastest ways to get one — templates, Overleaf, or generated for you."
+datePublished: "2026-07-13"
+dateModified: "2026-07-13"
+faq:
+  - q: "Do recruiters care that a resume was made in LaTeX?"
+    a: "They care about the result, not the tool: consistent spacing, clean typography, and a document that parses correctly in their system. LaTeX simply makes that result the default."
+  - q: "Is LaTeX overkill for a resume?"
+    a: "Writing raw LaTeX for a single resume can be. The economics change when you tailor per application: with the content separated from the layout, each new version is a text edit or a generated output, never a formatting session."
+  - q: "Can I edit a generated LaTeX resume myself?"
+    a: "Yes. LaTeX source is plain text. Zumud exports the .tex file and can open it directly in Overleaf, a free browser editor, so you can tweak anything without installing a LaTeX toolchain."
+  - q: "Are two-column LaTeX templates safe for ATS?"
+    a: "Less safe. Popular two-column templates look striking, but multi-column layouts risk out-of-order parsing in some systems. For applications going through an ATS, prefer a single-column template."
+---
+
+A LaTeX resume is a PDF generated from plain-text markup instead of a
+word processor. The format's advantage for job applications is
+mechanical, not aesthetic: LaTeX output has a clean, deterministic text
+layer that applicant tracking systems extract reliably, while the same
+source file produces pixel-identical formatting every time you edit it.
+
+## Why do LaTeX PDFs parse so well in ATS?
+
+Applicant tracking systems read the text layer of your PDF and split it
+into fields. LaTeX helps because of how it constructs that layer:
+
+- **Text is real text.** Nothing is rasterized; every word is selectable
+  and extractable.
+- **Reading order is deterministic.** Content appears in the PDF in
+  source order — no floating text boxes that parse before or after the
+  content around them.
+- **Structure is consistent.** Headings, dates, and bullets come out of
+  a template identically formatted, so parsers see a predictable pattern.
+- **No hidden layout scaffolding.** Word-processor documents often carry
+  tables and text frames used purely for positioning; those are exactly
+  what scrambles extraction.
+
+The caveat: LaTeX makes clean parsing easy, not automatic. A
+single-column template with standard headings ("Experience",
+"Education", "Skills") parses cleanly; an ornate two-column template can
+still confuse a parser. Our
+[ATS-friendly resume guide](/guides/what-makes-a-resume-ats-friendly)
+covers the full formatting rules.
+
+## What are the practical benefits beyond ATS?
+
+Consistency and separation of content from layout. Change a bullet and
+nothing else moves; the template enforces identical spacing, font sizes,
+and alignment everywhere. Because the source is plain text, it also
+diffs and versions cleanly — you can keep one master resume and generate
+tailored variants per application without the formatting drifting, which
+is the workflow that makes
+[per-job tailoring](/guides/how-to-tailor-your-resume-to-a-job-description)
+sustainable.
+
+## What are my options for getting a LaTeX resume?
+
+| Route | Effort | Best for |
+| --- | --- | --- |
+| Write LaTeX from a template | Hours the first time | People comfortable with markup who want full control |
+| Overleaf template gallery | Under an hour | Starting from a proven template in a browser, no install |
+| Generated (Zumud) | About 30 seconds | A tailored, ATS-safe LaTeX resume without touching LaTeX |
+
+For self-service, [Overleaf's CV gallery](https://www.overleaf.com/gallery/tagged/cv)
+is the standard starting point: free, browser-based, and compiled for
+you. Pick a single-column template, replace the content, and export the
+PDF.
+
+## Can I get a LaTeX resume without learning LaTeX?
+
+Yes — that is the gap [Zumud](https://zumud.com) exists to close. Upload
+your current resume (or paste your details), paste the job post, and it
+generates a resume tailored to that job, built with LaTeX on a
+single-column, standard-heading template. You can download the PDF,
+export the .tex source, or open it in Overleaf to edit — so you are
+never locked in. The first 10 generations are free, then EUR 0.10 per
+generation.
+
+## When is LaTeX the wrong choice?
+
+If an employer demands an editable .docx file, export or maintain a Word
+version — a LaTeX PDF cannot become a clean .docx automatically. And if
+you only ever send one resume to one employer, any careful, simply
+formatted document does the job. LaTeX pays off with repetition:
+multiple applications, each wanting a tailored, consistently formatted
+document.
