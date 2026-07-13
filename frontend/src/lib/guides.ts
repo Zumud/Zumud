@@ -32,7 +32,17 @@ const REQUIRED_FIELDS = [
   "dateModified",
 ] as const;
 
+// URL-safe slug contract for guide filenames; also a sanitizer barrier so
+// filesystem-derived slugs are provably inert in hrefs (CodeQL js/stored-xss).
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 function parseGuide(file: string): { meta: GuideMeta; source: string } {
+  const slug = file.replace(/\.mdx$/, "");
+  if (!SLUG_RE.test(slug)) {
+    throw new Error(
+      `Guide filename "${file}" must be a lowercase-hyphen slug (.mdx)`,
+    );
+  }
   const raw = fs.readFileSync(path.join(GUIDES_DIR, file), "utf8");
   const { frontmatter, strippedSource } = getFrontmatter<GuideFrontmatter>(raw);
   for (const field of REQUIRED_FIELDS) {
@@ -43,7 +53,7 @@ function parseGuide(file: string): { meta: GuideMeta; source: string } {
   }
   return {
     meta: {
-      slug: file.replace(/\.mdx$/, ""),
+      slug,
       title: frontmatter.title!,
       description: frontmatter.description!,
       datePublished: frontmatter.datePublished!,
