@@ -8,6 +8,7 @@ const COLUMNS: { heading: string; links: { label: string; href: string; external
       { label: "LaTeX resumes", href: "/#latex" },
       { label: "Pricing", href: "/#pricing" },
       { label: "FAQ", href: "/#faq" },
+      { label: "Guides", href: "/guides" },
     ],
   },
   {
