@@ -1,6 +1,0 @@
-# Zumud AI Resume Builder - robots.txt
-User-agent: *
-Allow: /
-
-# Sitemaps
-Sitemap: https://zumud.com/sitemap.xml 
