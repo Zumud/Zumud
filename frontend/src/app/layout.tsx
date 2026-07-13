@@ -77,7 +77,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-image.svg",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Zumud ATS-friendly LaTeX resume builder",
@@ -88,7 +88,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Zumud: ATS-Friendly LaTeX Resume Builder",
     description: SITE_DESCRIPTION,
-    images: ["/twitter-image.svg"],
+    images: ["/twitter-image.png"],
     creator: "@zumudapp",
   },
   alternates: {
@@ -125,8 +125,9 @@ const structuredData = {
       offers: {
         "@type": "Offer",
         price: "0",
-        priceCurrency: "USD",
-        description: "10 free resume generations, then pay-as-you-go.",
+        priceCurrency: "EUR",
+        description:
+          "10 free resume generations, then pay-as-you-go at EUR 0.10 per generation.",
       },
     },
   ],
