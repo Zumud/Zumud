@@ -45,9 +45,9 @@ function LandingPageContent() {
         <ProblemSection />
         <SolutionSection />
         <LatexSection />
+        <OpenSourceSection />
         <PricingSection onAuthModalOpen={handleAuthModalOpen} />
         <FaqSection />
-        <OpenSourceSection />
         <CallToActionSection onAuthModalOpen={handleAuthModalOpen} />
       </main>
       <Footer />
