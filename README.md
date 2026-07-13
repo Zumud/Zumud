@@ -26,7 +26,7 @@ FastAPI · Next.js 16 · Supabase (Postgres + Auth) · self-hosted LaTeX compile
 
 ## Quickstart
 
-The only secret you need to run everything locally is an **OpenAI API key**. The local database, auth, storage, and test email come from the Supabase CLI stack; PDFs from a local LaTeX container.
+The only secret needed to run everything locally is an **OpenAI API key** — database, auth, storage, and test email come from the Supabase CLI stack; PDFs from a local LaTeX container.
 
 **Prerequisites:** Docker, [Supabase CLI](https://supabase.com/docs/guides/cli), Node 20+, Python 3.12, Git.
 
@@ -50,9 +50,9 @@ make dev-backend   # FastAPI  -> http://localhost:8000   (one terminal)
 make dev-frontend  # Next.js  -> http://localhost:3000   (another terminal)
 ```
 
-Open **http://localhost:3000**. The `make dev-*` targets wire themselves to the local stack automatically — no other config needed. Run `make help` for all commands.
+Open **http://localhost:3000** — the `make dev-*` targets wire themselves to the local stack automatically. Run `make help` for all commands.
 
-> Everything except `OPEN_AI_KEY` is optional and degrades gracefully: email (Resend), billing (Stripe), and Google sign-in stay off until you add their keys, and the core product works without them.
+> Everything except `OPEN_AI_KEY` is optional and degrades gracefully: email (Resend), billing (Stripe), and Google sign-in stay off until you add their keys.
 
 For specifics — test emails (Mailpit), Google sign-in, LaTeX alternatives, WSL notes — see **[docs/local-dev.md](docs/local-dev.md)**. Deeper guides live in **[docs/](docs/)**.
 
@@ -66,8 +66,9 @@ Contributions are welcome. Branch off `main`, keep commits small and single-purp
 
 ## Community
 
-- Main group: [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/+GN3-DufToPU4OTA0)
-- Dev chat: [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/+a8Cz2QqZWRdkMzI0)
+Join us on Telegram — dev discussion happens in a topic inside the group.
+
+[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/+GN3-DufToPU4OTA0)
 
 ## License
 
@@ -76,6 +77,10 @@ Contributions are welcome. Branch off `main`, keep commits small and single-purp
 ## Security
 
 Found a vulnerability? Report it privately — see [SECURITY.md](SECURITY.md). Please don't open a public issue for security reports.
+
+## Star history
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Zumud/Zumud&type=Date)](https://star-history.com/#Zumud/Zumud&Date)
 
 ---
 
