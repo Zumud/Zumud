@@ -1,0 +1,96 @@
+---
+title: "What Makes a Resume ATS-Friendly (and What Breaks Parsing)"
+description: "What applicant tracking systems actually do with your resume, the formatting that parses cleanly, and the common design choices that silently break it."
+datePublished: "2026-07-13"
+dateModified: "2026-07-13"
+faq:
+  - q: "Is PDF or Word better for ATS?"
+    a: "Both parse well in modern systems as long as the text is real, selectable text. Use PDF unless the employer explicitly asks for .docx — PDF preserves your layout exactly. Never submit a scanned or image-based PDF."
+  - q: "Do ATS systems automatically reject resumes?"
+    a: "Rarely by themselves. The more common failure is ranking: your resume parses poorly or misses the posting's keywords, ranks low in the recruiter's search, and never gets opened. The effect is the same as rejection."
+  - q: "Are two-column resumes always broken in ATS?"
+    a: "No — modern parsers handle many two-column layouts. But parsing order can scramble, and you cannot see which system an employer runs. A single column has no failure mode, which is why it remains the safe recommendation."
+  - q: "Can I check how my resume parses?"
+    a: "Yes. Copy-paste your PDF's text into a plain text editor. If sections come out in order with readable words and no garbled characters, parsers will handle it. Gibberish or missing text means recruiters see the same."
+---
+
+An ATS-friendly resume is one that applicant tracking software can parse
+into clean, structured text: your name, contact details, work history,
+and skills all land in the right database fields. It is mostly a matter
+of formatting discipline, not a secret trick — and the same qualities
+that help the software also help a recruiter skim.
+
+## What does an ATS actually do with my resume?
+
+An applicant tracking system stores applications, extracts ("parses") the
+text of each resume into structured fields, and lets recruiters search
+and filter candidates by keyword, title, or skill. Research from Harvard
+Business School found that more than 90% of employers use such systems to
+filter or rank candidates before a human reviews them
+([Hidden Workers: Untapped Talent](https://www.hbs.edu/managing-the-future-of-work/Documents/research/hiddenworkers09032021.pdf),
+2021). The practical consequence: if the parser cannot read a section, or
+your resume lacks the terms a recruiter searches for, you are invisible
+regardless of your qualifications.
+
+## What formatting parses cleanly?
+
+The safe pattern is plain, conventional structure:
+
+- **Standard section headings.** "Experience", "Education", "Skills",
+  "Projects". Parsers key on these exact words; creative headings like
+  "Where I've Made an Impact" can throw content into the wrong field.
+- **A single-column layout.** Multi-column designs can parse out of
+  order, interleaving unrelated text.
+- **Real, selectable text.** If you can select and copy the text in your
+  PDF viewer, a parser can read it too.
+- **A conventional date format.** "Jan 2023 – Present" or "2023–2026" on
+  the same line as the role, so experience-duration calculations work.
+- **Contact details in the body, not the page header.** Some parsers
+  skip header/footer regions entirely.
+
+## What silently breaks parsing?
+
+The most common breakers are design choices that turn text into
+decoration:
+
+| Resume element | What goes wrong |
+| --- | --- |
+| Text inside images, icons, or charts | Invisible to the parser — skill-rating graphics parse as nothing |
+| Tables for the main layout | Cell contents read in unpredictable order |
+| Headers/footers holding contact info | Skipped by some parsers; your email vanishes |
+| Unusual fonts or symbol bullets | Characters can garble into junk during extraction |
+| Photos and graphics | Ignored at best; in some markets they also invite bias concerns |
+
+None of these fail loudly. The resume looks beautiful to you and arrives
+as fragments in the database.
+
+## Do keywords matter as much as formatting?
+
+Yes — clean parsing gets your text into the database, but keywords are
+what recruiters search and ranking algorithms score. Use the job
+posting's own vocabulary for skills and titles, word-for-word where
+honest: if the posting says "customer success", a resume that only says
+"client relations" misses the literal match many systems require. Attach
+each keyword to a real accomplishment rather than stacking them in a
+list; that serves the human reading the extracted text. For the full
+method, see our guide on
+[tailoring your resume to a job description](/guides/how-to-tailor-your-resume-to-a-job-description).
+
+## Why do LaTeX-generated resumes do well in ATS?
+
+LaTeX produces PDFs with a clean, deterministic text layer: consistent
+headings, ordered content, selectable text, and no layout tables or text
+boxes. That is exactly the profile parsers handle best — it is why
+[Zumud](https://zumud.com) generates resumes with LaTeX and a
+single-column, standard-heading template. You get a document that parses
+cleanly and still looks sharp to the human who opens it.
+
+## A quick self-test before you apply
+
+1. Open your resume PDF, select all, and copy.
+2. Paste into a plain text editor.
+3. Check: is your contact info present? Do sections appear in order? Are
+   dates attached to the right roles? Is any text missing or garbled?
+
+If the paste reads cleanly top to bottom, your resume is ATS-friendly.
+If it does not, simplify the layout until it does.

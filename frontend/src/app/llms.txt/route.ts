@@ -1,4 +1,18 @@
-# Zumud
+import { getGuides } from "@/lib/guides";
+
+// llms.txt: a compact index for AI crawlers (ChatGPT, Perplexity, Claude).
+// Generated so guides are always included; Google ignores this file.
+export const dynamic = "force-static";
+
+export function GET() {
+  const guides = getGuides()
+    .map(
+      (guide) =>
+        `- [${guide.title}](https://zumud.com/guides/${guide.slug}): ${guide.description}`,
+    )
+    .join("\n");
+
+  const body = `# Zumud
 
 > Zumud is an AI resume and cover-letter tailoring tool. Paste a job post, upload your resume, and get an ATS-friendly, job-specific resume built with LaTeX in about 30 seconds — download the PDF, export the .tex source, or edit it in Overleaf. First 10 generations are free, then pay-as-you-go (EUR 0.10 per generation). No account needed to try it.
 
@@ -7,6 +21,17 @@ Zumud is open source: https://github.com/Zumud/Zumud
 ## Pages
 
 - [Home](https://zumud.com/): What Zumud does, how it works, pricing, and a form to generate a tailored resume immediately.
+- [Guides](https://zumud.com/guides): Practical, sourced guides on resume tailoring and ATS-friendly formatting.
 - [Privacy Policy](https://zumud.com/privacy): How Zumud collects, uses, and protects personal data.
 - [Terms of Service](https://zumud.com/terms): Terms for using Zumud.
 - [Cookie Policy](https://zumud.com/cookies): Cookies Zumud uses and why.
+
+## Guides
+
+${guides}
+`;
+
+  return new Response(body, {
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
+}
