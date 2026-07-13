@@ -1,4 +1,4 @@
-import { Github } from "lucide-react";
+import { GithubIcon } from "@/components/icons/github-icon";
 import { Button } from "@/components/ui/button";
 
 const GITHUB_URL = "https://github.com/Zumud/Zumud";
@@ -9,7 +9,7 @@ export default function OpenSourceSection() {
       <div className="container-page">
         <div className="surface mx-auto max-w-3xl px-6 py-14 text-center md:px-12 md:py-16">
           <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand">
-            <Github className="size-3.5" />
+            <GithubIcon className="size-3.5" />
             Open source
           </span>
 
@@ -26,7 +26,7 @@ export default function OpenSourceSection() {
 
           <Button asChild variant="brand" size="xl" className="mt-8 w-full font-semibold sm:w-auto">
             <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
-              <Github className="size-5" />
+              <GithubIcon className="size-5" />
               Star us on GitHub
             </a>
           </Button>

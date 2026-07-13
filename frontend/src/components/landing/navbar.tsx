@@ -5,7 +5,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { Github, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { GithubIcon } from "@/components/icons/github-icon";
 import { createClient } from "@/lib/supabase/client";
 
 const GITHUB_URL = "https://github.com/Zumud/Zumud";
@@ -98,7 +99,7 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
             aria-label="Zumud on GitHub"
             className="inline-flex size-9 items-center justify-center rounded-full border border-border/70 bg-background/60 text-foreground/80 backdrop-blur transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            <Github className="size-4" />
+            <GithubIcon className="size-4" />
           </a>
           <ThemeToggle />
 
@@ -159,7 +160,7 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
             onClick={() => setMobileOpen(false)}
             className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent hover:text-accent-foreground"
           >
-            <Github className="size-4" />
+            <GithubIcon className="size-4" />
             GitHub
           </a>
           <div className="mt-2 flex flex-col gap-2">
