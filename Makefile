@@ -80,8 +80,9 @@ dev-frontend: ## Run the Next.js frontend against the local stack (auto-creates 
 	    "API_URL=http://localhost:$(BACKEND_PORT)" \
 	    > frontend/.env.local; \
 	  echo "created frontend/.env.local (frontend :$(FRONTEND_PORT), backend :$(BACKEND_PORT))"; \
-	elif ! grep -q "NEXT_PUBLIC_SUPABASE_URL=http://localhost:$(FRONTEND_PORT)$$" frontend/.env.local; then \
-	  echo "WARNING: frontend/.env.local was generated for other ports — delete it to regenerate."; \
+	elif ! grep -q "NEXT_PUBLIC_SUPABASE_URL=http://localhost:$(FRONTEND_PORT)$$" frontend/.env.local \
+	     || ! grep -q "NEXT_PUBLIC_API_URL=http://localhost:$(BACKEND_PORT)$$" frontend/.env.local; then \
+	  echo "WARNING: frontend/.env.local was generated for other ports (want frontend :$(FRONTEND_PORT), backend :$(BACKEND_PORT)) — delete it to regenerate."; \
 	fi
 	# Clear the (possibly stale on WSL) Turbopack cache so dev styling matches prod.
 	rm -rf frontend/.next
