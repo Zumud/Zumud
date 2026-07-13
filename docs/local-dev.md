@@ -33,6 +33,25 @@ make down          # stop the stack
 - `make dev-frontend` auto-creates `frontend/.env.local` from the local stack on first run
   (deterministic local keys, no secrets), so a fresh clone needs no manual frontend config.
 
+## Parallel worktrees (multiple agents)
+
+Several git worktrees can run their own backend+frontend at once against the **one**
+shared Supabase stack (`make up` once, anywhere) and the one LaTeX container. Give
+each worktree its own `.venv` + `npm ci`, pick a distinct port pair, and pass both
+variables to both targets:
+
+```
+make dev-backend  BACKEND_PORT=8001 FRONTEND_PORT=3001
+make dev-frontend BACKEND_PORT=8001 FRONTEND_PORT=3001
+```
+
+Auth redirects need no extra config: with a localhost `site_url`, the local GoTrue
+allows any localhost port. `dev-backend` allows the chosen frontend origin via
+`CORS_ALLOWED_ORIGINS`. The generated `frontend/.env.local` bakes the ports in —
+delete it if you change them.
+Caveats: all worktrees share the one local database (branches with conflicting schema
+changes will step on each other), and `make e2e` stays single-occupancy (fixed ports).
+
 ## Testing auth locally
 - The browser talks to Supabase **through the Next dev server** (same-origin): the
   browser client uses `http://localhost:3000` and Next proxies `/auth/v1/*` to the local
