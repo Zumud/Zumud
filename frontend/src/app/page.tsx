@@ -10,6 +10,7 @@ import SolutionSection from "@/components/landing/solution-section"
 import LatexSection from "@/components/landing/latex-section"
 import PricingSection from "@/components/landing/pricing-section"
 import FaqSection from "@/components/landing/faq-section"
+import OpenSourceSection from "@/components/landing/open-source-section"
 import CallToActionSection from "@/components/landing/call-to-action-section"
 import Footer from "@/components/landing/footer"
 
@@ -46,6 +47,7 @@ function LandingPageContent() {
         <LatexSection />
         <PricingSection onAuthModalOpen={handleAuthModalOpen} />
         <FaqSection />
+        <OpenSourceSection />
         <CallToActionSection onAuthModalOpen={handleAuthModalOpen} />
       </main>
       <Footer />
