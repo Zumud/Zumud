@@ -1,0 +1,38 @@
+name: SEO gate
+
+# Judges PRs that touch the public web surface against docs/seo-guidelines.md
+# (see scripts/seo_gate.py). Notification-tier: NOT in the required-checks
+# ruleset — a flag shows red on the PR without blocking the merge queue.
+# Promote to required once the guidelines stabilize.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+    paths:
+      - "frontend/src/app/**"
+      - "frontend/src/components/landing/**"
+      - "frontend/public/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seo-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  seo:
+    name: SEO guidelines
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install openai
+      - name: Judge against SEO guidelines
+        env:
+          OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
+        run: python scripts/seo_gate.py
