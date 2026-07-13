@@ -125,8 +125,9 @@ const structuredData = {
       offers: {
         "@type": "Offer",
         price: "0",
-        priceCurrency: "USD",
-        description: "10 free resume generations, then pay-as-you-go.",
+        priceCurrency: "EUR",
+        description:
+          "10 free resume generations, then pay-as-you-go at EUR 0.10 per generation.",
       },
     },
   ],
