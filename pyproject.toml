@@ -1,6 +1,5 @@
 [tool.ruff]
 target-version = "py312"
-extend-exclude = ["backend/utils/old_codes.py"]
 
 [tool.ruff.lint]
 # Defaults (E4/E7/E9 + pyflakes) plus import sorting. Style is owned by

@@ -11,13 +11,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 OPEN_AI_KEY = getenv("OPEN_AI_KEY")  # Put your open AI key here
-GMAIL_APP_PASSWORD = getenv("GMAIL_APP_PASSWORD")  # Put your gmail app password here
-ADD_GDRIVE_ZAP_URL = getenv(
-    "ADD_GDRIVE_ZAP_URL"
-)  # Put zappier webhook workflow here, This webhook uploads the file to GDrive
-LaTeX_COMPILER_URL_TEXT = (
-    "https://texlive2020.latexonline.cc/compile?command=pdflatex&text="
-)
+
 # Base URL of the self-hosted latex-online compiler (aslushnikov/latex-online).
 # Defaults to localhost so production VPS deployments work without any extra config;
 # override LATEX_COMPILER_BASE_URL in .env for local dev (e.g. point at a remote VPS).
@@ -30,13 +24,10 @@ LaTeX_COMPILER_URL_DATA = (
 # Supabase Configuration
 SUPABASE_URL = getenv("SUPABASE_URL")
 
-# API keys. Supabase deprecated the JWT-based anon/service_role keys in favour of
-# publishable (sb_publishable_...) and secret (sb_secret_...) keys. Prefer the new
-# keys; fall back to the legacy names so the app keeps working during migration.
+# API key. Supabase deprecated the JWT-based service_role key in favour of the
+# secret (sb_secret_...) key. Prefer the new key; fall back to the legacy name
+# so the app keeps working during migration.
 # https://supabase.com/docs/guides/getting-started/api-keys
-SUPABASE_PUBLISHABLE_KEY = getenv("SUPABASE_PUBLISHABLE_KEY") or getenv(
-    "SUPABASE_ANON_KEY"
-)
 SUPABASE_SECRET_KEY = getenv("SUPABASE_SECRET_KEY") or getenv(
     "SUPABASE_SERVICE_ROLE_KEY"
 )

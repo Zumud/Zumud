@@ -7,10 +7,6 @@ class LegalAuthorizationBase(BaseModel):
     work_authorization: str
 
 
-class LegalAuthorizationCreate(LegalAuthorizationBase):
-    pass
-
-
 class LegalAuthorization(LegalAuthorizationBase):
     id: int
     user_id: int

@@ -12,10 +12,6 @@ class TailoringOptionsBase(BaseModel):
     resume_template: ResumeTemplate = ResumeTemplate.MTeck_resume
 
 
-class TailoringOptionsCreate(TailoringOptionsBase):
-    pass
-
-
 class TailoringOptions(TailoringOptionsBase):
     id: Optional[int] = None
     user_id: Optional[int] = None

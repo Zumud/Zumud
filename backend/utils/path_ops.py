@@ -52,19 +52,6 @@ class ApplicationContext:
         cls._user_application_paths[username] = path
 
     @classmethod
-    def clear_current_path(cls, username: str):
-        """
-        Clear the current application path for a specific user
-
-        Args:
-            username: Username for which to clear the current path
-        """
-        if username in cls._user_application_paths:
-            del cls._user_application_paths[username]
-        if username in cls._user_session_info:
-            del cls._user_session_info[username]
-
-    @classmethod
     def get_session_info(cls, username: str) -> Optional[Tuple[str, str]]:
         """
         Get the current session info (session_id, company_name) for a user.
@@ -257,28 +244,3 @@ def create_session_aware_path(
     ApplicationContext.set_session_info(username, session_id, company_name)
 
     return path, session_id, company_name
-
-
-def ensure_session_consistency(username: str, company_name: str) -> Tuple[str, str]:
-    """
-    Ensure session consistency for a user-company combination.
-    If no session exists, creates one. If session exists, returns existing info.
-
-    Args:
-        username: Username of the user
-        company_name: Company name for the application
-
-    Returns:
-        Tuple of (session_id, company_name)
-    """
-    session_info = ApplicationContext.get_session_info(username)
-
-    if session_info and session_info[1] == company_name:
-        # Existing session for the same company
-        return session_info
-
-    # Need new session (either no existing session or different company)
-    session_id = ApplicationContext.generate_session_id()
-    ApplicationContext.set_session_info(username, session_id, company_name)
-
-    return session_id, company_name

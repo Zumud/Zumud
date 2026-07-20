@@ -184,12 +184,6 @@ class PDFGenerator:
 
         return paragraphs
 
-    def get_effective_page_width(self):
-        """Calculate the effective page width in points."""
-        # Convert margins from mm to points
-        margin_points = self.margin * 72 / 25.4
-        return self.pdf.w - (2 * margin_points)
-
     def generate_pdf(self, text, output_path):
         """Generate a PDF file from the input text."""
         # Initialize PDF

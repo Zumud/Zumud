@@ -63,17 +63,6 @@ def get_user_template(user_id: int, db: Session) -> dict:
     return Template_Details[ResumeTemplate.MTeck_resume]
 
 
-def ai_prompt(prompt: str, model=AIModel.gpt_4_1_nano) -> str:
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt},
-        ],
-    )
-    return completion.choices[0].message.content
-
-
 def get_company_name(job_description):
     """
     Identifying the name of the company based on the job description.
@@ -267,11 +256,6 @@ def generate_tailored_coverletter_text(
         response_format=TailoredCoverLetter,
     )
     return json.loads(completion.choices[0].message.content)["tailored_coverletter"]
-
-
-def ai_messages(messages: list[tuple[str, str]], model=AIModel.gpt_4_1_nano) -> str:
-    completion = client.chat.completions.create(model=model, messages=messages)
-    return completion.choices[0].message.content
 
 
 def generate_answer_questions(
