@@ -6,6 +6,4 @@ Deeper references for specific topics. For getting started, see the [root README
 |-----|----------------|
 | [local-dev.md](local-dev.md) | **Start here.** Running and testing the full stack locally (Supabase CLI, backend, frontend, LaTeX), test emails, Google sign-in, WSL notes. |
 | [supabase-auth-migration.md](supabase-auth-migration.md) | Runbook for the migration to Supabase Auth (Google OAuth, existing-user import, cutover). |
-| [database/](database/) | Design for the document-tracking feature: [schema](database/schema-design.md), [implementation plan](database/implementation-plan.md), [API integration](database/api-integration.md). |
-| [features/document-tracking.md](features/document-tracking.md) | Document-tracking feature overview. |
 | [insync-setup-guide.md](insync-setup-guide.md) | InSync (Google Drive sync) setup for the deploy host. |
