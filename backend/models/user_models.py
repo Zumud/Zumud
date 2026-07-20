@@ -9,18 +9,6 @@ class UserBase(BaseModel):
     email: EmailStr
 
 
-# Create/Update schemas
-class UserCreate(UserBase):
-    password: str
-    initial_resume: Optional[str] = None
-    resume_file: Optional[str] = None  # This will contain the base64 encoded file data
-
-
-class UserLogin(BaseModel):
-    username: str
-    password: str
-
-
 class User(UserBase):
     id: int
     created_at: datetime
@@ -35,15 +23,10 @@ class UserPreferenceCreate(BaseModel):
 
 class UserPreference(BaseModel):
     preferences_text: str
-    last_updated: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True  # Allows the Pydantic model to read data from ORM models
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
 
 class UserTemplateBase(BaseModel):

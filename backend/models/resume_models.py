@@ -24,14 +24,6 @@ class TailoredCoverLetter(BaseModel):
     tailored_coverletter: str
 
 
-class CustomizedResume(BaseModel):
-    customized_resume: str
-
-
-class TailoredCL(BaseModel):
-    customized_cover_letter: str
-
-
 class CompanyName(BaseModel):
     company_name: Optional[str] = None
 
