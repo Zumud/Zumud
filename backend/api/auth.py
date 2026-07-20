@@ -1,7 +1,7 @@
 import logging
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -12,8 +12,6 @@ from backend.models import db_models
 from backend.models.db import get_db
 
 logger = logging.getLogger(__name__)
-
-router = APIRouter(tags=["authentication"])
 
 _WWW_AUTH = {"WWW-Authenticate": "Bearer"}
 
@@ -168,10 +166,3 @@ def get_current_user(
         detail="Your session has expired. Please log in again to continue.",
         headers=_WWW_AUTH,
     )
-
-
-@router.post("/logout")
-def logout():
-    # Sessions are stateless (Supabase access tokens); the frontend clears its
-    # Supabase session via supabase.auth.signOut(). Kept for backwards compat.
-    return {"message": "Logged out successfully"}

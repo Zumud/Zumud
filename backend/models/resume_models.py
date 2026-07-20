@@ -16,10 +16,6 @@ class Resume(ResumeBase):
 
 
 # AI Response Models
-class TailoredResume(BaseModel):
-    tailored_resume: str
-
-
 class TailoredCoverLetter(BaseModel):
     tailored_coverletter: str
 
