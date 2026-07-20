@@ -409,7 +409,6 @@ def add_user_preference(
     if preferences:
         # Update existing preferences with formatted text
         preferences.preferences_text = formatted_preferences
-        preferences.last_updated = datetime.now(timezone.utc)
     else:
         # Create new preferences record with formatted text
         preferences = db_models.UserPreferences(
