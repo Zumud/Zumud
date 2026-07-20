@@ -528,144 +528,69 @@ def _ensure_products_and_record(
             _record_usage_with_subscription_item(item_id)  # fallback
 
 
-def process_coverletter_billing(email: str, name: Optional[str]) -> None:
-    """
-    End-to-end flow for billing when a cover letter is generated:
-      1) Check if payment method is required
-      2) Ensure Stripe customer for the given email
-      3) Ensure subscription to CoverLetter Generation price (metered)
-      4) Record one meter event to 'coverletter_event' (or env override)
-         - If meter event ingestion is not available, fall back to usage record increment
+# One metered Stripe product per billable action:
+# event name -> (product name, explicit price-id override, meter event name)
+BILLING_EVENTS: Dict[str, Tuple[str, Optional[str], str]] = {
+    "resume": (
+        STRIPE_RESUME_PRODUCT_NAME,
+        STRIPE_RESUME_PRICE_ID,
+        STRIPE_RESUME_METER_NAME,
+    ),
+    "coverletter": (
+        STRIPE_COVERLETTER_PRODUCT_NAME,
+        STRIPE_COVERLETTER_PRICE_ID,
+        STRIPE_COVERLETTER_METER_NAME,
+    ),
+    "qa": (
+        STRIPE_QA_PRODUCT_NAME,
+        STRIPE_QA_PRICE_ID,
+        STRIPE_QA_METER_NAME,
+    ),
+    "resume_edit": (
+        STRIPE_RESUME_EDIT_PRODUCT_NAME,
+        STRIPE_RESUME_EDIT_PRICE_ID,
+        STRIPE_RESUME_EDIT_METER_NAME,
+    ),
+    "coverletter_edit": (
+        STRIPE_COVERLETTER_EDIT_PRODUCT_NAME,
+        STRIPE_COVERLETTER_EDIT_PRICE_ID,
+        STRIPE_COVERLETTER_EDIT_METER_NAME,
+    ),
+    "qa_edit": (
+        STRIPE_QA_EDIT_PRODUCT_NAME,
+        STRIPE_QA_EDIT_PRICE_ID,
+        STRIPE_QA_EDIT_METER_NAME,
+    ),
+}
 
-    This function logs errors and never raises, to avoid blocking the core feature.
+
+def process_billing_event(event: str, email: str, name: Optional[str]) -> None:
     """
+    End-to-end metered-billing flow for one billable action (see BILLING_EVENTS):
+      1) Check if payment method is required
+      2) Ensure a Stripe customer for the given email
+      3) Ensure a subscription containing the product's metered price
+      4) Record one meter event (falls back to a usage-record increment)
+
+    Logs errors and never raises, to avoid blocking the core feature. No-ops
+    entirely when Stripe is not configured.
+    """
+    product_name, explicit_price_id, meter_name = BILLING_EVENTS[event]
+
     # Check if payment method is required before proceeding
     check_payment_method_required(email, name)
 
     # If Stripe not configured, no-op
     if not _init_stripe_client():
         return
-
-    customer = _get_or_create_customer(email=email, name=name)
-    if customer is None:
-        return
-
-    try:
-        _, price_id = _discover_product_and_price(
-            STRIPE_COVERLETTER_PRODUCT_NAME, STRIPE_COVERLETTER_PRICE_ID
-        )
-    except Exception as e:
-        logger.error(f"Unable to locate CoverLetter Generation price in Stripe: {e}")
-        return
-
-    _ensure_products_and_record(
-        customer_id=customer["id"],
-        price_to_meter={price_id: STRIPE_COVERLETTER_METER_NAME},
-    )
-
-
-def process_resume_billing(email: str, name: Optional[str]) -> None:
-    # Check if payment method is required before proceeding
-    check_payment_method_required(email, name)
-
-    if not _init_stripe_client():
-        return
     customer = _get_or_create_customer(email=email, name=name)
     if customer is None:
         return
     try:
-        _, price_id = _discover_product_and_price(
-            STRIPE_RESUME_PRODUCT_NAME, STRIPE_RESUME_PRICE_ID
-        )
+        _, price_id = _discover_product_and_price(product_name, explicit_price_id)
     except Exception as e:
-        logger.error(f"Unable to locate Resume Generation price in Stripe: {e}")
+        logger.error(f"Unable to locate '{product_name}' price in Stripe: {e}")
         return
     _ensure_products_and_record(
-        customer_id=customer["id"], price_to_meter={price_id: STRIPE_RESUME_METER_NAME}
-    )
-
-
-def process_qa_billing(email: str, name: Optional[str]) -> None:
-    # Check if payment method is required before proceeding
-    check_payment_method_required(email, name)
-
-    if not _init_stripe_client():
-        return
-    customer = _get_or_create_customer(email=email, name=name)
-    if customer is None:
-        return
-    try:
-        _, price_id = _discover_product_and_price(
-            STRIPE_QA_PRODUCT_NAME, STRIPE_QA_PRICE_ID
-        )
-    except Exception as e:
-        logger.error(f"Unable to locate Q&A Generation price in Stripe: {e}")
-        return
-    _ensure_products_and_record(
-        customer_id=customer["id"], price_to_meter={price_id: STRIPE_QA_METER_NAME}
-    )
-
-
-def process_coverletter_edit_billing(email: str, name: Optional[str]) -> None:
-    # Check if payment method is required before proceeding
-    check_payment_method_required(email, name)
-
-    if not _init_stripe_client():
-        return
-    customer = _get_or_create_customer(email=email, name=name)
-    if customer is None:
-        return
-    try:
-        _, price_id = _discover_product_and_price(
-            STRIPE_COVERLETTER_EDIT_PRODUCT_NAME, STRIPE_COVERLETTER_EDIT_PRICE_ID
-        )
-    except Exception as e:
-        logger.error(f"Unable to locate CoverLetter Edit price in Stripe: {e}")
-        return
-    _ensure_products_and_record(
-        customer_id=customer["id"],
-        price_to_meter={price_id: STRIPE_COVERLETTER_EDIT_METER_NAME},
-    )
-
-
-def process_resume_edit_billing(email: str, name: Optional[str]) -> None:
-    # Check if payment method is required before proceeding
-    check_payment_method_required(email, name)
-
-    if not _init_stripe_client():
-        return
-    customer = _get_or_create_customer(email=email, name=name)
-    if customer is None:
-        return
-    try:
-        _, price_id = _discover_product_and_price(
-            STRIPE_RESUME_EDIT_PRODUCT_NAME, STRIPE_RESUME_EDIT_PRICE_ID
-        )
-    except Exception as e:
-        logger.error(f"Unable to locate Resume Edit price in Stripe: {e}")
-        return
-    _ensure_products_and_record(
-        customer_id=customer["id"],
-        price_to_meter={price_id: STRIPE_RESUME_EDIT_METER_NAME},
-    )
-
-
-def process_qa_edit_billing(email: str, name: Optional[str]) -> None:
-    # Check if payment method is required before proceeding
-    check_payment_method_required(email, name)
-
-    if not _init_stripe_client():
-        return
-    customer = _get_or_create_customer(email=email, name=name)
-    if customer is None:
-        return
-    try:
-        _, price_id = _discover_product_and_price(
-            STRIPE_QA_EDIT_PRODUCT_NAME, STRIPE_QA_EDIT_PRICE_ID
-        )
-    except Exception as e:
-        logger.error(f"Unable to locate Q&A Edit price in Stripe: {e}")
-        return
-    _ensure_products_and_record(
-        customer_id=customer["id"], price_to_meter={price_id: STRIPE_QA_EDIT_METER_NAME}
+        customer_id=customer["id"], price_to_meter={price_id: meter_name}
     )
