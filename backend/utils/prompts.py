@@ -1,25 +1,3 @@
-create_tailored_resume = """Please help me tailor my resume to match the following job description, emphasizing relevant skills and experiences to maximize my chances of getting an interview.
-
-**My Current Resume:**
-{resume}
-
-**Job Description:**
-{job_description}
-
-{user_preferences_section}
-
-**Instructions:**
-- Highlight and expand on experiences that align closely with the job requirements.
-- Incorporate keywords and phrases from the job description into my resume.
-- Remove or de-emphasize experiences that are not relevant to the job.
-- Ensure the resume remains professional and well-organized.
-- Keep the final resume within {num_pages} pages.
-- Always adhere to the above user preferences when crafting the resume.
-
-Thank you!
-"""
-
-
 create_tailored_coverletter_prompt = """
 Generate a concise and impactful cover letter (maximum two paragraphs) tailored specifically for the given job description. Focus on highlighting the most relevant experience and skills from the provided resume.
 - Make it direct, engaging, and results-oriented, avoiding generic statements.

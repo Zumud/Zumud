@@ -243,8 +243,6 @@ async function apiCall(
 // (see components/auth/auth-modal.tsx); the backend exposes the profile and an
 // email lookup that powers the identifier-first modal.
 export const auth = {
-  getProfile: () => apiCall('users/me'),
-
   checkEmail: (email: string): Promise<{ exists: boolean; has_password: boolean; has_google: boolean }> =>
     apiCall('users/check-email', 'POST', { email }),
 };
@@ -256,8 +254,6 @@ export const resume = {
   updateResume: (resumeContent: string) => 
     apiCall('users/me/resume', 'PUT', { resume_content: resumeContent }),
   
-  getResumePdf: () => apiCall('users/me/resume/pdf'),
-  
   uploadResumePdf: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -267,8 +263,6 @@ export const resume = {
 
 // User preferences endpoints
 export const preferences = {
-  getUserPreferences: () => apiCall('users/me/preferences'),
-  
   addUserPreference: (preference: string) => 
     apiCall('users/me/preferences', 'POST', { preference }),
 };
@@ -328,12 +322,6 @@ export const applications = {
       job_description: jobDescription
     }, false),
     
-  improveResume: (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiCall('applications/resume/improve', 'POST', formData, true);
-  },
-  
   editResumeWithInstructions: (editInstruction: string, jobDescription: string) => 
     apiCall('applications/resume/edit', 'GET', { 
       edit_instruction: editInstruction,

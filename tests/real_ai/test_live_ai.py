@@ -30,13 +30,15 @@ def require_live_key():
         pytest.skip("real_ai lane requires a live OPEN_AI_KEY")
 
 
-def test_tailored_resume_text_contract():
-    from backend.core.ai_service import generate_tailored_resume_text
+def test_tailored_coverletter_text_contract():
+    from backend.core.ai_service import generate_tailored_coverletter_text
 
-    out = generate_tailored_resume_text(resume=SMALL_RESUME, job_description=SMALL_JD)
+    out = generate_tailored_coverletter_text(
+        resume=SMALL_RESUME, job_description=SMALL_JD
+    )
     assert isinstance(out, str)
-    assert len(out) > 200, "tailored resume should be substantive"
-    assert "jane" in out.lower(), "candidate identity must survive tailoring"
+    assert len(out) > 200, "tailored cover letter should be substantive"
+    assert "acme" in out.lower(), "cover letter should address the company"
 
 
 def test_company_name_extraction_contract():
