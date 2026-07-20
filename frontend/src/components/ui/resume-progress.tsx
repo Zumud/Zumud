@@ -350,7 +350,7 @@ export function InlineResumeProgress({ isVisible, onComplete, forceComplete }: I
         setTimeRemaining(Math.ceil(Math.max(duration - elapsed, 0)))
       }
 
-      if (!isWaitingForBackend && !isCompleted) {
+      if (!isWaitingForBackend) {
         setProgress(newProgress)
       }
     }, 500)
