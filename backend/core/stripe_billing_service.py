@@ -589,7 +589,7 @@ def process_billing_event(event: str, email: str, name: Optional[str]) -> None:
     try:
         _, price_id = _discover_product_and_price(product_name, explicit_price_id)
     except Exception as e:
-        logger.error(f"Unable to locate '{product_name}' price in Stripe: {e}")
+        logger.error(f"Unable to locate the Stripe price for '{event}' billing: {e}")
         return
     _ensure_products_and_record(
         customer_id=customer["id"], price_to_meter={price_id: meter_name}
