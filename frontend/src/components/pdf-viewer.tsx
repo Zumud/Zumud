@@ -21,11 +21,6 @@ const isMobileDevice = () => {
          ('ontouchstart' in window)
 }
 
-// iOS detection specifically (worst PDF support)
-const isIOS = () => {
-  if (typeof window === 'undefined') return false
-  return /iPad|iPhone|iPod/.test(window.navigator.userAgent)
-}
 
 
 

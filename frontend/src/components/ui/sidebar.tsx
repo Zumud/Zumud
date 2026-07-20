@@ -4,7 +4,6 @@ import {
   History,
   BarChart3,
   User,
-  Settings,
   LogOut,
   Menu,
   X,
