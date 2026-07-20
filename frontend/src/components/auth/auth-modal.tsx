@@ -11,9 +11,6 @@ interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
-  // Kept for backwards compatibility with existing callers; the unified flow
-  // no longer has separate login/signup tabs.
-  defaultTab?: 'login' | 'signup'
 }
 
 type Step = 'email' | 'password' | 'create' | 'reset-sent'

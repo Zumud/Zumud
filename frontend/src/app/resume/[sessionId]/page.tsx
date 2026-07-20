@@ -369,7 +369,6 @@ export default function GeneratedResumePage() {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onSuccess={handleAuthSuccess}
-        defaultTab="signup"
       />
     </div>
   )

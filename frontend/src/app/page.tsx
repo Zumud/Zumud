@@ -19,17 +19,13 @@ function LandingPageContent() {
   const searchParams = useSearchParams()
   const signupRequested = searchParams.get('signup') === 'true'
   const [showAuthModal, setShowAuthModal] = useState(signupRequested)
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>(
-    signupRequested ? 'signup' : 'login'
-  )
 
   const handleAuthSuccess = useCallback(() => {
     setShowAuthModal(false)
     router.push('/dashboard')
   }, [router])
 
-  const handleAuthModalOpen = useCallback((mode: 'login' | 'signup' = 'login') => {
-    setAuthMode(mode)
+  const handleAuthModalOpen = useCallback(() => {
     setShowAuthModal(true)
   }, [])
 
@@ -56,7 +52,6 @@ function LandingPageContent() {
         isOpen={showAuthModal}
         onClose={handleAuthModalClose}
         onSuccess={handleAuthSuccess}
-        defaultTab={authMode}
       />
     </div>
   )
