@@ -1,5 +1,4 @@
 import logging
-import secrets
 from os import getenv
 
 from dotenv import load_dotenv
@@ -47,22 +46,6 @@ if not DATABASE_URL:
 
 if not SUPABASE_URL:
     logger.warning("SUPABASE_URL not found in environment variables")
-
-# If SECRET_KEY is not provided in environment, generate a secure random one
-# Note: This will cause all JWTs to be invalidated when the server restarts
-# For production use, set a permanent SECRET_KEY in your .env file
-SECRET_KEY = getenv("SECRET_KEY")
-if not SECRET_KEY:
-    SECRET_KEY = secrets.token_hex(32)
-    logger.warning(
-        "No SECRET_KEY found in environment variables. "
-        "Generated a random key for this session. "
-        "All users will need to re-login after server restart. "
-        "For production, set a permanent SECRET_KEY in your .env file."
-    )
-
-ALGORITHM = getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
 
 # Stripe Configuration
 # We do not log or hardcode keys here. Values must come from the environment (.env).
