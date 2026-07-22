@@ -31,19 +31,9 @@ class TestFailOpenWithoutStripe:
     def test_check_payment_method_is_noop(self, stripe_unconfigured):
         assert billing.check_payment_method_required("a@b.c", "a") is None
 
-    @pytest.mark.parametrize(
-        "process",
-        [
-            billing.process_resume_billing,
-            billing.process_coverletter_billing,
-            billing.process_qa_billing,
-            billing.process_resume_edit_billing,
-            billing.process_coverletter_edit_billing,
-            billing.process_qa_edit_billing,
-        ],
-    )
-    def test_all_billing_flows_are_noops(self, stripe_unconfigured, process):
-        assert process("a@b.c", "a") is None
+    @pytest.mark.parametrize("event", sorted(billing.BILLING_EVENTS))
+    def test_all_billing_flows_are_noops(self, stripe_unconfigured, event):
+        assert billing.process_billing_event(event, "a@b.c", "a") is None
 
 
 class TestFailOpenOnStripeErrors:

@@ -83,11 +83,6 @@ app.add_middleware(
     ],  # Expose Content-Disposition header to frontend
 )
 
-# # Create tables on startup
-# @app.on_event("startup")
-# async def startup_event():
-#     create_tables()
-
 # Include API router
 app.include_router(api_router)
 

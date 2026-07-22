@@ -1,5 +1,4 @@
 import logging
-import secrets
 from os import getenv
 
 from dotenv import load_dotenv
@@ -11,13 +10,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 OPEN_AI_KEY = getenv("OPEN_AI_KEY")  # Put your open AI key here
-GMAIL_APP_PASSWORD = getenv("GMAIL_APP_PASSWORD")  # Put your gmail app password here
-ADD_GDRIVE_ZAP_URL = getenv(
-    "ADD_GDRIVE_ZAP_URL"
-)  # Put zappier webhook workflow here, This webhook uploads the file to GDrive
-LaTeX_COMPILER_URL_TEXT = (
-    "https://texlive2020.latexonline.cc/compile?command=pdflatex&text="
-)
+
 # Base URL of the self-hosted latex-online compiler (aslushnikov/latex-online).
 # Defaults to localhost so production VPS deployments work without any extra config;
 # override LATEX_COMPILER_BASE_URL in .env for local dev (e.g. point at a remote VPS).
@@ -30,13 +23,10 @@ LaTeX_COMPILER_URL_DATA = (
 # Supabase Configuration
 SUPABASE_URL = getenv("SUPABASE_URL")
 
-# API keys. Supabase deprecated the JWT-based anon/service_role keys in favour of
-# publishable (sb_publishable_...) and secret (sb_secret_...) keys. Prefer the new
-# keys; fall back to the legacy names so the app keeps working during migration.
+# API key. Supabase deprecated the JWT-based service_role key in favour of the
+# secret (sb_secret_...) key. Prefer the new key; fall back to the legacy name
+# so the app keeps working during migration.
 # https://supabase.com/docs/guides/getting-started/api-keys
-SUPABASE_PUBLISHABLE_KEY = getenv("SUPABASE_PUBLISHABLE_KEY") or getenv(
-    "SUPABASE_ANON_KEY"
-)
 SUPABASE_SECRET_KEY = getenv("SUPABASE_SECRET_KEY") or getenv(
     "SUPABASE_SERVICE_ROLE_KEY"
 )
@@ -56,22 +46,6 @@ if not DATABASE_URL:
 
 if not SUPABASE_URL:
     logger.warning("SUPABASE_URL not found in environment variables")
-
-# If SECRET_KEY is not provided in environment, generate a secure random one
-# Note: This will cause all JWTs to be invalidated when the server restarts
-# For production use, set a permanent SECRET_KEY in your .env file
-SECRET_KEY = getenv("SECRET_KEY")
-if not SECRET_KEY:
-    SECRET_KEY = secrets.token_hex(32)
-    logger.warning(
-        "No SECRET_KEY found in environment variables. "
-        "Generated a random key for this session. "
-        "All users will need to re-login after server restart. "
-        "For production, set a permanent SECRET_KEY in your .env file."
-    )
-
-ALGORITHM = getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
 
 # Stripe Configuration
 # We do not log or hardcode keys here. Values must come from the environment (.env).

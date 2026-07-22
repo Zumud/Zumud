@@ -101,7 +101,6 @@ SUPABASE_JWT_SECRET=<project jwt secret>
 ```
 
 `SUPABASE_URL` is already set and is used to derive the JWKS + issuer.
-`SECRET_KEY`/`ALGORITHM` stay only for the transitional legacy-token fallback.
 
 ## Phase 3 — Import existing users into Supabase Auth
 
@@ -113,20 +112,11 @@ SUPABASE_JWT_SECRET=<project jwt secret>
 > password; they can use "Continue with Google" (auto-linked by email) or a
 > password reset.
 
-Reuses existing bcrypt hashes so passwords keep working, pre-confirms emails,
-creates the `auth.identities` row, and links `public.users.supabase_uid`.
-
-Run on Dev (or a prod backup) first. Defaults to a dry run.
-
-```bash
-# from the repo root, using the backend venv; DATABASE_URL points at the target DB
-.venv/bin/python -m backend.scripts.migrate_users_to_supabase_auth            # dry run
-.venv/bin/python -m backend.scripts.migrate_users_to_supabase_auth --commit   # apply
-```
-
-The script prints the target DB host so you can confirm Dev vs Prod. It is
-idempotent: already-linked users are skipped, and any pre-existing `auth.users`
-row with the same email is adopted (linked) rather than duplicated.
+The one-time import script (`backend/scripts/migrate_users_to_supabase_auth.py`)
+reused existing bcrypt hashes so passwords kept working, pre-confirmed emails,
+created the `auth.identities` row, and linked `public.users.supabase_uid`. It
+was removed after the migration completed — recover it from git history if a
+re-import is ever needed.
 
 ## Phase 4 — Frontend env (required for build)
 
@@ -155,13 +145,8 @@ Verify:
 - Brand-new email signup creates a profile + empty resume (auto-provision).
 - "Continue with Google" creates an account on first use and reuses it after.
 - All protected routes work; resume upload works after signup.
-- An old (pre-migration) localStorage token still works during the window
-  (legacy fallback) — then expires naturally.
-
-After the transition window (existing 30-day tokens have expired), remove the
-legacy fallback for a clean single-system setup:
-
-- `backend/api/auth.py`: delete `_user_from_legacy_token` and its use in
-  `get_current_user`; drop the `pwd_context`/pwdlib block and the
-  `SECRET_KEY`/`ALGORITHM` import.
-- Optionally drop the now-unused `users.password` column.
+The transitional legacy-token fallback (`_user_from_legacy_token`, the
+`pwd_context`/pwdlib block, and `SECRET_KEY`/`ALGORITHM`) was removed in July
+2026 after the 30-day cutover window closed. `SECRET_KEY`/`ALGORITHM` can be
+deleted from deployed `.env` files. Remaining optional contraction: drop the
+now-unused `users.password` column.

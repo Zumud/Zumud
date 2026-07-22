@@ -13,7 +13,6 @@ from backend.models.resume_models import (
     StructuredResume,
     TailoredAnswer,
     TailoredCoverLetter,
-    TailoredResume,
 )
 from backend.models.templates import ResumeTemplate, Template_Details
 from backend.utils.file_ops import (
@@ -63,17 +62,6 @@ def get_user_template(user_id: int, db: Session) -> dict:
     return Template_Details[ResumeTemplate.MTeck_resume]
 
 
-def ai_prompt(prompt: str, model=AIModel.gpt_4_1_nano) -> str:
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt},
-        ],
-    )
-    return completion.choices[0].message.content
-
-
 def get_company_name(job_description):
     """
     Identifying the name of the company based on the job description.
@@ -101,46 +89,6 @@ def get_company_name(job_description):
 
     result = json.loads(completion.choices[0].message.content)
     return result.get("company_name")
-
-
-def generate_tailored_resume_text(
-    resume: str,
-    job_description: str,
-    model=AIModel.gpt_4_1_nano,
-    template=ResumeTemplate.MTeck_resume,
-    user_preferences: str = None,
-) -> str:
-    # Format the user preferences section
-    if user_preferences:
-        user_preferences_section = f"""**User Preferences:**
-{user_preferences}"""
-    else:
-        user_preferences_section = ""
-
-    # Use standard system content
-    system_content = "You are an expert in resume writing."
-
-    # Format the prompt with user preferences
-    prompt = prompts.create_tailored_resume.format(
-        resume=resume,
-        job_description=job_description,
-        num_pages=Template_Details[template]["num_pages"],
-        user_preferences_section=user_preferences_section,
-    )
-
-    completion = client.beta.chat.completions.parse(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": prompt},
-        ],
-        response_format=TailoredResume,
-    )
-    tailored_resume = json.loads(completion.choices[0].message.content)[
-        "tailored_resume"
-    ]
-    logger.debug(f"The tailored resume plain text is: {tailored_resume}")
-    return tailored_resume
 
 
 async def generate_structured_latex_resume_async(
@@ -267,11 +215,6 @@ def generate_tailored_coverletter_text(
         response_format=TailoredCoverLetter,
     )
     return json.loads(completion.choices[0].message.content)["tailored_coverletter"]
-
-
-def ai_messages(messages: list[tuple[str, str]], model=AIModel.gpt_4_1_nano) -> str:
-    completion = client.chat.completions.create(model=model, messages=messages)
-    return completion.choices[0].message.content
 
 
 def generate_answer_questions(

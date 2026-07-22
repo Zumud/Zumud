@@ -1,25 +1,3 @@
-create_tailored_resume = """Please help me tailor my resume to match the following job description, emphasizing relevant skills and experiences to maximize my chances of getting an interview.
-
-**My Current Resume:**
-{resume}
-
-**Job Description:**
-{job_description}
-
-{user_preferences_section}
-
-**Instructions:**
-- Highlight and expand on experiences that align closely with the job requirements.
-- Incorporate keywords and phrases from the job description into my resume.
-- Remove or de-emphasize experiences that are not relevant to the job.
-- Ensure the resume remains professional and well-organized.
-- Keep the final resume within {num_pages} pages.
-- Always adhere to the above user preferences when crafting the resume.
-
-Thank you!
-"""
-
-
 create_tailored_coverletter_prompt = """
 Generate a concise and impactful cover letter (maximum two paragraphs) tailored specifically for the given job description. Focus on highlighting the most relevant experience and skills from the provided resume.
 - Make it direct, engaging, and results-oriented, avoiding generic statements.
@@ -37,40 +15,6 @@ Generate a concise and impactful cover letter (maximum two paragraphs) tailored 
 """
 
 
-convert_plain_resume_to_latex = r"""I have a resume in text format and a LaTeX resume template. I need you to help me populate the LaTeX template with the information from my resume. Please parse the resume text, extract all relevant information, and fill in the LaTeX template accordingly. Make sure to:
-
-- Add or remove sections in the LaTeX template based on the content of the resume.
-- Populate all fields such as personal information, summary, experience, skills, education, projects, certifications.
-- Add necessary bullet points for each part instead of very long sentences.
-- Format the bullet points and lists appropriately in LaTeX.
-- Escape any LaTeX special characters in the content. For example, replace "&" with "\&", "%" with "\%", "#" with "\#", etc.
-- Ensure the final output is valid LaTeX code ready for compilation.
-- Ensure the final output is {num_pages} pages.
-
-Here is my resume text:
-
-{resume}
-
----
-
-And here is my LaTeX template:
-
-{latex_template}
-
----
-
-Please provide the complete populated LaTeX code."""
-
-
-fix_latex_error = """I tried compiling the LaTeX resume code you provided earlier, but I encountered an error during compilation. The error message is:
-
-```
-{error}
-```
-
-Could you please help me fix the LaTeX code so it compiles successfully? 
-Please provide the corrected LaTeX code with the issue resolved."""
-
 answer_application_question = """
 I want you to assist me in answering a question from a job application form based on my resume and the job description. Here is the information:
 Resume: {resume}
@@ -81,36 +25,6 @@ Make sure to:
 - The answer aligns with both resume and the requirements and expectations outlined in the job description.
 - The answer should be professional, concise, and highlight my most relevant skills and experiences.
 """
-
-edit_resume_instructions_prompt = """You are an expert resume tailoring specialist who helps job seekers make strategic updates to their resumes. Your goal is to help candidates create resumes that effectively highlight relevant skills and experiences for specific job opportunities.
-
-When updating a resume based on instructions, please:
-
-1. Make only the changes requested in the instructions
-2. Keep the overall structure and JSON format intact
-3. Focus on emphasizing experiences and skills that match the job description
-4. Ensure all achievements are specific, measurable, and impactful
-5. Maintain professional language throughout
-6. You can reference information from the original resume content if it's not in the JSON but relevant to the instructions
-7. Prioritize keywords and phrases from the job description when appropriate
-8. Preserve the chronological order of experiences and education
-
-USER PREFERENCES:
-{user_preferences}
-
-Return the modified resume that conforms to the provided schema. Ensure all fields match the expected types and formats.
-
-Original Resume Content (for reference):
-{original_resume_content}
-
-Job Description:
-{job_description}
-
-Original Resume JSON (to be modified):
-{resume_json}
-
-Instructions:
-{edit_instructions}"""
 
 structured_resume_prompt = """
 You will receive:
@@ -250,13 +164,6 @@ Use both inputs to write a tailored resume that:
 {resume}
 
 **Target Job Description:**
-{job_description}
-"""
-
-extract_company_name = """
-Extract the company name from the following job description. Return only the company name without any additional text.
-
-Job Description:
 {job_description}
 """
 

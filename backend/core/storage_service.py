@@ -2,8 +2,7 @@ import logging
 import re
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from backend.config.envs import SUPABASE_URL
 from backend.config.supabase_client import get_supabase_admin_client
@@ -466,25 +465,6 @@ class StorageService:
 
         return self.upload_file(file_path, pdf_content, "application/pdf")
 
-    def get_session_info(self, username: str, company_name: str) -> Tuple[str, str]:
-        """
-        Get or create session information for a user-company combination.
-        This method helps maintain session consistency across related operations.
-
-        Args:
-            username: Username for local path compatibility
-            company_name: Company name for the application
-
-        Returns:
-            Tuple of (session_id, sanitized_company_name)
-        """
-        # For now, generate a new session ID each time
-        # In a more advanced implementation, you might want to track active sessions
-        session_id = self._generate_session_id()
-        sanitized_company = self._sanitize_company_name(company_name)
-
-        return session_id, sanitized_company
-
     def is_available(self) -> bool:
         """Check if the storage service is available and operational."""
         return self.supabase is not None and SUPABASE_URL is not None
@@ -492,11 +472,6 @@ class StorageService:
 
 # Global storage service instance
 storage_service = StorageService()
-
-
-def get_storage_service() -> StorageService:
-    """Get the global storage service instance."""
-    return storage_service
 
 
 # Convenience functions for dual storage operations
@@ -520,44 +495,3 @@ def safe_upload_with_fallback(upload_func, *args, **kwargs) -> bool:
     except Exception as e:
         logger.error(f"Cloud storage upload failed: {e}")
         return False
-
-
-# Utility functions for path and filename operations
-def extract_company_from_path(path: str) -> Optional[str]:
-    """
-    Extract company name from local application path.
-
-    Args:
-        path: Local application path (e.g., /Applications/user/2024-01-15_google)
-
-    Returns:
-        Company name if found, None otherwise
-    """
-    try:
-        path_parts = Path(path).name.split("_")
-        if len(path_parts) >= 2:
-            # Return everything after the timestamp part
-            return "_".join(path_parts[1:])
-    except Exception:
-        pass
-    return None
-
-
-def extract_session_from_path(path: str) -> Optional[str]:
-    """
-    Extract session timestamp from local application path for cloud session mapping.
-
-    Args:
-        path: Local application path
-
-    Returns:
-        Session-compatible timestamp if found, None otherwise
-    """
-    try:
-        path_parts = Path(path).name.split("_")
-        if len(path_parts) >= 1:
-            # Return the timestamp part which can serve as a session identifier
-            return path_parts[0]
-    except Exception:
-        pass
-    return None

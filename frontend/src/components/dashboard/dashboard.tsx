@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 import { applications, preferences, billing } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
 import PreferencesPrompt from "@/components/ui/preferences-prompt"
-import InlineResumeProgress from "@/components/ui/inline-resume-progress"
+import { InlineResumeProgress } from "@/components/ui/resume-progress"
 import Sidebar from "@/components/ui/sidebar"
 import { 
   Download, 
