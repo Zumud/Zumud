@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { isAuthenticated } from "@/lib/utils"
+import Sidebar from "@/components/ui/sidebar"
+import { isAuthenticated, signOut } from "@/lib/utils"
 import ProfileSettingsPage from "@/components/profile/profile-settings-page"
 
 export default function ProfilePage() {
@@ -24,6 +25,11 @@ export default function ProfilePage() {
     }
   }, [router])
 
+  const handleLogout = async () => {
+    await signOut()
+    router.push("/")
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -32,5 +38,10 @@ export default function ProfilePage() {
     )
   }
 
-  return <ProfileSettingsPage />
+  return (
+    <div className="ambient-glow relative min-h-screen bg-background">
+      <Sidebar onLogout={handleLogout} />
+      <ProfileSettingsPage />
+    </div>
+  )
 } 

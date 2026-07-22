@@ -912,28 +912,28 @@ export default function Dashboard() {
                           <button
                             onClick={() => handleQuickAction("Make it shorter and more concise")}
                             disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                            className="px-2.5 py-1 text-xs font-medium rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="cursor-pointer px-2.5 py-1 text-xs font-medium rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             ✂️ <span className="hidden sm:inline">Make </span>shorter
                           </button>
                           <button
                             onClick={() => handleQuickAction("Make the tone more formal and professional")}
                             disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                            className="px-2.5 py-1 text-xs font-medium rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="cursor-pointer px-2.5 py-1 text-xs font-medium rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             👔 <span className="hidden sm:inline">More </span>formal
                           </button>
                           <button
                             onClick={() => handleQuickAction("Make the tone more casual and approachable")}
                             disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                            className="px-2.5 py-1 text-xs font-medium rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-200/50 dark:border-orange-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="cursor-pointer px-2.5 py-1 text-xs font-medium rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-200/50 dark:border-orange-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             😊 <span className="hidden sm:inline">More </span>casual
                           </button>
                           <button
                             onClick={() => handleQuickAction("Add more technical skills and keywords relevant to the job")}
                             disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
-                            className="px-2.5 py-1 text-xs font-medium rounded-full bg-violet-500/10 hover:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="cursor-pointer px-2.5 py-1 text-xs font-medium rounded-full bg-violet-500/10 hover:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             🔑 <span className="hidden sm:inline">Add </span>keywords
                           </button>
