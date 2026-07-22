@@ -41,7 +41,9 @@ export default function ProfilePage() {
   return (
     <div className="ambient-glow relative min-h-screen bg-background">
       <Sidebar onLogout={handleLogout} />
-      <ProfileSettingsPage />
+      <main className="pt-16 md:pl-64 md:pt-0">
+        <ProfileSettingsPage />
+      </main>
     </div>
   )
-} 
+}
