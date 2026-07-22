@@ -47,7 +47,7 @@ pluggy==1.5.0
 postgrest==2.30.0
 propcache==0.5.2
 psycopg2-binary==2.9.10
-pyasn1==0.6.3
+pyasn1==0.6.4
 pycparser==3.0
 pydantic==2.13.4
 pydantic_core==2.46.4
