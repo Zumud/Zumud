@@ -13,6 +13,7 @@ function getInitialTheme(): Theme {
 
 interface ThemeToggleProps {
   className?: string;
+  showLabel?: boolean;
 }
 
 /**
@@ -20,9 +21,10 @@ interface ThemeToggleProps {
  * <html> class (set pre-paint by ThemeScript), writes the choice to
  * localStorage, and keeps `color-scheme` in sync so native controls match.
  */
-export function ThemeToggle({ className }: ThemeToggleProps) {
+export function ThemeToggle({ className, showLabel = false }: ThemeToggleProps) {
   const [theme, setTheme] = React.useState<Theme>("light");
   const [mounted, setMounted] = React.useState(false);
+  const label = theme === "dark" ? "Light mode" : "Dark mode";
 
   React.useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: hydration mount-gate pattern
@@ -52,7 +54,8 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       className={cn(
-        "inline-flex size-9 items-center justify-center rounded-full border border-border/70 bg-background/60 text-foreground/80 shadow-xs backdrop-blur transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+        "inline-flex h-9 cursor-pointer items-center justify-center rounded-full border border-border/70 bg-background/60 text-foreground/80 shadow-xs backdrop-blur transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/40",
+        showLabel ? "w-full gap-2 px-3 text-sm font-medium" : "w-9",
         className
       )}
     >
@@ -62,6 +65,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       ) : (
         <MoonIcon className="size-[1.15rem]" />
       )}
+      {showLabel && <span>{mounted ? label : "Theme"}</span>}
     </button>
   );
 }

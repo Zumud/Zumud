@@ -2,9 +2,8 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Loader2, Upload, CheckCircle, ArrowLeft, Save, LogIn } from "lucide-react"
+import { Loader2, Upload, CheckCircle, Save, LogIn } from "lucide-react"
 import { resume } from "@/lib/api"
-import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { errorMessage, signOut } from "@/lib/utils"
 import { useRouter } from "next/navigation"
@@ -63,7 +62,6 @@ export default function ProfileSettingsPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: all setState here runs after awaits
     fetchResumeData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, [])
 
   const handleUpdateResume = async () => {
@@ -173,12 +171,7 @@ export default function ProfileSettingsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container-page max-w-3xl py-8 md:py-12">
-        <div className="mb-8 flex items-center gap-3">
-          <Link href="/dashboard" aria-label="Back to dashboard">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+        <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight">Profile settings</h1>
         </div>
 
@@ -274,7 +267,7 @@ export default function ProfileSettingsPage() {
                       />
                       <button
                         type="button"
-                        className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-brand/10 text-brand transition-colors hover:bg-brand/20"
+                        className="mx-auto mb-3 flex h-16 w-16 cursor-pointer items-center justify-center rounded-full bg-brand/10 text-brand transition-colors hover:bg-brand/20"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <Upload className="h-8 w-8" />
@@ -282,7 +275,7 @@ export default function ProfileSettingsPage() {
                       <p className="text-sm">
                         <button
                           type="button"
-                          className="font-medium text-brand hover:underline"
+                          className="cursor-pointer font-medium text-brand hover:underline"
                           onClick={() => fileInputRef.current?.click()}
                         >
                           Click to upload
