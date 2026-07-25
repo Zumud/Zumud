@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Suspense, useCallback } from "react"
+import { useState, Suspense, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import AuthModal from "@/components/auth/auth-modal"
 import Navbar from "@/components/landing/navbar"
@@ -13,12 +13,40 @@ import FaqSection from "@/components/landing/faq-section"
 import OpenSourceSection from "@/components/landing/open-source-section"
 import CallToActionSection from "@/components/landing/call-to-action-section"
 import Footer from "@/components/landing/footer"
+import { createClient } from "@/lib/supabase/client"
 
 function LandingPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const signupRequested = searchParams.get('signup') === 'true'
   const [showAuthModal, setShowAuthModal] = useState(signupRequested)
+  const [userAuthenticated, setUserAuthenticated] = useState(false)
+
+  // Keep one auth state for every landing-page CTA so the header and the rest
+  // of the page cannot disagree about whether the visitor is signed in.
+  useEffect(() => {
+    const supabase = createClient()
+    let active = true
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return
+
+      const authenticated = !!data.session
+      setUserAuthenticated(authenticated)
+      if (authenticated) setShowAuthModal(false)
+    })
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      const authenticated = !!session
+      setUserAuthenticated(authenticated)
+      if (authenticated) setShowAuthModal(false)
+    })
+
+    return () => {
+      active = false
+      subscription.subscription.unsubscribe()
+    }
+  }, [])
 
   const handleAuthSuccess = useCallback(() => {
     setShowAuthModal(false)
@@ -26,29 +54,43 @@ function LandingPageContent() {
   }, [router])
 
   const handleAuthModalOpen = useCallback(() => {
+    if (userAuthenticated) {
+      router.push('/dashboard')
+      return
+    }
+
     setShowAuthModal(true)
-  }, [])
+  }, [router, userAuthenticated])
 
   const handleAuthModalClose = useCallback(() => {
     setShowAuthModal(false)
   }, [])
 
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden">
-      <Navbar onAuthModalOpen={handleAuthModalOpen} />
+    <div className="flex min-h-screen flex-col overflow-x-clip pt-16">
+      <Navbar
+        userAuthenticated={userAuthenticated}
+        onAuthModalOpen={handleAuthModalOpen}
+      />
       <main className="flex-1">
         <HeroSection />
         <ProblemSection />
         <SolutionSection />
         <LatexSection />
         <OpenSourceSection />
-        <PricingSection onAuthModalOpen={handleAuthModalOpen} />
+        <PricingSection
+          userAuthenticated={userAuthenticated}
+          onAuthModalOpen={handleAuthModalOpen}
+        />
         <FaqSection />
-        <CallToActionSection onAuthModalOpen={handleAuthModalOpen} />
+        <CallToActionSection
+          userAuthenticated={userAuthenticated}
+          onAuthModalOpen={handleAuthModalOpen}
+        />
       </main>
       <Footer />
-      
-      <AuthModal 
+
+      <AuthModal
         isOpen={showAuthModal}
         onClose={handleAuthModalClose}
         onSuccess={handleAuthSuccess}

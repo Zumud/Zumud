@@ -1,11 +1,16 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRightIcon, CheckCircle2 } from "lucide-react";
 
 interface CallToActionSectionProps {
+  userAuthenticated: boolean;
   onAuthModalOpen?: (mode?: "login" | "signup") => void;
 }
 
-export default function CallToActionSection({ onAuthModalOpen }: CallToActionSectionProps) {
+export default function CallToActionSection({
+  userAuthenticated,
+  onAuthModalOpen,
+}: CallToActionSectionProps) {
   return (
     <section className="section">
       <div className="container-page">
@@ -30,22 +35,37 @@ export default function CallToActionSection({ onAuthModalOpen }: CallToActionSec
             </p>
 
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button
-                size="xl"
-                onClick={() => onAuthModalOpen?.("signup")}
-                className="w-full bg-white font-semibold text-[var(--brand)] shadow-lg hover:bg-white/90 sm:w-auto"
-              >
-                Get started free
-                <ArrowRightIcon className="size-5" />
-              </Button>
-              <Button
-                size="xl"
-                variant="outline"
-                onClick={() => onAuthModalOpen?.("login")}
-                className="w-full border-white/40 bg-white/10 text-white backdrop-blur hover:bg-white/20 hover:text-white sm:w-auto dark:bg-white/10"
-              >
-                Sign in
-              </Button>
+              {userAuthenticated ? (
+                <Button
+                  asChild
+                  size="xl"
+                  className="w-full bg-white font-semibold text-[var(--brand)] shadow-lg hover:bg-white/90 sm:w-auto"
+                >
+                  <Link href="/dashboard">
+                    Open resume form
+                    <ArrowRightIcon className="size-5" />
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="xl"
+                    onClick={() => onAuthModalOpen?.("signup")}
+                    className="w-full bg-white font-semibold text-[var(--brand)] shadow-lg hover:bg-white/90 sm:w-auto"
+                  >
+                    Get started free
+                    <ArrowRightIcon className="size-5" />
+                  </Button>
+                  <Button
+                    size="xl"
+                    variant="outline"
+                    onClick={() => onAuthModalOpen?.("login")}
+                    className="w-full border-white/40 bg-white/10 text-white backdrop-blur hover:bg-white/20 hover:text-white sm:w-auto dark:bg-white/10"
+                  >
+                    Sign in
+                  </Button>
+                </>
+              )}
             </div>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/85">

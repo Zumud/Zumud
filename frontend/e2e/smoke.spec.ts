@@ -30,6 +30,13 @@ test('signup, add resume, tailor, download a real PDF', async ({ page }) => {
   await page.getByRole('button', { name: 'Create account' }).click()
   await page.waitForURL('**/dashboard', { timeout: 30_000 })
 
+  // Landing CTAs must reflect the active session and must not reopen auth.
+  await page.goto('/')
+  await expect(page.getByRole('link', { name: 'Dashboard' }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Open resume form' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Get started free' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Sign in' })).toHaveCount(0)
+
   // --- Add resume content in profile settings ------------------------------
   await page.goto('/profile')
   await page.getByPlaceholder('Your resume content here...').fill(RESUME_TEXT)
