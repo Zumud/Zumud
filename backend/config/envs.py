@@ -22,6 +22,9 @@ LaTeX_COMPILER_URL_DATA = (
 
 # Supabase Configuration
 SUPABASE_URL = getenv("SUPABASE_URL")
+SUPABASE_PUBLISHABLE_KEY = getenv("SUPABASE_PUBLISHABLE_KEY") or getenv(
+    "SUPABASE_ANON_KEY"
+)
 
 # API key. Supabase deprecated the JWT-based service_role key in favour of the
 # secret (sb_secret_...) key. Prefer the new key; fall back to the legacy name

@@ -15,9 +15,12 @@ manual configuration + data migration + cutover that a maintainer performs.
     and keeps a **transitional fallback** that still accepts old app-issued
     tokens so existing sessions aren't dropped at cutover.
   - `POST /login` and `POST /users/signup` are retired (Supabase owns these now).
-- **Frontend** uses `@supabase/ssr`: login/signup/Google via the Supabase client,
-  a `/auth/callback` route, cookie-based sessions, and the proxy guards protected
-  routes. The backend is still called with `Authorization: Bearer <supabase token>`.
+- **Frontend** uses `@supabase/ssr`: email login/signup and Google sign-in use
+  the Supabase client. The same identifier field also accepts usernames; the
+  backend privately resolves the account email and exchanges the username +
+  password for a Supabase session. A `/auth/callback` route, cookie-based
+  sessions, and the proxy guard protect authenticated routes. The backend is
+  still called with `Authorization: Bearer <supabase token>`.
 - The integer `users.id` stays the internal id; all FKs, filesystem paths
   (keyed by `username`), and Stripe (keyed by `email`) are unchanged.
 
@@ -72,7 +75,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ix_users_supabase_uid ON public.users (supabas
 ```
 
 Email-quality audit (gating prerequisite for the import — every user to migrate
-needs a unique, valid, non-null email since login becomes email-based):
+needs a unique, valid, non-null email because Supabase Auth remains email-backed, even though the UI also accepts usernames):
 
 ```sql
 SELECT
@@ -96,11 +99,15 @@ ORDER BY count(*) DESC;
 Add to `/opt/zumud/.env` (and your local `.env`):
 
 ```
+# required for the backend username-to-Supabase session exchange
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+
 # only if the project uses the legacy HS256 JWT secret; omit for asymmetric keys
 SUPABASE_JWT_SECRET=<project jwt secret>
 ```
 
-`SUPABASE_URL` is already set and is used to derive the JWKS + issuer.
+`SUPABASE_URL` is also required and is used for both the Auth exchange and the
+JWKS issuer configuration.
 
 ## Phase 3 — Import existing users into Supabase Auth
 
@@ -141,7 +148,7 @@ systemctl restart zumud-backend zumud-frontend
 
 Verify:
 
-- Existing user logs in with email + password (imported account).
+- Existing user logs in with either email or username + password.
 - Brand-new email signup creates a profile + empty resume (auto-provision).
 - "Continue with Google" creates an account on first use and reuses it after.
 - All protected routes work; resume upload works after signup.

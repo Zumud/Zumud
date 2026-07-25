@@ -22,13 +22,19 @@ test('signup, add resume, tailor, download a real PDF', async ({ page }) => {
   await page.getByRole('button', { name: 'Get started free' }).first().click()
   await expect(page.getByRole('heading', { name: 'Welcome to Zumud' })).toBeVisible()
 
-  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Email or username').fill(email)
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
 
   // Unknown email -> create-account step (local stack signs in immediately).
   await page.getByRole('textbox', { name: 'Password' }).fill(password)
   await page.getByRole('button', { name: 'Create account' }).click()
   await page.waitForURL('**/dashboard', { timeout: 30_000 })
+
+  // Dashboard navigation should only expose active destinations, and the
+  // Zumud wordmark should link back to the landing page.
+  await page.getByRole('button', { name: 'Expand sidebar' }).click()
+  await expect(page.getByRole('button', { name: 'Manage Subscription' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Go to Zumud home page' })).toHaveAttribute('href', '/')
 
   // Landing CTAs must reflect the active session and must not reopen auth.
   await page.goto('/')
@@ -60,6 +66,8 @@ test('signup, add resume, tailor, download a real PDF', async ({ page }) => {
     { timeout: 210_000 },
   )
   await page.getByRole('button', { name: /Generate Resume/ }).click()
+  await expect(page.getByRole('region', { name: 'Resume generation progress' })).toBeVisible()
+  await expect(page.getByText('Preparing your resume')).toBeVisible()
   const response = await pdfResponse
 
   expect(response.headers()['content-type']).toContain('application/pdf')

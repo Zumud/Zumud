@@ -76,6 +76,7 @@ def supabase_user(local_stack):
 
     return {
         "email": email,
+        "password": password,
         "access_token": grant.json()["access_token"],
         "auth_id": created.json()["id"],
     }

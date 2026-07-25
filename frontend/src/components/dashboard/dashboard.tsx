@@ -31,6 +31,7 @@ import { useRouter } from "next/navigation"
 export default function Dashboard() {
   const router = useRouter()
   const [userData, setUserData] = useState<{ first_name: string } | null>(null)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
   const [jobDescription, setJobDescription] = useState("")
   const [question, setQuestion] = useState("")
   const [answer, setAnswer] = useState("")
@@ -568,10 +569,17 @@ export default function Dashboard() {
   return (
     <div className="ambient-glow relative min-h-screen bg-background pb-40 md:pb-12">
       {/* Sidebar */}
-      <Sidebar onLogout={handleLogout} />
+      <Sidebar
+        onLogout={handleLogout}
+        onCollapsedChange={setIsSidebarCollapsed}
+      />
 
       {/* Main Content */}
-      <div className="relative">
+      <div
+        className={`relative transition-[margin] duration-300 ease-in-out ${
+          isSidebarCollapsed ? "md:ml-16" : "md:ml-64"
+        }`}
+      >
         {/* Main Content Area */}
         <div className="mx-auto max-w-4xl px-4 py-8 md:px-8 md:py-12">
           {/* Header - hide after first generation */}
@@ -894,7 +902,13 @@ export default function Dashboard() {
               {((activeTab === 'resume' && generatedResumePdf) || 
                 (activeTab === 'cover-letter' && coverLetter) || 
                 (activeTab === 'question' && answer)) && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 z-40 animate-in slide-in-from-bottom-4 fade-in duration-500 md:bottom-6 md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-4xl md:px-8">
+                <div
+                  className={`fixed bottom-0 left-0 right-0 z-40 animate-in p-4 slide-in-from-bottom-4 fade-in duration-500 md:bottom-6 md:right-auto md:w-full md:max-w-4xl md:-translate-x-1/2 md:px-8 ${
+                    isSidebarCollapsed
+                      ? "md:left-[calc(50%+2rem)]"
+                      : "md:left-[calc(50%+8rem)]"
+                  }`}
+                >
                   <div className="rounded-t-2xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur-2xl md:rounded-2xl">
                     {/* Mobile: Stack vertically, Desktop: Single line */}
                     <div className="space-y-3 md:space-y-0">
