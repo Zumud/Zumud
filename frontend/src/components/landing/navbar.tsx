@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Menu, X } from "lucide-react";
 import { GithubIcon } from "@/components/icons/github-icon";
-import { createClient } from "@/lib/supabase/client";
 
 const GITHUB_URL = "https://github.com/Zumud/Zumud";
 
 interface NavbarProps {
+  userAuthenticated: boolean;
   onAuthModalOpen?: (mode?: "login" | "signup") => void;
 }
 
@@ -22,27 +22,9 @@ const NAV_LINKS = [
   { href: "#faq", label: "FAQ" },
 ];
 
-export default function Navbar({ onAuthModalOpen }: NavbarProps) {
-  const [userAuthenticated, setUserAuthenticated] = React.useState(false);
+export default function Navbar({ userAuthenticated, onAuthModalOpen }: NavbarProps) {
   const [scrolled, setScrolled] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
-
-  // Reflect Supabase auth state on mount and whenever it changes.
-  React.useEffect(() => {
-    const supabase = createClient();
-
-    supabase.auth.getSession().then(({ data }) => {
-      setUserAuthenticated(!!data.session);
-    });
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserAuthenticated(!!session);
-    });
-
-    return () => {
-      sub.subscription.unsubscribe();
-    };
-  }, []);
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -62,7 +44,7 @@ export default function Navbar({ onAuthModalOpen }: NavbarProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-300",
+        "fixed inset-x-0 top-0 z-50 w-full transition-all duration-300",
         scrolled
           ? "border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65"
           : "border-b border-transparent bg-background/0"

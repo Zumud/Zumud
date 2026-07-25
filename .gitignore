@@ -25,3 +25,6 @@ frontend/playwright-report/
 .coverage
 coverage.xml
 .pytest_cache/
+
+start-backend.ps1
+start-frontend.ps1

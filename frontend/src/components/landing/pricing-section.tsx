@@ -3,10 +3,14 @@ import { CheckIcon, GiftIcon, SparklesIcon } from "lucide-react";
 import { PRICING_PLANS } from "@/data/pricing-data";
 
 interface PricingSectionProps {
+  userAuthenticated: boolean;
   onAuthModalOpen?: (mode?: "login" | "signup") => void;
 }
 
-export default function PricingSection({ onAuthModalOpen }: PricingSectionProps) {
+export default function PricingSection({
+  userAuthenticated,
+  onAuthModalOpen,
+}: PricingSectionProps) {
   const freePlan = PRICING_PLANS.find((plan) => plan.id === "free");
   const paygPlan = PRICING_PLANS.find((plan) => plan.id === "payg");
 
@@ -60,7 +64,7 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
                 className="mt-7 w-full"
                 onClick={() => onAuthModalOpen?.("signup")}
               >
-                {freePlan.cta}
+                {userAuthenticated ? "Go to dashboard" : freePlan.cta}
               </Button>
             </div>
           )}
@@ -102,7 +106,7 @@ export default function PricingSection({ onAuthModalOpen }: PricingSectionProps)
                 className="mt-7 w-full"
                 onClick={() => onAuthModalOpen?.("signup")}
               >
-                {paygPlan.cta}
+                {userAuthenticated ? "Go to dashboard" : paygPlan.cta}
               </Button>
             </div>
           )}
