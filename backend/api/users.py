@@ -2,20 +2,23 @@ import base64
 import logging
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
     File,
     HTTPException,
+    Response,
     UploadFile,
     status,
 )
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, SecretStr
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from backend.api.auth import get_current_user
+from backend.config.envs import SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
 from backend.core.ai_service import format_user_preferences
 from backend.core.storage_service import safe_upload_with_fallback, storage_service
 from backend.models import db_models
@@ -41,6 +44,70 @@ class EmailCheckRequest(BaseModel):
     email: EmailStr
 
 
+class IdentifierCheckRequest(BaseModel):
+    identifier: str
+
+
+class UsernameSignInRequest(BaseModel):
+    username: str
+    password: SecretStr
+
+
+def _email_auth_methods(email: str, db: Session):
+    return db.execute(
+        text(
+            """
+            SELECT
+              EXISTS (
+                SELECT 1 FROM auth.users WHERE lower(email) = :email
+              ) AS does_exist,
+              EXISTS (SELECT 1 FROM auth.users
+                      WHERE lower(email) = :email
+                        AND encrypted_password IS NOT NULL
+                        AND encrypted_password <> '') AS has_password,
+              EXISTS (SELECT 1 FROM auth.identities i
+                      JOIN auth.users u ON u.id = i.user_id
+                      WHERE lower(u.email) = :email
+                        AND i.provider = 'google') AS has_google
+            """
+        ),
+        {"email": email},
+    ).first()
+
+
+def _username_auth_record(username: str, db: Session):
+    return (
+        db.execute(
+            text(
+                """
+            SELECT
+              au.email AS email,
+              (au.encrypted_password IS NOT NULL
+               AND au.encrypted_password <> '') AS has_password,
+              EXISTS (
+                SELECT 1
+                FROM auth.identities i
+                WHERE i.user_id = au.id AND i.provider = 'google'
+              ) AS has_google
+            FROM public.users pu
+            JOIN auth.users au
+              ON au.id = pu.supabase_uid
+              OR (
+                pu.supabase_uid IS NULL
+                AND pu.email IS NOT NULL
+                AND lower(au.email) = lower(pu.email)
+              )
+            WHERE lower(pu.username) = :username
+            LIMIT 1
+            """
+            ),
+            {"username": username},
+        )
+        .mappings()
+        .first()
+    )
+
+
 @router.post("/check-email")
 def check_email(payload: EmailCheckRequest, db: Session = Depends(get_db)):
     """Report which sign-in methods exist for an email (identifier-first auth UI).
@@ -52,22 +119,7 @@ def check_email(payload: EmailCheckRequest, db: Session = Depends(get_db)):
     """
     email = payload.email.strip().lower()
     try:
-        row = db.execute(
-            text(
-                """
-                SELECT
-                  EXISTS (SELECT 1 FROM auth.users WHERE lower(email) = :email) AS does_exist,
-                  EXISTS (SELECT 1 FROM auth.users
-                          WHERE lower(email) = :email
-                            AND encrypted_password IS NOT NULL
-                            AND encrypted_password <> '') AS has_password,
-                  EXISTS (SELECT 1 FROM auth.identities i
-                          JOIN auth.users u ON u.id = i.user_id
-                          WHERE lower(u.email) = :email AND i.provider = 'google') AS has_google
-                """
-            ),
-            {"email": email},
-        ).first()
+        row = _email_auth_methods(email, db)
     except Exception as e:
         # Fail safe: never block the UI if the auth-schema read fails.
         logger.error(f"check-email lookup failed: {e}")
@@ -78,6 +130,151 @@ def check_email(payload: EmailCheckRequest, db: Session = Depends(get_db)):
         "has_password": bool(row[1]),
         "has_google": bool(row[2]),
     }
+
+
+@router.post("/check-identifier")
+def check_identifier(payload: IdentifierCheckRequest, db: Session = Depends(get_db)):
+    """Report sign-in methods for either an email address or username."""
+    identifier = payload.identifier.strip().lower()
+    if not identifier:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Enter an email address or username.",
+        )
+
+    try:
+        if "@" in identifier:
+            row = _email_auth_methods(identifier, db)
+            return {
+                "identifier_type": "email",
+                "exists": bool(row[0]),
+                "has_password": bool(row[1]),
+                "has_google": bool(row[2]),
+            }
+
+        record = _username_auth_record(identifier, db)
+        return {
+            "identifier_type": "username",
+            "exists": record is not None,
+            "has_password": bool(record and record["has_password"]),
+            "has_google": bool(record and record["has_google"]),
+        }
+    except Exception as e:
+        logger.error("check-identifier lookup failed: %s", e)
+        if "@" in identifier:
+            # Preserve the existing email-first fail-safe: Supabase will still
+            # validate the address if the user continues to account creation.
+            return {
+                "identifier_type": "email",
+                "exists": False,
+                "has_password": False,
+                "has_google": False,
+            }
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Sign-in is temporarily unavailable. Please try again.",
+        ) from e
+
+
+@router.post("/sign-in/username")
+async def sign_in_with_username(
+    payload: UsernameSignInRequest,
+    api_response: Response,
+    db: Session = Depends(get_db),
+):
+    """Exchange a username and password for a Supabase Auth session."""
+    username = payload.username.strip().lower()
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid username or password.",
+        )
+
+    try:
+        record = _username_auth_record(username, db)
+    except Exception as e:
+        logger.error("Username sign-in lookup failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Sign-in is temporarily unavailable. Please try again.",
+        ) from e
+
+    if not record or not record["email"] or not record["has_password"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid username or password.",
+        )
+
+    if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
+        logger.error("Username sign-in requires Supabase URL and publishable key")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Sign-in is temporarily unavailable. Please try again.",
+        )
+
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            auth_response = await client.post(
+                f"{SUPABASE_URL.rstrip('/')}/auth/v1/token",
+                params={"grant_type": "password"},
+                headers={"apikey": SUPABASE_PUBLISHABLE_KEY},
+                json={
+                    "email": record["email"],
+                    "password": payload.password.get_secret_value(),
+                },
+            )
+    except httpx.RequestError as e:
+        logger.error("Supabase username sign-in request failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Sign-in is temporarily unavailable. Please try again.",
+        ) from e
+
+    if auth_response.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many sign-in attempts. Please try again later.",
+        )
+    if (
+        auth_response.status_code
+        in {
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN,
+        }
+        or auth_response.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR
+    ):
+        logger.error(
+            "Supabase username sign-in failed with status %s",
+            auth_response.status_code,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Sign-in is temporarily unavailable. Please try again.",
+        )
+    if auth_response.is_error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid username or password.",
+        )
+
+    try:
+        session = auth_response.json()
+        access_token = session["access_token"]
+        refresh_token = session["refresh_token"]
+        if not isinstance(access_token, str) or not access_token:
+            raise ValueError("Missing access token")
+        if not isinstance(refresh_token, str) or not refresh_token:
+            raise ValueError("Missing refresh token")
+    except (KeyError, TypeError, ValueError) as e:
+        logger.error("Supabase username sign-in returned an invalid session")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Sign-in is temporarily unavailable. Please try again.",
+        ) from e
+
+    api_response.headers["Cache-Control"] = "no-store"
+    api_response.headers["Pragma"] = "no-cache"
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
 
 async def process_resume_background(

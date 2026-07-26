@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   History,
@@ -11,51 +12,32 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
-import { billing } from "@/lib/api";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 interface SidebarProps {
   onLogout: () => void;
   className?: string;
+  onCollapsedChange?: (isCollapsed: boolean) => void;
 }
 
 interface SidebarItem {
   icon: React.ElementType;
   label: string;
-  href?: string;
-  onClick?: () => void;
+  href: string;
 }
 
-export default function Sidebar({ onLogout, className }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(true); // Default to collapsed
+export default function Sidebar({
+  onLogout,
+  className,
+  onCollapsedChange,
+}: SidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isLoadingPortal, setIsLoadingPortal] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-
-  const handleManageSubscription = async () => {
-    try {
-      setIsLoadingPortal(true);
-      const response = await billing.createCustomerPortalSession();
-      
-      if (response && response.portal_url) {
-        // Redirect to Stripe Customer Portal
-        window.location.assign(response.portal_url);
-      } else {
-        console.error('No portal URL received from API');
-        alert('Unable to open billing portal. Please try again.');
-      }
-    } catch (error) {
-      console.error('Failed to create customer portal session:', error);
-      alert('Unable to open billing portal. Please try again.');
-    } finally {
-      setIsLoadingPortal(false);
-    }
-  };
 
   const sidebarItems: SidebarItem[] = [
     {
@@ -73,48 +55,41 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
       label: "Profile",
       href: "/profile",
     },
-    {
-      icon: CreditCard,
-      label: "Manage Subscription",
-      onClick: handleManageSubscription,
-    },
   ];
 
   const handleItemClick = (item: SidebarItem) => {
-    if (item.onClick) {
-      item.onClick();
-    } else if (item.href) {
-      router.push(item.href);
-    }
-    // Close mobile menu after clicking
+    router.push(item.href);
     setIsMobileOpen(false);
   };
 
+  const handleCollapsedToggle = () => {
+    const nextCollapsed = !isCollapsed;
+    setIsCollapsed(nextCollapsed);
+    onCollapsedChange?.(nextCollapsed);
+  };
+
   const isItemActive = (item: SidebarItem) =>
-    Boolean(item.href && (pathname === item.href || pathname.startsWith(`${item.href}/`)));
+    pathname === item.href || pathname.startsWith(`${item.href}/`);
 
   return (
     <>
-      {/* Mobile menu button */}
       <Button
         variant="outline"
         size="icon"
-        className="md:hidden fixed top-4 left-4 z-50 bg-background/90 backdrop-blur-sm shadow-lg"
+        className="fixed left-4 top-4 z-50 bg-background/90 shadow-lg backdrop-blur-sm md:hidden"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
         aria-label="Toggle navigation menu"
       >
         {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
 
-      {/* Mobile overlay */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           "fixed left-0 top-0 z-50 h-full border-r border-sidebar-border bg-sidebar/95 shadow-sm backdrop-blur-sm transition-all duration-300",
@@ -123,26 +98,32 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
           className
         )}
       >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className={cn(
-            "flex h-16 items-center border-b border-sidebar-border px-3",
-            isCollapsed ? "justify-center" : "justify-between"
-          )}>
+        <div className="flex h-full flex-col">
+          <div
+            className={cn(
+              "flex h-16 items-center border-b border-sidebar-border px-3",
+              isCollapsed ? "justify-center" : "justify-between"
+            )}
+          >
             {!isCollapsed && (
-              <div className="flex min-w-0 items-center">
+              <Link
+                href="/"
+                className="flex min-w-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Go to Zumud home page"
+                onClick={() => setIsMobileOpen(false)}
+              >
                 <img
                   src="/logos/zumud/combined.svg"
                   alt="Zumud"
                   className="h-7 w-auto"
                 />
-              </div>
+              </Link>
             )}
             <Button
               variant="ghost"
               size="icon"
               className="hidden rounded-xl text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground md:flex"
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={handleCollapsedToggle}
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {isCollapsed ? (
@@ -153,7 +134,6 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
             </Button>
           </div>
 
-          {/* Appearance */}
           <div className="border-b border-sidebar-border p-3">
             {!isCollapsed && (
               <p className="mb-2 px-2 text-[11px] font-semibold uppercase text-muted-foreground">
@@ -169,7 +149,6 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
             />
           </div>
 
-          {/* Navigation items */}
           <nav className="flex-1 space-y-1.5 p-3">
             {sidebarItems.map((item) => {
               const isActive = isItemActive(item);
@@ -185,20 +164,14 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
                     isActive && "bg-sidebar-primary/10 text-sidebar-primary shadow-sm dark:bg-sidebar-primary/15"
                   )}
                   onClick={() => handleItemClick(item)}
-                  disabled={item.label === "Manage Subscription" && isLoadingPortal}
                 >
                   <item.icon className="h-4 w-4 flex-shrink-0" />
-                  {!isCollapsed && (
-                    <span className="truncate">
-                      {item.label === "Manage Subscription" && isLoadingPortal ? "Opening..." : item.label}
-                    </span>
-                  )}
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </Button>
               );
             })}
           </nav>
 
-          {/* Footer */}
           <div className="border-t border-sidebar-border p-3">
             <Button
               variant="ghost"
@@ -215,9 +188,6 @@ export default function Sidebar({ onLogout, className }: SidebarProps) {
           </div>
         </div>
       </aside>
-
-      {/* Main content offset */}
-      <div className={cn("transition-all duration-300", isCollapsed ? "md:ml-16" : "md:ml-64")} />
     </>
   );
-} 
+}

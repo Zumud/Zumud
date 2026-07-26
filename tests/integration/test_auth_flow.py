@@ -84,3 +84,33 @@ def test_check_email_reports_signin_methods(app_client, supabase_user):
         "/users/check-email", json={"email": "nobody-here@example.com"}
     ).json()
     assert unknown["exists"] is False
+
+
+def test_username_identifier_and_signin(app_client, supabase_user):
+    profile = app_client.get("/users/me", headers=auth_header(supabase_user)).json()
+    username = profile["username"]
+
+    checked = app_client.post("/users/check-identifier", json={"identifier": username})
+    assert checked.status_code == 200
+    assert checked.json() == {
+        "identifier_type": "username",
+        "exists": True,
+        "has_password": True,
+        "has_google": False,
+    }
+
+    signed_in = app_client.post(
+        "/users/sign-in/username",
+        json={"username": username, "password": supabase_user["password"]},
+    )
+    assert signed_in.status_code == 200
+    session = signed_in.json()
+    assert session["access_token"]
+    assert session["refresh_token"]
+
+    me = app_client.get(
+        "/users/me",
+        headers={"Authorization": f"Bearer {session['access_token']}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["username"] == username

@@ -239,12 +239,28 @@ async function apiCall(
   throw lastError || new Error('All API call attempts failed');
 }
 
-// Auth endpoints. Login/signup are handled by Supabase Auth on the client
-// (see components/auth/auth-modal.tsx); the backend exposes the profile and an
-// email lookup that powers the identifier-first modal.
+type IdentifierType = 'email' | 'username';
+
+type IdentifierCheckResult = {
+  identifier_type: IdentifierType;
+  exists: boolean;
+  has_password: boolean;
+  has_google: boolean;
+};
+
+type AuthSessionTokens = {
+  access_token: string;
+  refresh_token: string;
+};
+
+// Email login/signup stays client-side through Supabase Auth. Username login
+// is exchanged by the backend so the account email is never exposed.
 export const auth = {
-  checkEmail: (email: string): Promise<{ exists: boolean; has_password: boolean; has_google: boolean }> =>
-    apiCall('users/check-email', 'POST', { email }),
+  checkIdentifier: (identifier: string): Promise<IdentifierCheckResult> =>
+    apiCall('users/check-identifier', 'POST', { identifier }),
+
+  signInWithUsername: (username: string, password: string): Promise<AuthSessionTokens> =>
+    apiCall('users/sign-in/username', 'POST', { username, password }),
 };
 
 // Resume endpoints

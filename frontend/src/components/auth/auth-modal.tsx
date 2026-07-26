@@ -13,7 +13,8 @@ interface AuthModalProps {
   onSuccess: () => void
 }
 
-type Step = 'email' | 'password' | 'create' | 'reset-sent'
+type Step = 'identifier' | 'password' | 'create' | 'reset-sent'
+type IdentifierType = 'email' | 'username'
 
 function toMessage(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback
@@ -33,8 +34,9 @@ function GoogleIcon() {
 export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const supabase = createClient()
 
-  const [step, setStep] = useState<Step>('email')
-  const [email, setEmail] = useState('')
+  const [step, setStep] = useState<Step>('identifier')
+  const [identifier, setIdentifier] = useState('')
+  const [identifierType, setIdentifierType] = useState<IdentifierType>('email')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -42,14 +44,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const [isResetting, setIsResetting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
-  // Inline hint when the email belongs to a Google-only account (no password).
+  // Inline hint when the account belongs to a Google-only identity.
   const [googleHint, setGoogleHint] = useState(false)
 
   // Reset the flow whenever the modal opens.
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-gate debt: refactor to key-based reset
-      setStep('email')
+      setStep('identifier')
       setPassword('')
       setShowPassword(false)
       setError(null)
@@ -58,8 +60,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     }
   }, [isOpen])
 
-  const resetToEmail = () => {
-    setStep('email')
+  const resetToIdentifier = () => {
+    setStep('identifier')
     setPassword('')
     setShowPassword(false)
     setError(null)
@@ -84,25 +86,29 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     }
   }
 
-  const handleEmailContinue = async (e: React.FormEvent) => {
+  const handleIdentifierContinue = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setInfo(null)
     setGoogleHint(false)
     setIsLoading(true)
     try {
-      const { exists, has_password } = await auth.checkEmail(email.trim())
-      if (exists && has_password) {
+      const result = await auth.checkIdentifier(identifier.trim())
+      setIdentifierType(result.identifier_type)
+
+      if (result.exists && result.has_password) {
         setStep('password')
-      } else if (!exists) {
+      } else if (!result.exists && result.identifier_type === 'email') {
         setStep('create')
+      } else if (!result.exists) {
+        setError('No account was found with this username.')
       } else {
-        // Exists but no password -> a Google account. Keep them here and point
-        // at the Google button instead of dead-ending on a password field.
+        // Existing account without a password: point at Google instead of
+        // dead-ending on a password field.
         setGoogleHint(true)
       }
     } catch (err) {
-      console.error('Email check error:', err)
+      console.error('Identifier check error:', err)
       setError(toMessage(err, 'Something went wrong. Please try again.'))
     } finally {
       setIsLoading(false)
@@ -114,15 +120,25 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setError(null)
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      })
-      if (error) throw error
+      if (identifierType === 'username') {
+        const session = await auth.signInWithUsername(identifier.trim(), password)
+        const { error } = await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        })
+        if (error) throw error
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: identifier.trim(),
+          password,
+        })
+        if (error) throw error
+      }
+
       onSuccess()
     } catch (err) {
       console.error('Sign-in error:', err)
-      setError(toMessage(err, 'Incorrect password. Please try again.'))
+      setError(toMessage(err, 'Incorrect username or password. Please try again.'))
     } finally {
       setIsLoading(false)
     }
@@ -130,9 +146,15 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
   const handleForgotPassword = async () => {
     setError(null)
+
+    if (identifierType === 'username') {
+      setError('To reset your password, go back and enter the email address linked to this username.')
+      return
+    }
+
     setIsResetting(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const { error } = await supabase.auth.resetPasswordForEmail(identifier.trim(), {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/auth/reset-password')}`,
       })
       if (error) throw error
@@ -155,7 +177,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     setIsLoading(true)
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: identifier.trim(),
         password,
       })
       if (error) throw error
@@ -165,7 +187,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       } else {
         // Email confirmation enabled (requires SMTP): no session yet.
         setInfo('Account created. Please check your email to confirm, then sign in.')
-        setStep('email')
+        setStep('identifier')
         setIsLoading(false)
       }
     } catch (err) {
@@ -177,14 +199,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
   const inputClass = "field mt-1.5"
 
-  const emailPill = (
+  const identifierPill = (
     <button
       type="button"
-      onClick={resetToEmail}
+      onClick={resetToIdentifier}
       className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft className="h-4 w-4" />
-      <span className="truncate max-w-[16rem]">{email.trim()}</span>
+      <span className="truncate max-w-[16rem]">{identifier.trim()}</span>
     </button>
   )
 
@@ -221,7 +243,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {step === 'email' && 'Welcome to Zumud'}
+            {step === 'identifier' && 'Welcome to Zumud'}
             {step === 'password' && 'Welcome back'}
             {step === 'create' && 'Create your account'}
             {step === 'reset-sent' && 'Check your email'}
@@ -240,7 +262,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
           </div>
         )}
 
-        {step === 'email' && (
+        {step === 'identifier' && (
           <div className="space-y-4">
             <Button
               type="button"
@@ -262,30 +284,32 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
               </div>
             </div>
 
-            <form onSubmit={handleEmailContinue} className="space-y-4">
+            <form onSubmit={handleIdentifierContinue} className="space-y-4">
               <div>
-                <label htmlFor="auth-email" className="block text-sm font-medium">
-                  Email
+                <label htmlFor="auth-identifier" className="block text-sm font-medium">
+                  Email or username
                 </label>
                 <input
-                  id="auth-email"
-                  type="email"
+                  id="auth-identifier"
+                  type="text"
                   required
                   autoFocus
-                  autoComplete="email"
-                  value={email}
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  value={identifier}
                   onChange={(e) => {
-                    setEmail(e.target.value)
+                    setIdentifier(e.target.value)
                     setGoogleHint(false)
                   }}
                   className={inputClass}
-                  placeholder="you@example.com"
+                  placeholder="you@example.com or username"
                 />
               </div>
 
               {googleHint && (
                 <p className="text-sm text-muted-foreground">
-                  This email uses Google sign-in. Tap{' '}
+                  This account uses Google sign-in. Tap{' '}
                   <span className="font-medium text-foreground">Continue with Google</span> above.
                 </p>
               )}
@@ -311,7 +335,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
         {step === 'password' && (
           <form onSubmit={handleSignIn} className="space-y-4">
-            {emailPill}
+            {identifierPill}
             {passwordField('signin-password', 'Password', 'current-password')}
             <Button
               type="submit"
@@ -341,7 +365,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
 
         {step === 'create' && (
           <form onSubmit={handleCreate} className="space-y-4">
-            {emailPill}
+            {identifierPill}
             {passwordField('create-password', 'Password', 'new-password')}
             <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
             <Button
@@ -374,7 +398,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
             </button>
             <p className="text-sm text-muted-foreground">
               We sent a password reset link to{' '}
-              <span className="font-medium text-foreground">{email.trim()}</span>. Open it to choose a new password.
+              <span className="font-medium text-foreground">{identifier.trim()}</span>. Open it to choose a new password.
             </p>
           </div>
         )}

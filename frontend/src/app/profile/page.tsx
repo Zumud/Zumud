@@ -9,6 +9,7 @@ import ProfileSettingsPage from "@/components/profile/profile-settings-page"
 export default function ProfilePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
 
   useEffect(() => {
     let active = true
@@ -40,8 +41,15 @@ export default function ProfilePage() {
 
   return (
     <div className="ambient-glow relative min-h-screen bg-background">
-      <Sidebar onLogout={handleLogout} />
-      <main className="pt-16 md:pl-64 md:pt-0">
+      <Sidebar
+        onLogout={handleLogout}
+        onCollapsedChange={setIsSidebarCollapsed}
+      />
+      <main
+        className={`pt-16 transition-[margin] duration-300 ease-in-out md:pt-0 ${
+          isSidebarCollapsed ? "md:ml-16" : "md:ml-64"
+        }`}
+      >
         <ProfileSettingsPage />
       </main>
     </div>
