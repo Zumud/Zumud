@@ -87,14 +87,10 @@ def test_check_email_reports_signin_methods(app_client, supabase_user):
 
 
 def test_username_identifier_and_signin(app_client, supabase_user):
-    profile = app_client.get(
-        "/users/me", headers=auth_header(supabase_user)
-    ).json()
+    profile = app_client.get("/users/me", headers=auth_header(supabase_user)).json()
     username = profile["username"]
 
-    checked = app_client.post(
-        "/users/check-identifier", json={"identifier": username}
-    )
+    checked = app_client.post("/users/check-identifier", json={"identifier": username})
     assert checked.status_code == 200
     assert checked.json() == {
         "identifier_type": "username",

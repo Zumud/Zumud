@@ -76,9 +76,10 @@ def _email_auth_methods(email: str, db: Session):
 
 
 def _username_auth_record(username: str, db: Session):
-    return db.execute(
-        text(
-            """
+    return (
+        db.execute(
+            text(
+                """
             SELECT
               au.email AS email,
               (au.encrypted_password IS NOT NULL
@@ -99,9 +100,12 @@ def _username_auth_record(username: str, db: Session):
             WHERE lower(pu.username) = :username
             LIMIT 1
             """
-        ),
-        {"username": username},
-    ).mappings().first()
+            ),
+            {"username": username},
+        )
+        .mappings()
+        .first()
+    )
 
 
 @router.post("/check-email")
@@ -231,10 +235,14 @@ async def sign_in_with_username(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many sign-in attempts. Please try again later.",
         )
-    if auth_response.status_code in {
-        status.HTTP_401_UNAUTHORIZED,
-        status.HTTP_403_FORBIDDEN,
-    } or auth_response.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
+    if (
+        auth_response.status_code
+        in {
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN,
+        }
+        or auth_response.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR
+    ):
         logger.error(
             "Supabase username sign-in failed with status %s",
             auth_response.status_code,
