@@ -10,6 +10,7 @@ import logging
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.core.ai_service import format_ai_rules_for_prompt, get_enabled_ai_rules
 from backend.core.storage_service import safe_upload_with_fallback
 from backend.core.stripe_billing_service import process_billing_event
 from backend.models import db_models
@@ -51,6 +52,11 @@ def get_preferences_text(db: Session, user_id: int) -> str | None:
         .first()
     )
     return preferences.preferences_text if preferences else None
+
+
+def get_ai_rules_prompt(db: Session, user_id: int) -> str:
+    """Formatted enabled AI rules for one generation/edit request."""
+    return format_ai_rules_for_prompt(get_enabled_ai_rules(user_id, db))
 
 
 def bill_safely(event: str, current_user) -> None:

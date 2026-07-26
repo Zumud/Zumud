@@ -22,6 +22,11 @@ from backend.config.envs import SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
 from backend.core.ai_service import format_user_preferences
 from backend.core.storage_service import safe_upload_with_fallback, storage_service
 from backend.models import db_models
+from backend.models.ai_rule_models import (
+    UserAIRule,
+    UserAIRuleCreate,
+    UserAIRuleUpdate,
+)
 from backend.models.db import SessionLocal, get_db
 from backend.models.resume_models import Resume, ResumeBase
 from backend.models.user_models import User, UserPreference, UserPreferenceCreate
@@ -76,9 +81,10 @@ def _email_auth_methods(email: str, db: Session):
 
 
 def _username_auth_record(username: str, db: Session):
-    return db.execute(
-        text(
-            """
+    return (
+        db.execute(
+            text(
+                """
             SELECT
               au.email AS email,
               (au.encrypted_password IS NOT NULL
@@ -99,9 +105,12 @@ def _username_auth_record(username: str, db: Session):
             WHERE lower(pu.username) = :username
             LIMIT 1
             """
-        ),
-        {"username": username},
-    ).mappings().first()
+            ),
+            {"username": username},
+        )
+        .mappings()
+        .first()
+    )
 
 
 @router.post("/check-email")
@@ -231,10 +240,14 @@ async def sign_in_with_username(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many sign-in attempts. Please try again later.",
         )
-    if auth_response.status_code in {
-        status.HTTP_401_UNAUTHORIZED,
-        status.HTTP_403_FORBIDDEN,
-    } or auth_response.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
+    if (
+        auth_response.status_code
+        in {
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN,
+        }
+        or auth_response.status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR
+    ):
         logger.error(
             "Supabase username sign-in failed with status %s",
             auth_response.status_code,
@@ -523,3 +536,98 @@ def add_user_preference(
     db.commit()
     db.refresh(preferences)
     return preferences
+
+
+def _get_current_user_ai_rule(
+    rule_id: int, user_id: int, db: Session
+) -> db_models.UserAIRule:
+    rule = (
+        db.query(db_models.UserAIRule)
+        .filter(
+            db_models.UserAIRule.id == rule_id,
+            db_models.UserAIRule.user_id == user_id,
+        )
+        .first()
+    )
+    if not rule:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="AI rule not found.",
+        )
+    return rule
+
+
+@router.get("/me/ai-rules", response_model=list[UserAIRule])
+def list_user_ai_rules(
+    current_user=Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """List the authenticated user's AI rules."""
+    return (
+        db.query(db_models.UserAIRule)
+        .filter(db_models.UserAIRule.user_id == current_user.id)
+        .order_by(
+            db_models.UserAIRule.updated_at.desc(),
+            db_models.UserAIRule.id.asc(),
+        )
+        .all()
+    )
+
+
+@router.post(
+    "/me/ai-rules",
+    response_model=UserAIRule,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_user_ai_rule(
+    rule_data: UserAIRuleCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create an AI rule for the authenticated user."""
+    rule = db_models.UserAIRule(
+        user_id=current_user.id,
+        title=rule_data.title,
+        instruction=rule_data.instruction,
+        is_enabled=True,
+    )
+    db.add(rule)
+    db.commit()
+    db.refresh(rule)
+    return rule
+
+
+@router.put("/me/ai-rules/{rule_id}", response_model=UserAIRule)
+def update_user_ai_rule(
+    rule_id: int,
+    rule_data: UserAIRuleUpdate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update an AI rule owned by the authenticated user."""
+    update_data = rule_data.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide at least one field to update.",
+        )
+
+    rule = _get_current_user_ai_rule(rule_id, current_user.id, db)
+    for field, value in update_data.items():
+        setattr(rule, field, value)
+
+    db.commit()
+    db.refresh(rule)
+    return rule
+
+
+@router.delete("/me/ai-rules/{rule_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user_ai_rule(
+    rule_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete an AI rule owned by the authenticated user."""
+    rule = _get_current_user_ai_rule(rule_id, current_user.id, db)
+    db.delete(rule)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

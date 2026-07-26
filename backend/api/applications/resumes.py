@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from backend.api.applications.common import (
     bill_safely,
+    get_ai_rules_prompt,
     get_preferences_text,
     require_resume_content,
     require_resume_record,
@@ -56,6 +57,7 @@ async def generate_and_save_pdf_resume(
     require_resume_content(current_user, before="before generating a PDF")
 
     user_preferences = get_preferences_text(db, current_user.id)
+    ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
 
     company_name = ai_service.get_company_name(job_description)
     save_path = get_or_create_application(
@@ -77,6 +79,7 @@ async def generate_and_save_pdf_resume(
         current_user.id,
         db,
         is_anonymous=False,  # Authenticated users get no watermark
+        ai_rules_prompt=ai_rules_prompt,
     )
 
     # Save files locally
@@ -225,6 +228,7 @@ async def edit_resume_with_instructions(
         )
 
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
+    ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
 
     try:
         latex_compiler_response, updated_resume_json, tex_content = (
@@ -237,6 +241,7 @@ async def edit_resume_with_instructions(
                 tailoring_options.resume_template,  # Use user's template preference
                 current_user.id,
                 db,
+                ai_rules_prompt,
             )
         )
 

@@ -7,9 +7,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse, PlainTextResponse
+from sqlalchemy.orm import Session
 
 from backend.api.applications.common import (
     bill_safely,
+    get_ai_rules_prompt,
     require_resume_content,
     require_resume_record,
     upload_to_cloud,
@@ -18,6 +20,7 @@ from backend.api.auth import get_current_user
 from backend.core import ai_service
 from backend.core.storage_service import storage_service
 from backend.core.stripe_billing_service import check_payment_method_required
+from backend.models.db import get_db
 from backend.models.tailoring_options import TailoringOptionsBase
 from backend.utils.file_ops import PDFGenerator
 from backend.utils.path_ops import (
@@ -54,6 +57,7 @@ def generate_tailored_plain_coverletter(
         description="Whether to create a new job application. If not provided, reuses existing application if available.",
     ),
     current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> str:
     """Generate a tailored plain text cover letter based on job description"""
     # Check if payment method is required before generation
@@ -61,8 +65,12 @@ def generate_tailored_plain_coverletter(
     require_resume_content(current_user, before="before generating a cover letter")
 
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
+    ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
     cover_letter_text = ai_service.generate_tailored_coverletter_text(
-        current_user.resumes.resume_content, job_description, tailoring_options.ai_model
+        current_user.resumes.resume_content,
+        job_description,
+        tailoring_options.ai_model,
+        ai_rules_prompt,
     )
 
     company_name = ai_service.get_company_name(job_description)
@@ -149,6 +157,7 @@ async def edit_cover_letter_with_instructions(
         ..., description="The job description to tailor the cover letter for"
     ),
     current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Update a cover letter based on free-form text instructions and return the updated PDF"""
     # Check if payment method is required before generation
@@ -197,11 +206,13 @@ async def edit_cover_letter_with_instructions(
         )
 
     try:
+        ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
         updated_cover_letter = ai_service.update_cover_letter_with_instructions(
             cover_letter_text,
             current_user.resumes.resume_content,
             job_description,
             edit_instruction,
+            ai_rules_prompt=ai_rules_prompt,
         )
 
         # Save the updated cover letter text

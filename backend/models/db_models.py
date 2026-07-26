@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Enum,
@@ -42,6 +43,12 @@ class User(Base):
     )
     preferences = relationship("UserPreferences", back_populates="user", uselist=False)
     templates = relationship("UserTemplate", back_populates="user")
+    ai_rules = relationship(
+        "UserAIRule",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="UserAIRule.updated_at.desc(), UserAIRule.id.asc()",
+    )
 
 
 class Resume(Base):
@@ -124,6 +131,34 @@ class UserTemplate(Base):
 
     # Establish relationship with User
     user = relationship("User", back_populates="templates")
+
+
+class UserAIRule(Base):
+    __tablename__ = "user_ai_rules"
+    __table_args__ = (
+        CheckConstraint(
+            "length(trim(instruction)) > 0",
+            name="ck_user_ai_rules_instruction_not_empty",
+        ),
+        CheckConstraint(
+            "length(instruction) <= 500",
+            name="ck_user_ai_rules_instruction_max_length",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    title = Column(String(120), nullable=True)
+    instruction = Column(Text, nullable=False)
+    is_enabled = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    user = relationship("User", back_populates="ai_rules")
 
 
 class AnonymousResumeSession(Base):
