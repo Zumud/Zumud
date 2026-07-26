@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -144,6 +145,8 @@ class UserAIRule(Base):
             "length(instruction) <= 500",
             name="ck_user_ai_rules_instruction_max_length",
         ),
+        Index("ix_user_ai_rules_user_id_updated_at", "user_id", "updated_at"),
+        Index("ix_user_ai_rules_enabled", "user_id", "is_enabled"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
