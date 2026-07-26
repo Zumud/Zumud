@@ -103,6 +103,51 @@ def test_user_can_edit_and_delete_own_ai_rule(client):
     assert client.get("/users/me/ai-rules").json() == []
 
 
+def test_user_can_update_only_ai_rule_title(client):
+    created = client.post(
+        "/users/me/ai-rules",
+        json={"instruction": "Use concise bullet points."},
+    ).json()
+
+    updated = client.put(
+        f"/users/me/ai-rules/{created['id']}",
+        json={"title": "Tone"},
+    )
+
+    assert updated.status_code == 200
+    assert updated.json()["title"] == "Tone"
+    assert updated.json()["instruction"] == "Use concise bullet points."
+    assert updated.json()["is_enabled"] is True
+
+
+def test_ai_rule_update_rejects_null_instruction(client):
+    created = client.post(
+        "/users/me/ai-rules",
+        json={"instruction": "Use concise bullet points."},
+    ).json()
+
+    response = client.put(
+        f"/users/me/ai-rules/{created['id']}",
+        json={"instruction": None},
+    )
+
+    assert response.status_code == 422
+
+
+def test_ai_rule_update_rejects_null_is_enabled(client):
+    created = client.post(
+        "/users/me/ai-rules",
+        json={"instruction": "Use concise bullet points."},
+    ).json()
+
+    response = client.put(
+        f"/users/me/ai-rules/{created['id']}",
+        json={"is_enabled": None},
+    )
+
+    assert response.status_code == 422
+
+
 def test_user_cannot_access_another_users_ai_rules(client, db_session):
     other_rule = db_models.UserAIRule(
         user_id=2,

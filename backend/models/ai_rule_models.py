@@ -50,11 +50,18 @@ class UserAIRuleUpdate(BaseModel):
     @classmethod
     def clean_instruction(cls, value: str | None) -> str | None:
         if value is None:
-            return None
+            raise ValueError("Instruction cannot be null.")
         cleaned = _clean_text(value)
         if not cleaned:
             raise ValueError("Instruction cannot be empty.")
         return cleaned
+
+    @field_validator("is_enabled")
+    @classmethod
+    def validate_is_enabled(cls, value: bool | None) -> bool | None:
+        if value is None:
+            raise ValueError("is_enabled cannot be null.")
+        return value
 
 
 class UserAIRule(BaseModel):
