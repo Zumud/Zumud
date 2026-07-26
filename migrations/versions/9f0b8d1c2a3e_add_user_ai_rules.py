@@ -17,6 +17,28 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _create_policy_if_supabase_auth_exists(policy_sql: str) -> None:
+    escaped_policy_sql = policy_sql.replace("'", "''")
+    op.execute(
+        f"""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM pg_proc p
+                JOIN pg_namespace n ON n.oid = p.pronamespace
+                WHERE n.nspname = 'auth'
+                  AND p.proname = 'uid'
+                  AND pg_get_function_identity_arguments(p.oid) = ''
+            ) THEN
+                EXECUTE '{escaped_policy_sql}';
+            END IF;
+        END
+        $$;
+        """
+    )
+
+
 def upgrade() -> None:
     op.create_table(
         "user_ai_rules",
@@ -65,7 +87,7 @@ def upgrade() -> None:
     )
 
     op.execute("ALTER TABLE public.user_ai_rules ENABLE ROW LEVEL SECURITY")
-    op.execute(
+    _create_policy_if_supabase_auth_exists(
         """
         CREATE POLICY user_ai_rules_select_own
         ON public.user_ai_rules
@@ -80,7 +102,7 @@ def upgrade() -> None:
         )
         """
     )
-    op.execute(
+    _create_policy_if_supabase_auth_exists(
         """
         CREATE POLICY user_ai_rules_insert_own
         ON public.user_ai_rules
@@ -95,7 +117,7 @@ def upgrade() -> None:
         )
         """
     )
-    op.execute(
+    _create_policy_if_supabase_auth_exists(
         """
         CREATE POLICY user_ai_rules_update_own
         ON public.user_ai_rules
@@ -118,7 +140,7 @@ def upgrade() -> None:
         )
         """
     )
-    op.execute(
+    _create_policy_if_supabase_auth_exists(
         """
         CREATE POLICY user_ai_rules_delete_own
         ON public.user_ai_rules
