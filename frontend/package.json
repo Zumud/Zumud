@@ -39,7 +39,6 @@
     "eslint-config-next": "^16.2.12",
     "knip": "^6.26.0",
     "tailwindcss": "^4.3.0",
-    "typescript-eslint": "^8.65.0",
     "typescript": "^6.0.3"
   },
   "overrides": {
