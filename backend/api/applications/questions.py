@@ -6,9 +6,11 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 
 from backend.api.applications.common import (
     bill_safely,
+    get_ai_rules_prompt,
     require_resume_content,
     upload_to_cloud,
 )
@@ -16,6 +18,7 @@ from backend.api.auth import get_current_user
 from backend.core import ai_service
 from backend.core.storage_service import storage_service
 from backend.core.stripe_billing_service import check_payment_method_required
+from backend.models.db import get_db
 from backend.models.tailoring_options import TailoringOptionsBase
 from backend.utils.path_ops import (
     extract_company_from_local_path,
@@ -37,6 +40,7 @@ def answer_application_questions(
         description="Whether to create a new job application. If not provided, reuses existing application if available.",
     ),
     current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> str:
     """Generate answers for job application questions based on resume and job description"""
     # Check if payment method is required before generation
@@ -49,6 +53,7 @@ def answer_application_questions(
         current_user.username, company_name, is_new_application
     )
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
+    ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
 
     # The AI service saves the Q&A file into the application folder itself
     answer = ai_service.generate_answer_questions(
@@ -57,6 +62,7 @@ def answer_application_questions(
         question,
         str(save_path),
         tailoring_options.ai_model,
+        ai_rules_prompt,
     )
 
     upload_to_cloud(
@@ -84,6 +90,7 @@ def edit_answer_with_instructions(
     job_description: str = Query(..., description="The job description context"),
     question: str = Query(..., description="The question being answered"),
     current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> str:
     """Edit an existing answer based on user instructions"""
     # Check if payment method is required before generation
@@ -91,6 +98,7 @@ def edit_answer_with_instructions(
     require_resume_content(current_user, before="before editing answers")
 
     tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
+    ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
 
     try:
         updated_answer = ai_service.update_answer_with_instructions(
@@ -100,6 +108,7 @@ def edit_answer_with_instructions(
             current_user.resumes.resume_content,
             edit_instruction,
             tailoring_options.ai_model,
+            ai_rules_prompt,
         )
 
         # Save the Q&A pair in the application folder

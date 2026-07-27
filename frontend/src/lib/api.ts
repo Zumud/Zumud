@@ -133,7 +133,7 @@ async function apiCall(
         try {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.detail || errorMessage;
-        } catch (e) {
+        } catch {
           if (errorText) errorMessage = errorText;
         }
         
@@ -253,6 +253,28 @@ type AuthSessionTokens = {
   refresh_token: string;
 };
 
+export type CurrentUser = {
+  id: number;
+  username: string;
+  email: string;
+  created_at: string;
+};
+
+export type UserAIRule = {
+  id: number;
+  title: string | null;
+  instruction: string;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UserAIRulePayload = {
+  title?: string | null;
+  instruction?: string;
+  is_enabled?: boolean;
+};
+
 // Email login/signup stays client-side through Supabase Auth. Username login
 // is exchanged by the backend so the account email is never exposed.
 export const auth = {
@@ -261,6 +283,11 @@ export const auth = {
 
   signInWithUsername: (username: string, password: string): Promise<AuthSessionTokens> =>
     apiCall('users/sign-in/username', 'POST', { username, password }),
+};
+
+export const account = {
+  me: (): Promise<CurrentUser> =>
+    apiCall('users/me'),
 };
 
 // Resume endpoints
@@ -281,6 +308,20 @@ export const resume = {
 export const preferences = {
   addUserPreference: (preference: string) => 
     apiCall('users/me/preferences', 'POST', { preference }),
+};
+
+export const aiRules = {
+  list: (): Promise<UserAIRule[]> =>
+    apiCall('users/me/ai-rules'),
+
+  create: (rule: Required<Pick<UserAIRulePayload, 'instruction'>> & UserAIRulePayload): Promise<UserAIRule> =>
+    apiCall('users/me/ai-rules', 'POST', rule),
+
+  update: (ruleId: number, rule: UserAIRulePayload): Promise<UserAIRule> =>
+    apiCall(`users/me/ai-rules/${ruleId}`, 'PUT', rule),
+
+  delete: (ruleId: number): Promise<null> =>
+    apiCall(`users/me/ai-rules/${ruleId}`, 'DELETE'),
 };
 
 // Application endpoints

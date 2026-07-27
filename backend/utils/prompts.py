@@ -1,4 +1,8 @@
 create_tailored_coverletter_prompt = """
+{user_ai_rules}
+
+---
+
 Generate a concise and impactful cover letter (maximum two paragraphs) tailored specifically for the given job description. Focus on highlighting the most relevant experience and skills from the provided resume.
 - Make it direct, engaging, and results-oriented, avoiding generic statements.
 - Clearly link the candidate's experience to the company's needs.
@@ -16,6 +20,10 @@ Generate a concise and impactful cover letter (maximum two paragraphs) tailored 
 
 
 answer_application_question = """
+{user_ai_rules}
+
+---
+
 I want you to assist me in answering a question from a job application form based on my resume and the job description. Here is the information:
 Resume: {resume}
 Job description: {job_description}
@@ -27,6 +35,10 @@ Make sure to:
 """
 
 structured_resume_prompt = """
+{user_ai_rules}
+
+---
+
 You will receive:
 1. Original Resume Content — the candidate's current experience, skills, and achievements, in raw form.
 2. Target Job Description — the exact role the candidate is applying for.

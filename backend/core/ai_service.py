@@ -1,4 +1,5 @@
 import json
+from collections.abc import Sequence
 
 from jinja2 import Template
 from openai import AsyncOpenAI, OpenAI
@@ -26,6 +27,55 @@ client = OpenAI(api_key=OPEN_AI_KEY)
 
 # Async client for async operations
 async_client = AsyncOpenAI(api_key=OPEN_AI_KEY)
+
+
+def get_enabled_ai_rules(user_id: int, db: Session) -> list[db_models.UserAIRule]:
+    """Load enabled AI rules once per authenticated generation request."""
+    return (
+        db.query(db_models.UserAIRule)
+        .filter(
+            db_models.UserAIRule.user_id == user_id,
+            db_models.UserAIRule.is_enabled.is_(True),
+        )
+        .order_by(
+            db_models.UserAIRule.updated_at.desc(),
+            db_models.UserAIRule.id.asc(),
+        )
+        .all()
+    )
+
+
+def format_ai_rules_for_prompt(rules: Sequence[db_models.UserAIRule] | None) -> str:
+    if not rules:
+        return "No user-specific AI rules are enabled."
+
+    formatted_rules = []
+    for rule in rules:
+        title = f"{rule.title}: " if rule.title else ""
+        formatted_rules.append(f"- {title}{rule.instruction}")
+
+    return (
+        "USER-SPECIFIC AI RULES\n\n"
+        "The following rules were explicitly defined by the user.\n\n"
+        "All enabled rules must be respected when generating or editing content.\n"
+        "No rule is more important because of its position, creation date, or "
+        "display order.\n\n"
+        "Instruction hierarchy:\n"
+        "1. Mandatory system, safety, security, and technical restrictions\n"
+        "2. All enabled user AI rules\n"
+        "3. The user's current request\n"
+        "4. Job description requirements\n"
+        "5. Default templates and general recommendations\n\n"
+        "Enabled rules:\n"
+        f"{chr(10).join(formatted_rules)}\n\n"
+        "Do not silently ignore any enabled rule. If two enabled user rules "
+        "directly conflict, do not pretend both were followed and do not choose "
+        "between them based on ordering. When reasonably possible, explain which "
+        "rules conflict and ask the user to disable or edit one of them. When a "
+        "rule cannot be followed because it conflicts with a mandatory system, "
+        "security, safety, or technical restriction, explain the conflict clearly "
+        "if the response format allows it."
+    )
 
 
 def get_user_template(user_id: int, db: Session) -> dict:
@@ -101,6 +151,7 @@ async def generate_structured_latex_resume_async(
     user_id: int = None,
     db: Session = None,
     is_anonymous: bool = False,
+    ai_rules_prompt: str | None = None,
 ):
     """
     Async version of generate_structured_latex_resume with better timeout handling.
@@ -121,6 +172,7 @@ async def generate_structured_latex_resume_async(
         user_preferences=user_preferences
         if user_preferences
         else "No specific preferences provided.",
+        user_ai_rules=ai_rules_prompt or "No user-specific AI rules are enabled.",
     )
 
     # First, get structured resume data from GPT using async client
@@ -196,7 +248,10 @@ async def generate_structured_latex_resume_async(
 
 
 def generate_tailored_coverletter_text(
-    resume: str, job_description: str, model=AIModel.gpt_4_1_nano
+    resume: str,
+    job_description: str,
+    model=AIModel.gpt_4_1_nano,
+    ai_rules_prompt: str | None = None,
 ) -> str:
     completion = client.beta.chat.completions.parse(
         model=model,
@@ -208,7 +263,10 @@ def generate_tailored_coverletter_text(
             {
                 "role": "user",
                 "content": prompts.create_tailored_coverletter_prompt.format(
-                    resume=resume, job_description=job_description
+                    resume=resume,
+                    job_description=job_description,
+                    user_ai_rules=ai_rules_prompt
+                    or "No user-specific AI rules are enabled.",
                 ),
             },
         ],
@@ -223,6 +281,7 @@ def generate_answer_questions(
     question: str,
     save_folder: str = None,
     model=AIModel.gpt_4_1_nano,
+    ai_rules_prompt: str | None = None,
 ):
     completion = client.beta.chat.completions.parse(
         model=model,
@@ -231,7 +290,11 @@ def generate_answer_questions(
             {
                 "role": "user",
                 "content": prompts.answer_application_question.format(
-                    resume=resume, job_description=job_description, question=question
+                    resume=resume,
+                    job_description=job_description,
+                    question=question,
+                    user_ai_rules=ai_rules_prompt
+                    or "No user-specific AI rules are enabled.",
                 ),
             },
         ],
@@ -260,6 +323,7 @@ def update_resume_with_instructions(
     template=ResumeTemplate.MTeck_resume,
     user_id: int = None,
     db: Session = None,
+    ai_rules_prompt: str | None = None,
 ):
     """
     Update a structured resume based on free-form text instructions and regenerate the PDF.
@@ -289,6 +353,7 @@ def update_resume_with_instructions(
         f"5. Only modify the fields that need to be changed based on the instructions\n"
         f"6. Preserve all other information exactly as provided\n"
         f"7. Ensure the final JSON is valid and complete\n\n"
+        f"{ai_rules_prompt or 'No user-specific AI rules are enabled.'}\n\n"
         f"Job Description:\n{job_description}\n\n"
         f"Original Structured Resume JSON:\n{original_structured_resume}\n\n"
         f"Instructions for changes:\n{instructions}\n\n"
@@ -347,6 +412,7 @@ def update_cover_letter_with_instructions(
     job_description: str,
     instructions: str,
     model=AIModel.gpt_4_1_nano,
+    ai_rules_prompt: str | None = None,
 ) -> str:
     """
     Update a cover letter based on free-form text instructions.
@@ -377,6 +443,7 @@ def update_cover_letter_with_instructions(
         f"10. Tailor the content to address specific requirements mentioned in the job description\n"
         f"11. Avoid clichés and generic language in favor of specific, compelling content\n\n"
         f"Return only the improved cover letter text, maintaining appropriate professional language and formatting.\n\n"
+        f"{ai_rules_prompt or 'No user-specific AI rules are enabled.'}\n\n"
         f"Candidate's Resume:\n{resume_content}\n\n"
         f"Job Description:\n{job_description}\n\n"
         f"Original Cover Letter:\n{cover_letter}\n\n"
@@ -408,6 +475,7 @@ def update_answer_with_instructions(
     resume_content: str,
     instructions: str,
     model=AIModel.gpt_4_1_nano,
+    ai_rules_prompt: str | None = None,
 ) -> str:
     """
     Update an application question answer based on free-form text instructions.
@@ -436,6 +504,7 @@ def update_answer_with_instructions(
         f"7. Keep the answer concise and impactful (typically 3-5 sentences for brief answers, 2-3 paragraphs for detailed ones)\n"
         f"8. Ensure all information is truthful and accurately reflects what's in the resume\n\n"
         f"Return only the improved answer text, maintaining appropriate professional language and formatting.\n\n"
+        f"{ai_rules_prompt or 'No user-specific AI rules are enabled.'}\n\n"
         f"Candidate's Resume:\n{resume_content}\n\n"
         f"Job Description:\n{job_description}\n\n"
         f"Question:\n{question}\n\n"

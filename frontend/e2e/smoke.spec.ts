@@ -47,7 +47,7 @@ test('signup, add resume, tailor, download a real PDF', async ({ page }) => {
   await page.goto('/profile')
   await page.getByPlaceholder('Your resume content here...').fill(RESUME_TEXT)
   await page.getByRole('button', { name: 'Save resume' }).click()
-  await expect(page.getByText('Resume text updated successfully!')).toBeVisible({
+  await expect(page.getByText('Resume text updated successfully.')).toBeVisible({
     timeout: 60_000,
   })
 

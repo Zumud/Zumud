@@ -58,9 +58,9 @@ jobs:
             requirements.txt
             requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: 2.109.1
       - run: supabase start
       - name: Run unit+integration lanes with coverage
         # OPEN_AI_KEY is a dummy: these lanes never call the live model
@@ -153,9 +153,9 @@ jobs:
         working-directory: frontend
       - run: npx playwright install chromium --with-deps
         working-directory: frontend
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: 2.109.1
       - run: supabase start
       - name: Start LaTeX compiler (GHCR image, build fallback)
         run: |
@@ -225,10 +225,10 @@ jobs:
       - run: npx playwright install chromium --with-deps
         if: steps.key.outputs.has_key == 'true'
         working-directory: frontend
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         if: steps.key.outputs.has_key == 'true'
         with:
-          version: latest
+          version: 2.109.1
       - run: supabase start
         if: steps.key.outputs.has_key == 'true'
       - name: Start LaTeX compiler (GHCR image, build fallback)
