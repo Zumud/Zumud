@@ -55,9 +55,14 @@ def upgrade() -> None:
             WHERE up.user_id IS NOT NULL
               AND line.instruction <> ''
               AND NOT EXISTS (
+                  -- Only an *enabled* rule counts as already covering this
+                  -- instruction. Legacy preferences were always applied, so
+                  -- matching a disabled rule and skipping the insert would
+                  -- silently stop applying the instruction.
                   SELECT 1
                   FROM public.user_ai_rules existing
                   WHERE existing.user_id = up.user_id
+                    AND existing.is_enabled
                     AND btrim(existing.instruction) = line.instruction
               )
             ORDER BY up.user_id, line.ordinality
