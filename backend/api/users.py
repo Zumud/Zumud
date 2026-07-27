@@ -19,7 +19,6 @@ from sqlalchemy.orm import Session
 
 from backend.api.auth import get_current_user
 from backend.config.envs import SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
-from backend.core.ai_service import format_user_preferences
 from backend.core.storage_service import safe_upload_with_fallback, storage_service
 from backend.models import db_models
 from backend.models.ai_rule_models import (
@@ -29,7 +28,7 @@ from backend.models.ai_rule_models import (
 )
 from backend.models.db import SessionLocal, get_db
 from backend.models.resume_models import Resume, ResumeBase
-from backend.models.user_models import User, UserPreference, UserPreferenceCreate
+from backend.models.user_models import User
 from backend.utils.file_ops import extract_text_from_pdf
 from backend.utils.file_utils import save_base64_pdf
 from backend.utils.resume_formatter import format_resume_text
@@ -466,76 +465,6 @@ async def upload_resume_pdf(
     )
 
     return resume
-
-
-@router.get("/me/preferences", response_model=UserPreference)
-def get_user_preferences(
-    current_user=Depends(get_current_user), db: Session = Depends(get_db)
-):
-    """Get current user's preferences"""
-    preferences = (
-        db.query(db_models.UserPreferences)
-        .filter(db_models.UserPreferences.user_id == current_user.id)
-        .first()
-    )
-    if not preferences:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No preferences found for this user.",
-        )
-    return preferences
-
-
-@router.post("/me/preferences", response_model=UserPreference)
-def add_user_preference(
-    preference_data: UserPreferenceCreate,
-    current_user=Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Add a new preference to the user's existing preferences"""
-    # First, check if the user already has preference data
-    preferences = (
-        db.query(db_models.UserPreferences)
-        .filter(db_models.UserPreferences.user_id == current_user.id)
-        .first()
-    )
-
-    # Get existing preferences text (if any)
-    existing_preferences_text = (
-        preferences.preferences_text
-        if preferences and preferences.preferences_text
-        else "No preferences"
-    )
-
-    # Format the preferences using OpenAI
-    try:
-        formatted_preferences = format_user_preferences(
-            existing_preferences=existing_preferences_text,
-            new_preference=preference_data.preference,
-        )
-    except Exception as e:
-        logger.error(f"Error formatting preferences with OpenAI: {e}")
-        # Fallback to simple concatenation if OpenAI fails
-        if existing_preferences_text:
-            formatted_preferences = (
-                f"{existing_preferences_text}\n{preference_data.preference}"
-            )
-        else:
-            formatted_preferences = preference_data.preference
-
-    if preferences:
-        # Update existing preferences with formatted text
-        preferences.preferences_text = formatted_preferences
-    else:
-        # Create new preferences record with formatted text
-        preferences = db_models.UserPreferences(
-            user_id=current_user.id, preferences_text=formatted_preferences
-        )
-        db.add(preferences)
-
-    db.commit()
-    db.refresh(preferences)
-    return preferences
 
 
 def _get_current_user_ai_rule(

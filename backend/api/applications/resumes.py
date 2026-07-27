@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session
 from backend.api.applications.common import (
     bill_safely,
     get_ai_rules_prompt,
-    get_preferences_text,
     require_resume_content,
     require_resume_record,
     upload_to_cloud,
@@ -56,7 +55,6 @@ async def generate_and_save_pdf_resume(
     check_payment_method_required(email=current_user.email, name=current_user.username)
     require_resume_content(current_user, before="before generating a PDF")
 
-    user_preferences = get_preferences_text(db, current_user.id)
     ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
 
     company_name = ai_service.get_company_name(job_description)
@@ -75,7 +73,6 @@ async def generate_and_save_pdf_resume(
         job_description,
         tailoring_options.ai_model,
         tailoring_options.resume_template,
-        user_preferences,
         current_user.id,
         db,
         is_anonymous=False,  # Authenticated users get no watermark

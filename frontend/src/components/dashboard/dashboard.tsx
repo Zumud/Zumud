@@ -4,9 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { errorMessage, signOut } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
-import { applications, preferences, billing } from "@/lib/api"
+import { applications, billing } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
-import PreferencesPrompt from "@/components/ui/preferences-prompt"
 import { InlineResumeProgress } from "@/components/ui/resume-progress"
 import Sidebar from "@/components/ui/sidebar"
 import { 
@@ -63,10 +62,6 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'resume' | 'cover-letter' | 'question' | null>(null)
   const [followUpInstruction, setFollowUpInstruction] = useState('')
   
-  // Preferences prompt state
-  const [showPreferencesPrompt, setShowPreferencesPrompt] = useState(false)
-  const [currentEditInstruction, setCurrentEditInstruction] = useState("")
-
   // State to provide feedback after copying the cover letter (optional future use)
   const [isCoverLetterCopied, setIsCoverLetterCopied] = useState(false)
   const [isAnswerCopied, setIsAnswerCopied] = useState(false)
@@ -553,19 +548,6 @@ export default function Dashboard() {
     )
   }
 
-  const handleSavePreference = async (preference: string) => {
-    try {
-      await preferences.addUserPreference(preference)
-      setShowPreferencesPrompt(false)
-    } catch (err) {
-      console.error("Error saving preference:", err)
-    }
-  }
-
-  const handleDismissPreferencesPrompt = () => {
-    setShowPreferencesPrompt(false)
-  }
-
   return (
     <div className="ambient-glow relative min-h-screen bg-background pb-40 md:pb-12">
       {/* Sidebar */}
@@ -1010,15 +992,6 @@ export default function Dashboard() {
 
 
 
-           {/* Preferences Prompt */}
-           {showPreferencesPrompt && (
-             <PreferencesPrompt
-               isVisible={showPreferencesPrompt}
-               onSavePreference={handleSavePreference}
-               onDismiss={handleDismissPreferencesPrompt}
-               editInstruction={currentEditInstruction}
-             />
-           )}
         </div>
       </div>
     </div>

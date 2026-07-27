@@ -1,7 +1,7 @@
 """Helpers shared by the applications routers.
 
 These factor out the four blocks that used to be copy-pasted into every
-endpoint: resume checks, preferences lookup, non-blocking billing, and the
+endpoint: resume checks, AI-rules lookup, non-blocking billing, and the
 "dual storage" cloud mirror.
 """
 
@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session
 from backend.core.ai_service import format_ai_rules_for_prompt, get_enabled_ai_rules
 from backend.core.storage_service import safe_upload_with_fallback
 from backend.core.stripe_billing_service import process_billing_event
-from backend.models import db_models
 from backend.utils.path_ops import get_current_session_info
 
 logger = logging.getLogger(__name__)
@@ -42,16 +41,6 @@ def require_resume_content(current_user, before: str = "first") -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"No resume content found. Please add your resume details {before}.",
         )
-
-
-def get_preferences_text(db: Session, user_id: int) -> str | None:
-    """The user's stored preferences text, if any."""
-    preferences = (
-        db.query(db_models.UserPreferences)
-        .filter(db_models.UserPreferences.user_id == user_id)
-        .first()
-    )
-    return preferences.preferences_text if preferences else None
 
 
 def get_ai_rules_prompt(db: Session, user_id: int) -> str:
