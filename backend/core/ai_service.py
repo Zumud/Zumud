@@ -147,7 +147,6 @@ async def generate_structured_latex_resume_async(
     job_description: str,
     model=AIModel.gpt_4_1_nano,
     template=ResumeTemplate.MTeck_resume,
-    user_preferences: str = None,
     user_id: int = None,
     db: Session = None,
     is_anonymous: bool = False,
@@ -165,13 +164,9 @@ async def generate_structured_latex_resume_async(
     # Use standard system content
     system_content = """You are a world-class resume writer, career strategist, and ATS optimization expert. You specialize in transforming general resumes into sharply focused, high-impact documents tailored for specific job applications — increasing interview rates significantly."""
 
-    # Format the prompt with user preferences
     prompt = prompts.structured_resume_prompt.format(
         resume=resume,
         job_description=job_description,
-        user_preferences=user_preferences
-        if user_preferences
-        else "No specific preferences provided.",
         user_ai_rules=ai_rules_prompt or "No user-specific AI rules are enabled.",
     )
 
@@ -528,40 +523,3 @@ def update_answer_with_instructions(
         "tailored_answer"
     ]
     return updated_answer
-
-
-def format_user_preferences(
-    existing_preferences: str, new_preference: str, model=AIModel.gpt_4_1_nano
-) -> str:
-    """
-    Format and combine user preferences into a clean, structured format suitable for resumes and cover letters.
-
-    Args:
-        existing_preferences (str): The current stored preferences (can be empty/None)
-        new_preference (str): The new preference to add
-        model: The AI model to use
-
-    Returns:
-        str: The formatted preferences as bullet points
-    """
-    # If no new preference to process, return existing preferences
-    if not new_preference or not new_preference.strip():
-        return existing_preferences
-
-    prompt = prompts.format_user_preferences_prompt.format(
-        existing_preferences=existing_preferences, new_preference=new_preference
-    )
-
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[
-            {
-                "role": "system",
-                "content": "You are an expert career coach and professional writer.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.3,  # Lower temperature for more consistent formatting
-    )
-
-    return completion.choices[0].message.content.strip()

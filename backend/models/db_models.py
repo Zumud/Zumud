@@ -42,7 +42,6 @@ class User(Base):
     tailoring_options = relationship(
         "TailoringOptions", back_populates="user", uselist=False
     )
-    preferences = relationship("UserPreferences", back_populates="user", uselist=False)
     templates = relationship("UserTemplate", back_populates="user")
     ai_rules = relationship(
         "UserAIRule",
@@ -98,18 +97,6 @@ class TailoringOptions(Base):
 
     # Establish relationship with User
     user = relationship("User", back_populates="tailoring_options")
-
-
-class UserPreferences(Base):
-    __tablename__ = "user_preferences"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    preferences_text = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    user = relationship("User", back_populates="preferences")
 
 
 class UserTemplate(Base):

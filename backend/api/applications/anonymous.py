@@ -124,7 +124,6 @@ async def generate_anonymous_resume(
             job_description,
             tailoring_options.ai_model,
             tailoring_options.resume_template,
-            None,  # No user preferences for anonymous users
             None,  # No user ID for anonymous users
             None,  # No database session for anonymous users
             is_anonymous=True,  # Add watermark for anonymous users

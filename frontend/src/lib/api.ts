@@ -304,12 +304,6 @@ export const resume = {
   }
 };
 
-// User preferences endpoints
-export const preferences = {
-  addUserPreference: (preference: string) => 
-    apiCall('users/me/preferences', 'POST', { preference }),
-};
-
 export const aiRules = {
   list: (): Promise<UserAIRule[]> =>
     apiCall('users/me/ai-rules'),
