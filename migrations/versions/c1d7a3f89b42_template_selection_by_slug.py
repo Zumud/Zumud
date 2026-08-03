@@ -25,6 +25,26 @@ CURRENT_EFFECTIVE_MODEL = "gpt_4_1_mini"
 
 
 def upgrade() -> None:
+    # Production's tailoring_options was converted to varchar by hand before this
+    # repo had migrations, and both columns were given CHECK constraints listing
+    # model and template *values* — while the app persists enum *names*. No model
+    # declares either constraint, and both contradict this migration: one enumerates
+    # three retired display names for the column that is becoming a free-form slug,
+    # the other rejects every model name the code writes, which is why that table is
+    # still empty. A database built from the baseline never had them, hence IF EXISTS.
+    op.execute(
+        sa.text(
+            "ALTER TABLE public.tailoring_options "
+            "DROP CONSTRAINT IF EXISTS tailoring_options_resume_template_check"
+        )
+    )
+    op.execute(
+        sa.text(
+            "ALTER TABLE public.tailoring_options "
+            "DROP CONSTRAINT IF EXISTS tailoring_options_ai_model_check"
+        )
+    )
+
     # Selection becomes a plain string so that adding a built-in template is a file
     # drop rather than an ALTER TYPE. Every pre-existing value collapses to the
     # default: of the three enum members only MTeck_resume was a real template, the
@@ -73,6 +93,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # The two legacy CHECK constraints dropped above are not recreated: they were
+    # hand-made artifacts that no model declares and that reject what the code
+    # writes, so putting them back would leave a database the app cannot write to.
     op.drop_column("user_templates", "source_tex")
 
     # Drop only the rows upgrade() created; a row naming a user template cannot be
