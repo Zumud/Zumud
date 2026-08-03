@@ -20,6 +20,10 @@ LATEX_COMPILE_TIMEOUT = (5, 60)
 # How much of the compiler log to surface; the full log runs to hundreds of lines.
 LATEX_ERROR_EXCERPT = 2000
 
+# latexrun prefixes every log with its own Python SyntaxWarnings, so the head of the
+# log says nothing about the document. These pick out the lines that do.
+LATEX_ERROR_LINE = re.compile(r"^.*?:(?:\d+:)? *error: ", re.MULTILINE)
+
 
 def escape_latex(data):
     """
@@ -96,6 +100,26 @@ def generate_tex_and_tar(
     return os.path.relpath(tar_folder_path)
 
 
+def summarise_latex_errors(log: str) -> str:
+    """Pull the document's own errors out of a compiler log.
+
+    The log opens with latexrun's Python SyntaxWarnings and the pdflatex command
+    line, so quoting the first N characters reports a problem in the compiler's
+    source rather than in the user's document — useless to whoever has to fix it,
+    and worse than useless as feedback to a model rewriting the template.
+    """
+    lines = log.splitlines()
+    kept = []
+    for index, line in enumerate(lines):
+        if LATEX_ERROR_LINE.match(line):
+            # The two lines after an error quote the offending source and point at
+            # the column, which is the part that identifies what to change.
+            kept.extend(lines[index : index + 3])
+
+    excerpt = "\n".join(kept) if kept else "\n".join(lines[-20:])
+    return excerpt[:LATEX_ERROR_EXCERPT].strip()
+
+
 def generate_pdf_from_latex(save_folder, latex_code, compiler):
     """
     Compile LaTeX into a PDF, raising ValueError if the compiler did not produce one.
@@ -127,9 +151,8 @@ def generate_pdf_from_latex(save_folder, latex_code, compiler):
     if latex_compiler_response.status_code != 200 or not (
         latex_compiler_response.content.startswith(b"%PDF")
     ):
-        detail = latex_compiler_response.content[:LATEX_ERROR_EXCERPT].decode(
-            "utf-8", errors="replace"
-        )
+        log = latex_compiler_response.content.decode("utf-8", errors="replace")
+        detail = summarise_latex_errors(log)
         logger.error(f"LaTeX compilation error: {detail}")
         raise ValueError(f"Failed to compile LaTeX document: {detail}")
 

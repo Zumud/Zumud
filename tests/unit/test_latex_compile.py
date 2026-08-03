@@ -120,6 +120,43 @@ def test_timeout_is_reported_as_a_compile_failure(tmp_path, monkeypatch):
         )
 
 
+REAL_FAILURE_LOG = """\
+/var/www/shells/../latexrun/latexrun:1215: SyntaxWarning: invalid escape sequence '\\w'
+  if lookingatre('(Package |Class |LaTeX |pdfTeX )?(\\w+ )?warning:
+/var/www/shells/../latexrun/latexrun:1836: SyntaxWarning: invalid escape sequence '\\d'
+pdflatex -interaction nonstopmode -recorder -output-directory latex.out /tmp/x/resume.tex
+/tmp/x/resume.tex:100: error: There's no line here to end
+      at \\\\[-3pt]
+           ^
+/tmp/x/resume.tex: warning: [fancyhdr] \\footskip is too small (0.0pt)
+There were errors; /tmp/storage/compilation_19/output.pdf not updated
+"""
+
+
+def test_the_documents_error_is_reported_not_the_compilers_warnings():
+    """The log opens with latexrun's own Python warnings, so quoting the head of it
+    describes a problem in the compiler rather than in the user's document."""
+    summary = file_ops.summarise_latex_errors(REAL_FAILURE_LOG)
+
+    assert "There's no line here to end" in summary
+    assert "\\\\[-3pt]" in summary  # the offending source line
+    assert "SyntaxWarning" not in summary
+    assert "lookingatre" not in summary
+
+
+def test_a_log_without_a_recognisable_error_still_says_something():
+    summary = file_ops.summarise_latex_errors("something went wrong\nno idea what")
+
+    assert "no idea what" in summary
+
+
+def test_the_raised_message_carries_the_summary(tmp_path, capture_post):
+    capture_post["response"] = FakeResponse(REAL_FAILURE_LOG.encode(), status_code=400)
+
+    with pytest.raises(ValueError, match="no line here to end"):
+        file_ops.generate_pdf_from_latex(str(tmp_path), "\\bogus", "pdflatex")
+
+
 def test_write_failures_are_not_swallowed(tmp_path):
     """generate_tex_and_tar used to log at debug level and return None, so the
     caller failed later with a TypeError on open(None) instead of the real cause."""
