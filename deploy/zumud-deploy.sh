@@ -36,6 +36,29 @@ health_check() {
   return 1
 }
 
+alembic_() { # $1 = subcommand
+  sudo -u zumud -H bash -lc \
+    "set -a; . $ENV_FILE; set +a; cd $REPO && .venv/bin/alembic $1"
+}
+
+sync_migrations() {
+  # "The schema is at this checkout's head" is an invariant, not something a diff
+  # implies. Running alembic only when migrations/ appeared in the deploy's own diff
+  # meant a migration that failed once was never retried: the failure aborted the
+  # deploy with the merge already done, so the next tick saw nothing to deploy, and
+  # every later diff no longer mentioned migrations/. On 2026-08-03 that left prod a
+  # revision behind code that selected a column the migration adds, and the template
+  # gallery raised for every user for five hours while the deploys all reported OK.
+  local at
+  at=$(alembic_ "current" 2>/dev/null | tail -1)
+  case "$at" in
+    *"(head)") return 0 ;;
+  esac
+
+  log "schema at ${at:-nothing} -> upgrading to head"
+  alembic_ "upgrade head"
+}
+
 wanted_latex_image() {
   # The image is published per commit that touches docker/latex/, tagged with the
   # first 12 characters of that commit (.github/workflows/latex-image.yml). So the
@@ -110,17 +133,33 @@ sync_latex_image() {
   return 1
 }
 
-build_and_restart() { # $1 = space-separated list of changed paths
-  local changed="$1"
+# Returns non-zero if any step failed, which the caller turns into a rollback. Every
+# fallible step says so explicitly: the caller tests this function, and being tested
+# suspends set -e for everything it runs, so an unchecked failure would fall through
+# to the restart instead of stopping the deploy.
+build_and_restart() { # $1 = changed paths, $2 = "migrate" (default) | "keep-schema"
+  local changed="$1" schema="${2:-migrate}"
   if grep -q '^requirements.txt' <<<"$changed"; then
     log "requirements.txt changed -> installing deps"
     if [ -x "$REPO/.venv/bin/pip" ]; then
-      sudo -u zumud "$REPO/.venv/bin/pip" install -q -r "$REPO/requirements.txt"
+      sudo -u zumud "$REPO/.venv/bin/pip" install -q -r "$REPO/requirements.txt" || return 1
     else
       # The prod venv is uv-managed (no pip inside).
       sudo -u zumud -H bash -lc \
-        "cd $REPO && uv pip install -q -r requirements.txt --python .venv/bin/python"
+        "cd $REPO && uv pip install -q -r requirements.txt --python .venv/bin/python" \
+        || return 1
     fi
+  fi
+  # Before the frontend build, so a schema that cannot be brought up to date costs
+  # seconds rather than the eight minutes of an npm build it would only invalidate.
+  # Only on the way forward, though: a rollback must not touch the schema. The
+  # revision the database is on need not even exist in the tree being restored, and
+  # failing here would skip the restart that is the entire point of rolling back —
+  # reporting "rollback OK" while the failed deploy's code kept serving. Old code
+  # tolerating a newer schema is what the expand/contract convention buys.
+  if [ "$schema" = migrate ] && ! sync_migrations; then
+    log "MIGRATION FAILED — not restarting into a schema the code cannot use"
+    return 1
   fi
   # Not gated on the changed paths: the invariant is "the container runs the image
   # built from this checkout", which also lets a deploy that could not pull earlier
@@ -130,17 +169,12 @@ build_and_restart() { # $1 = space-separated list of changed paths
   fi
   if grep -q '^frontend/' <<<"$changed"; then
     log "frontend changed -> npm ci && build"
-    as_zumud "cd frontend && npm ci --no-audit --no-fund && npm run build"
-  fi
-  if grep -q '^migrations/' <<<"$changed"; then
-    log "migrations changed -> alembic upgrade head"
-    sudo -u zumud -H bash -lc \
-      "set -a; . $ENV_FILE; set +a; cd $REPO && .venv/bin/alembic upgrade head"
+    as_zumud "cd frontend && npm ci --no-audit --no-fund && npm run build" || return 1
   fi
   # Sentry release tagging: the SDK reads SENTRY_RELEASE from this file
   # (EnvironmentFile in both service units).
   echo "SENTRY_RELEASE=$(as_zumud 'git rev-parse --short HEAD')" > "$RELEASE_ENV"
-  systemctl restart zumud-backend zumud-frontend
+  systemctl restart zumud-backend zumud-frontend || return 1
 }
 
 main() {
@@ -155,9 +189,11 @@ main() {
   remote=$(as_zumud "git rev-parse origin/main")
 
   if [ "$current" = "$remote" ]; then
-    # Nothing to deploy, but the image invariant is still worth checking: a pull
-    # that failed on an earlier tick — the image was still building — has to be
-    # able to heal here, rather than waiting for the next commit to land.
+    # Nothing to deploy, but the invariants are still worth checking: an image pull
+    # that failed on an earlier tick — the image was still building — and a schema
+    # left behind by a migration that failed have to be able to heal here, rather
+    # than waiting for the next commit to land.
+    sync_migrations || return 1
     sync_latex_image || return 1
     return 0
   fi
@@ -167,9 +203,12 @@ main() {
   changed=$(as_zumud "git diff --name-only HEAD origin/main")
 
   as_zumud "git merge --ff-only origin/main --quiet"
-  build_and_restart "$changed"
 
-  if health_check; then
+  # A build step that fails has to roll back like a failed health check does. It did
+  # not: set -e killed the script mid-deploy with the merge already committed, so the
+  # tree stayed on the new commit, nothing was restarted, and the next tick saw
+  # nothing left to deploy.
+  if build_and_restart "$changed" && health_check; then
     if [ "${LATEX_SYNC_FAILED:-0}" = 1 ]; then
       log "deployed $remote, but the LaTeX image is stale — see ERROR above"
       return 1
@@ -178,9 +217,9 @@ main() {
     return 0
   fi
 
-  log "HEALTH CHECK FAILED — rolling back to $current"
+  log "DEPLOY FAILED — rolling back to $current"
   as_zumud "git reset --hard $current --quiet"
-  build_and_restart "$changed"
+  build_and_restart "$changed" keep-schema || log "rollback rebuild had a failed step"
 
   if health_check; then
     log "rollback OK at $current — deploys need attention (unit marked failed)"

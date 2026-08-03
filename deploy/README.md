@@ -10,22 +10,27 @@ Every 10 minutes, `zumud-deploy.timer` runs [zumud-deploy.sh](zumud-deploy.sh):
 
 1. `git fetch` — exit quietly if `main` is unchanged (batching is inherent:
    one deploy picks up everything merged since the last tick).
-2. `git merge --ff-only origin/main`, then rebuild only what changed:
-   `requirements.txt` → pip install; `frontend/` → npm ci + build;
-   `migrations/` → `alembic upgrade head`.
-3. Make the LaTeX container run the image built from this commit, pinned to that
+2. `git merge --ff-only origin/main`, then rebuild what changed:
+   `requirements.txt` → pip install; `frontend/` → npm ci + build.
+3. `alembic upgrade head` unless the schema already reports `(head)`. Checked on
+   every tick rather than when `migrations/` shows up in the diff: a migration that
+   fails once aborts the deploy with the merge already committed, so the next tick
+   sees nothing to deploy and no later diff mentions `migrations/` again — the
+   schema then stays behind the code that needs it, silently, which is what broke
+   the template gallery for every user on 2026-08-03.
+4. Make the LaTeX container run the image built from this commit, pinned to that
    commit's own tag rather than `:latest` — publishing takes minutes, so `:latest`
    can still be the previous build when the deploy fires. A tag that is not
    published yet leaves the running container alone and is retried next tick. A new
    image is only kept once it has actually compiled a document under both pdflatex
    and xelatex; otherwise the previous image goes back and the unit fails, because
    rolling the code back cannot fix a broken compiler.
-4. Write `SENTRY_RELEASE=<sha>` to `/opt/zumud/release.env` and restart
+5. Write `SENTRY_RELEASE=<sha>` to `/opt/zumud/release.env` and restart
    `zumud-backend` + `zumud-frontend`.
-5. Health-check `/health` and the frontend for up to 60s. On failure:
-   hard-reset to the previous commit, rebuild, restart, and mark the unit
-   failed (visible in `systemctl status zumud-deploy` / journal; the external
-   uptime monitor is the second net).
+6. Health-check `/health` and the frontend for up to 60s. On a failed health check
+   *or a failed build step*: hard-reset to the previous commit, rebuild, restart,
+   and mark the unit failed (visible in `systemctl status zumud-deploy` / journal;
+   the external uptime monitor is the second net).
 
 **Manual brake:** `touch /opt/zumud/deploy-paused` stops all deploys until
 removed.
