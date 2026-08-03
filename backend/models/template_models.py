@@ -16,6 +16,11 @@ class TemplateSummary(BaseModel):
     # placeholder rather than a broken image.
     preview_url: str | None = None
     selected: bool = False
+    # "pending" while an upload is being converted, then "ready" or "failed".
+    # Built-ins are always ready. The client polls this list to follow an upload.
+    status: str
+    # Why a conversion failed, meant to be shown to the user as-is.
+    error: str | None = None
 
 
 class TemplateSelection(BaseModel):

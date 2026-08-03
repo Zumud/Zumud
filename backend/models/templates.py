@@ -37,6 +37,14 @@ BUILTINS = {
 DEFAULT_BUILTIN_SLUG = "mteck"
 DEFAULT_TEMPLATE = f"{BUILTIN_PREFIX}{DEFAULT_BUILTIN_SLUG}"
 
+# Converting an upload into a template takes a model several attempts and a real
+# compile each time, far longer than a request should wait, so the row is created
+# before its template exists. Only READY rows have `latex_content` and may be
+# selected or rendered; FAILED rows are kept so the user is told why.
+PENDING = "pending"
+READY = "ready"
+FAILED = "failed"
+
 
 def load_template_source(slug: str) -> str:
     """Read a built-in template's Jinja2/LaTeX source from disk."""

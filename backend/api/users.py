@@ -8,6 +8,7 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     File,
+    Form,
     HTTPException,
     Response,
     UploadFile,
@@ -581,6 +582,58 @@ def select_template(
     """Choose the template this user's resumes render with."""
     try:
         template_service.select_template(selection.slug, current_user.id, db)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    return template_service.available_templates(current_user.id, db)
+
+
+@router.post(
+    "/me/templates",
+    response_model=list[TemplateSummary],
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def upload_template(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    name: str | None = Form(None),
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Accept a .tex file and start turning it into a template.
+
+    Accepted rather than created: converting takes a model several attempts and a
+    real compile each time, far longer than a request should be held open. The
+    returned gallery carries the new template as pending, and the client follows it
+    from there.
+    """
+    # Capped rather than unbounded, and one byte past the limit so the guard can
+    # tell "at the limit" from "over it".
+    raw = await file.read(template_service.MAX_UPLOAD_BYTES + 1)
+
+    try:
+        template = template_service.accept_upload(
+            file.filename or "", raw, name, current_user.id, db
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+
+    background_tasks.add_task(template_service.convert_upload, template.id)
+    return template_service.available_templates(current_user.id, db)
+
+
+@router.delete("/me/templates/{slug}", response_model=list[TemplateSummary])
+def delete_template(
+    slug: str,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete one of the user's own templates."""
+    try:
+        template_service.delete_template(slug, current_user.id, db)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)

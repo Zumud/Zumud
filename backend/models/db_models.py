@@ -11,6 +11,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -18,7 +19,7 @@ from sqlalchemy.sql import func
 
 from backend.models.ai_models import AIModel
 from backend.models.db import Base
-from backend.models.templates import DEFAULT_TEMPLATE
+from backend.models.templates import DEFAULT_TEMPLATE, READY
 
 
 class User(Base):
@@ -101,14 +102,34 @@ class TailoringOptions(Base):
 
 class UserTemplate(Base):
     __tablename__ = "user_templates"
+    __table_args__ = (
+        # Every new template starts pending, so "one conversion at a time" enforced
+        # here also bounds how many a user can accumulate — and unlike a count read
+        # back in Python, two requests arriving together cannot both pass it. That
+        # matters because the limit exists to bound what conversions cost.
+        Index(
+            "uq_user_templates_one_pending_per_user",
+            "user_id",
+            unique=True,
+            postgresql_where=text("status = 'pending'"),
+            sqlite_where=text("status = 'pending'"),
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     name = Column(String, nullable=False)  # User-friendly name for the template
-    latex_content = Column(Text, nullable=False)  # The rendered Jinja2/LaTeX template
+    # The Jinja2/LaTeX template. Null while an upload is still being converted, so
+    # anything that renders has to check `status` first.
+    latex_content = Column(Text, nullable=True)
     # The .tex the user uploaded, kept so a template can be regenerated later
     # without asking them for the file again. Null for hand-written templates.
     source_tex = Column(Text, nullable=True)
+    # pending -> ready | failed, see backend/models/templates.py. Existing rows
+    # predate uploading and already hold a working template, hence the default.
+    status = Column(String, nullable=False, default=READY)
+    # Why conversion failed, in language meant for the user who uploaded the file.
+    error = Column(Text, nullable=True)
     compiler = Column(
         String, nullable=False, default="pdflatex"
     )  # LaTeX compiler to use
