@@ -39,13 +39,15 @@ const nextConfig = {
         source: '/ingest/static/:path*',
         destination: 'https://eu-assets.i.posthog.com/static/:path*',
       },
+      // Remote config (/array/<token>/config.js) is CDN-cached on the asset
+      // host; the catch-all below would send it to the API origin instead.
+      {
+        source: '/ingest/array/:path*',
+        destination: 'https://eu-assets.i.posthog.com/array/:path*',
+      },
       {
         source: '/ingest/:path*',
         destination: 'https://eu.i.posthog.com/:path*',
-      },
-      {
-        source: '/ingest/decide',
-        destination: 'https://eu.i.posthog.com/decide',
       },
     ];
   },
