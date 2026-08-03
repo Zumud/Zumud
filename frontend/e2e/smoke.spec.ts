@@ -51,6 +51,15 @@ test('signup, add resume, tailor, download a real PDF', async ({ page }) => {
     timeout: 60_000,
   })
 
+  // The template gallery lists the built-ins and shows which one generation will
+  // actually use. Its thumbnail is a committed asset, so a 404 here means the
+  // preview was never rendered for a template the registry offers.
+  const mteck = page.getByRole('button', { name: /MTeck/ })
+  await expect(mteck).toBeVisible()
+  await expect(mteck.getByText('In use')).toBeVisible()
+  const preview = await page.request.get('/templates/mteck.png')
+  expect(preview.status()).toBe(200)
+
   // --- Tailor against a job description and get a real compiled PDF --------
   await page.goto('/dashboard')
   await page
