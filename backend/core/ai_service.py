@@ -1,7 +1,6 @@
 import json
 from collections.abc import Sequence
 
-from jinja2 import Template
 from openai import AsyncOpenAI, OpenAI
 from sqlalchemy.orm import Session
 
@@ -21,6 +20,7 @@ from backend.utils.file_ops import (
     generate_pdf_from_latex,
     save_application_qa,
 )
+from backend.utils.jinja_env import render_resume_template
 from backend.utils.log import logger
 
 client = OpenAI(api_key=OPEN_AI_KEY)
@@ -180,10 +180,7 @@ async def generate_structured_latex_resume_async(
             )
 
     logger.debug(f"LaTeX template: {latex_template}")
-    # Create Jinja2 template and render
-    jinjatex_template = Template(latex_template)
-    logger.debug(f"Jinjatex Template: {jinjatex_template}")
-    rendered_latex = jinjatex_template.render(escaped_resume)
+    rendered_latex = render_resume_template(latex_template, escaped_resume)
     logger.debug(f"Rendered LaTeX: {rendered_latex}")
 
     # Try to compile
@@ -329,9 +326,7 @@ def update_resume_with_instructions(
     latex_template = template_data["structure"]
     compiler = template_data["compiler"]
 
-    # Create Jinja2 template and render
-    jinjatex_template = Template(latex_template)
-    rendered_latex = jinjatex_template.render(escaped_resume)
+    rendered_latex = render_resume_template(latex_template, escaped_resume)
 
     # Compile LaTeX to PDF
     latex_compiler_response = generate_pdf_from_latex(
