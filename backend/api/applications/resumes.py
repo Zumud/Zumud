@@ -72,7 +72,6 @@ async def generate_and_save_pdf_resume(
         current_user.resumes.resume_content,
         job_description,
         tailoring_options.ai_model,
-        tailoring_options.resume_template,
         current_user.id,
         db,
         is_anonymous=False,  # Authenticated users get no watermark
@@ -224,7 +223,6 @@ async def edit_resume_with_instructions(
             current_user.username, company_name, timestamp
         )
 
-    tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
     ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
 
     try:
@@ -235,7 +233,6 @@ async def edit_resume_with_instructions(
                 edit_instruction,
                 str(new_save_path),
                 AIModel.gpt_4_1_nano,
-                tailoring_options.resume_template,  # Use user's template preference
                 current_user.id,
                 db,
                 ai_rules_prompt,

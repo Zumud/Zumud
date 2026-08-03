@@ -18,7 +18,7 @@ from sqlalchemy.sql import func
 
 from backend.models.ai_models import AIModel
 from backend.models.db import Base
-from backend.models.templates import ResumeTemplate
+from backend.models.templates import DEFAULT_TEMPLATE
 
 
 class User(Base):
@@ -88,9 +88,9 @@ class TailoringOptions(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
     ai_model = Column(Enum(AIModel), nullable=False, default=AIModel.gpt_4_1_nano)
-    resume_template = Column(
-        Enum(ResumeTemplate), nullable=False, default=ResumeTemplate.MTeck_resume
-    )
+    # A slug rather than an enum, so adding a built-in template is a file drop
+    # rather than an ALTER TYPE migration. See backend.models.templates.
+    resume_template = Column(String, nullable=False, default=DEFAULT_TEMPLATE)
     last_updated = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -105,13 +105,17 @@ class UserTemplate(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
     name = Column(String, nullable=False)  # User-friendly name for the template
-    latex_content = Column(Text, nullable=False)  # The actual LaTeX template content
+    latex_content = Column(Text, nullable=False)  # The rendered Jinja2/LaTeX template
+    # The .tex the user uploaded, kept so a template can be regenerated later
+    # without asking them for the file again. Null for hand-written templates.
+    source_tex = Column(Text, nullable=True)
     compiler = Column(
         String, nullable=False, default="pdflatex"
     )  # LaTeX compiler to use
-    is_active = Column(
-        Boolean, nullable=False, default=True
-    )  # Whether this template is currently active
+    # Superseded by the tailoring_options.resume_template slug, which is now the
+    # single source of truth for selection. Dropped in a follow-up contract
+    # migration once nothing reads it.
+    is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_updated = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

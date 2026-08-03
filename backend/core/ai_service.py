@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 import backend.utils.prompts as prompts
 from backend.config.envs import OPEN_AI_KEY
+from backend.core.template_service import resolve_template
 from backend.models import db_models
 from backend.models.ai_models import AIModel
 from backend.models.resume_models import (
@@ -15,7 +16,6 @@ from backend.models.resume_models import (
     TailoredAnswer,
     TailoredCoverLetter,
 )
-from backend.models.templates import ResumeTemplate, Template_Details
 from backend.utils.file_ops import (
     escape_latex,
     generate_pdf_from_latex,
@@ -78,40 +78,6 @@ def format_ai_rules_for_prompt(rules: Sequence[db_models.UserAIRule] | None) -> 
     )
 
 
-def get_user_template(user_id: int, db: Session) -> dict:
-    """
-    Get the active template for a user. Returns user's custom template if available,
-    otherwise returns the default template from their tailoring options.
-
-    Returns:
-        dict: Template data with 'structure' and 'compiler' keys
-    """
-    # First, check for user's custom template
-    user_template = (
-        db.query(db_models.UserTemplate)
-        .filter(
-            db_models.UserTemplate.user_id == user_id,
-            db_models.UserTemplate.is_active.is_(True),
-        )
-        .first()
-    )
-
-    if user_template:
-        return {
-            "structure": user_template.latex_content,
-            "compiler": user_template.compiler,
-        }
-
-    # Fallback to user's default template preference
-    user = db.query(db_models.User).filter(db_models.User.id == user_id).first()
-    if user and user.tailoring_options:
-        template_enum = user.tailoring_options.resume_template
-        return Template_Details[template_enum]
-
-    # Final fallback to system default
-    return Template_Details[ResumeTemplate.MTeck_resume]
-
-
 def get_company_name(job_description):
     """
     Identifying the name of the company based on the job description.
@@ -146,7 +112,6 @@ async def generate_structured_latex_resume_async(
     resume: str,
     job_description: str,
     model=AIModel.gpt_4_1_nano,
-    template=ResumeTemplate.MTeck_resume,
     user_id: int = None,
     db: Session = None,
     is_anonymous: bool = False,
@@ -155,7 +120,8 @@ async def generate_structured_latex_resume_async(
     """
     Async version of generate_structured_latex_resume with better timeout handling.
     Convert a plain resume to LaTeX using structured output and Jinja2 templating.
-    Now supports user templates when user_id and db are provided.
+    The template comes from the user's own selection; without a user (the anonymous
+    demo) it is the default built-in.
 
     Returns:
         tuple: (latex_compiler_response, rendered_latex, structured_resume_json)
@@ -189,17 +155,9 @@ async def generate_structured_latex_resume_async(
     escaped_resume = escape_latex(structured_resume)
     logger.debug(f"Escaped resume: {escaped_resume}")
 
-    # Get the LaTeX template - use user template if available
-    if user_id and db:
-        template_data = get_user_template(user_id, db)
-        latex_template = template_data["structure"]
-        compiler = template_data["compiler"]
-        logger.debug(f"Using user template for user {user_id}")
-    else:
-        template_data = Template_Details[template]
-        latex_template = template_data["structure"]
-        compiler = template_data["compiler"]
-        logger.debug(f"Using default template: {template}")
+    template_data = resolve_template(user_id, db)
+    latex_template = template_data["structure"]
+    compiler = template_data["compiler"]
 
     # Add watermark for anonymous users
     if is_anonymous:
@@ -315,14 +273,12 @@ def update_resume_with_instructions(
     instructions: str,
     save_path: str,
     model=AIModel.gpt_4_1_nano,
-    template=ResumeTemplate.MTeck_resume,
     user_id: int = None,
     db: Session = None,
     ai_rules_prompt: str | None = None,
 ):
     """
     Update a structured resume based on free-form text instructions and regenerate the PDF.
-    Now supports user templates when user_id and db are provided.
 
     Args:
         original_structured_resume (str): The original structured resume JSON
@@ -330,8 +286,7 @@ def update_resume_with_instructions(
         instructions (str): Free-form text instructions describing changes to make
         save_path (str): Path to save the updated resume
         model: The AI model to use
-        template: The template to use (ignored if user has custom template)
-        user_id: User ID for custom template lookup
+        user_id: User ID for template lookup
         db: Database session for template lookup
 
     Returns:
@@ -375,15 +330,9 @@ def update_resume_with_instructions(
     # Escape LaTeX special characters
     escaped_resume = escape_latex(structured_resume)
 
-    # Get the LaTeX template - use user template if available
-    if user_id and db:
-        template_data = get_user_template(user_id, db)
-        latex_template = template_data["structure"]
-        compiler = template_data["compiler"]
-    else:
-        template_data = Template_Details[template]
-        latex_template = template_data["structure"]
-        compiler = template_data["compiler"]
+    template_data = resolve_template(user_id, db)
+    latex_template = template_data["structure"]
+    compiler = template_data["compiler"]
 
     # Create Jinja2 template and render
     jinjatex_template = Template(latex_template)
