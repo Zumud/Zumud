@@ -16,6 +16,13 @@ RUN apt-get update \
 RUN git clone https://github.com/aslushnikov/latex-online /var/www \
  && cd /var/www \
  && npm ci
+# An uploaded template using fontspec or unicode-math cannot compile under pdflatex
+# at all, so xelatex is load-bearing once users bring their own LaTeX. The base image
+# ships no xelatex.fmt: the engine generates it on first use, which costs ~8s and has
+# been seen to fail outright with "I can't find the format file `xelatex.fmt'". That
+# state lives in the container, so every recreated container pays and risks it again.
+# Building it once here makes the engine's availability a property of the image.
+RUN fmtutil-sys --byfmt xelatex
 WORKDIR /var/www
 ENV NODE_ENV=production
 EXPOSE 2700
