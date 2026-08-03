@@ -13,6 +13,7 @@ from backend.core.templatizer import (
     MAX_ATTEMPTS,
     TemplatizationError,
     build_prompt,
+    relocate_personal_data,
     split_document,
     templatize,
     verify,
@@ -89,6 +90,50 @@ def test_incomplete_documents_are_rejected(source, missing):
         split_document(source)
 
 
+MODERNCV = """\\documentclass[11pt,a4paper,sans]{moderncv}
+\\moderncvstyle{casual}
+\\name{John}{Doe}
+\\address{street and number}{postcode city}{country}
+\\phone[mobile]{+1~(234)~567~890}
+\\email{john@doe.org}
+\\begin{document}
+\\makecvtitle
+\\end{document}
+"""
+
+
+def test_personal_details_declared_in_the_preamble_move_into_the_body():
+    """moderncv sets the candidate before \\begin{document}; freezing that would put
+    John Doe's name on every resume the template ever renders."""
+    preamble, body = relocate_personal_data(*split_document(MODERNCV))
+
+    assert "John" not in preamble
+    assert "john@doe.org" not in preamble
+    assert "\\name{John}{Doe}" in body
+    assert "\\phone[mobile]{+1~(234)~567~890}" in body
+    # The design is still frozen, and the body still starts a document.
+    assert "\\moderncvstyle{casual}" in preamble
+    assert preamble.rstrip().endswith("\\begin{document}")
+
+
+def test_a_preamble_without_personal_details_is_left_alone():
+    preamble, body = relocate_personal_data(
+        *split_document(f"{PREAMBLE}\nx\n\\end{{document}}")
+    )
+
+    assert preamble == PREAMBLE
+    assert body.strip() == "x"
+
+
+def test_a_macro_named_after_a_personal_command_is_not_relocated():
+    """`\\newcommand{\\name}` defines the design; only a bare `\\name{...}` sets data."""
+    source = "\\documentclass{article}\n\\newcommand{\\name}[1]{\\textbf{#1}}\n\\begin{document}\nx\n\\end{document}"
+
+    preamble, _ = relocate_personal_data(*split_document(source))
+
+    assert "\\newcommand{\\name}[1]{\\textbf{#1}}" in preamble
+
+
 def test_the_preamble_is_reattached_verbatim():
     """The model never gets to author the preamble, so a document's setup survives
     whatever it returns."""
@@ -148,6 +193,23 @@ def test_broken_jinja_is_rejected():
             f"{PREAMBLE}\n{{% for x in %}}\n\\end{{document}}",
             compile_pdf=compiles_fine,
         )
+
+
+def test_latex_that_renders_to_double_braces_is_accepted():
+    """`\\textbf{{Languages:} Python}` is ordinary LaTeX — a group inside a macro
+    argument — and rejecting it as a stray Jinja tag failed good templates."""
+    body = "{{ personal_info.name }}\n{% if skills %}\\textbf{ {% for s in skills %}{ {{ s.category }}:} {% endfor %} }{% endif %}"
+
+    verify(f"{PREAMBLE}\n{body}\n\\end{{document}}", compile_pdf=compiles_fine)
+
+
+def test_a_template_may_use_the_do_extension():
+    """Models reach for `{% do %}` to build a contact line out of the fields that
+    happen to be present; verification has to run the same Jinja that generation
+    does, or a template passes here and breaks for the user."""
+    body = "{% set parts = [] %}{% do parts.append(personal_info.name) %}{{ parts|join(' ') }}"
+
+    verify(f"{PREAMBLE}\n{body}\n\\end{{document}}", compile_pdf=compiles_fine)
 
 
 def test_a_template_that_does_not_compile_is_rejected():

@@ -8,7 +8,10 @@ compiles. Two things keep that in check:
 *Freeze the preamble.* Everything up to `\\begin{document}` is passed to the model as
 read-only context — so it knows which macros the document defines — and then our copy
 is reattached verbatim. The model only ever authors the body, so it cannot break the
-document's setup even if it tries.
+document's setup even if it tries. The exception is personal data: some classes
+declare the candidate in the preamble, and freezing that would nail the original
+author's name into every resume the template produces, so those declarations are
+moved into the body first (see `relocate_personal_data`).
 
 *Verify before accepting.* A candidate is rendered against both reference resumes and
 actually compiled. Anything that fails — a syntax error, an unrendered tag, a
@@ -20,7 +23,6 @@ produced a real PDF from both fixtures.
 import re
 import tempfile
 
-from jinja2 import Template
 from openai import OpenAI
 
 from backend.config.envs import OPEN_AI_KEY
@@ -29,6 +31,7 @@ from backend.models.ai_models import AIModel
 from backend.models.resume_models import StructuredResume
 from backend.models.templates import builtin_template
 from backend.utils.file_ops import escape_latex, generate_pdf_from_latex
+from backend.utils.jinja_env import render_resume_template
 from backend.utils.log import logger
 
 MAX_ATTEMPTS = 3
@@ -62,6 +65,106 @@ def split_document(source_tex: str) -> tuple[str, str]:
     return source_tex[: begin.end()], source_tex[begin.end() : end.start()]
 
 
+# Commands that carry the candidate rather than the design. altacv and friends put
+# these in the preamble and only call the header macro in the body, so a frozen
+# preamble would keep the original owner's name and email on every resume rendered
+# from the template — which verification then rejects, failing a usable upload.
+#
+# Known limit: a class that consumes the value at \begin{document} rather than where
+# the header is typeset cannot take the declaration from the body — moderncv's
+# classic style builds its page footer from \name and fails with an undefined
+# \@firstname. Supporting those needs the declarations templatized in place, in the
+# preamble, rather than moved.
+PERSONAL_COMMANDS = (
+    "name",
+    "born",
+    "firstname",
+    "familyname",
+    "givenname",
+    "address",
+    "phone",
+    "mobile",
+    "email",
+    "homepage",
+    "website",
+    "social",
+    "photo",
+    "extrainfo",
+    "tagline",
+    "personalinfo",
+    "position",
+    "quote",
+    "title",
+    "author",
+    "date",
+)
+
+_PERSONAL_DECLARATION = re.compile(
+    r"^[ \t]*\\(?:" + "|".join(PERSONAL_COMMANDS) + r")(?![a-zA-Z@])", re.MULTILINE
+)
+
+
+def _group_end(text: str, start: int) -> int | None:
+    """Index just past the group opening at `start`, or None if it never closes."""
+    closing = {"{": "}", "[": "]"}[text[start]]
+    depth = 0
+    index = start
+    while index < len(text):
+        char = text[index]
+        if char == "\\":  # an escaped brace delimits nothing
+            index += 2
+            continue
+        if char == text[start]:
+            depth += 1
+        elif char == closing:
+            depth -= 1
+            if depth == 0:
+                return index + 1
+        index += 1
+    return None
+
+
+def _declaration_end(text: str, start: int) -> int:
+    """Index just past the argument list of a command whose name ends at `start`."""
+    index = start
+    while index < len(text) and text[index] in " \t":
+        index += 1
+    while index < len(text) and text[index] in "{[":
+        end = _group_end(text, index)
+        if end is None:
+            return index
+        index = end
+        while index < len(text) and text[index] in " \t":
+            index += 1
+    return index
+
+
+def relocate_personal_data(preamble: str, body: str) -> tuple[str, str]:
+    """Move the candidate's details out of the frozen preamble and into the body.
+
+    LaTeX does not care where `\\name` is set so long as it precedes `\\makecvtitle`,
+    so moving the declarations past `\\begin{document}` changes nothing about the
+    output while putting them somewhere the model is allowed to rewrite.
+    """
+    kept: list[str] = []
+    moved: list[str] = []
+    cursor = 0
+
+    for match in _PERSONAL_DECLARATION.finditer(preamble):
+        if match.start() < cursor:
+            continue
+        end = _declaration_end(preamble, match.end())
+        kept.append(preamble[cursor : match.start()])
+        moved.append(preamble[match.start() : end].strip())
+        cursor = end
+
+    if not moved:
+        return preamble, body
+
+    kept.append(preamble[cursor:])
+    return "".join(kept), "\n".join(moved) + "\n" + body
+
+
 def protect(preamble: str) -> str:
     """Mark the preamble as literal text rather than template source.
 
@@ -93,17 +196,25 @@ Rules, all of them mandatory:
 3. Every list field is variable length. Loop over it; never assume a count.
 4. Every field except personal_info.name is optional. Guard each section so that a
    resume without it renders no heading, no rules, and no empty space — a stranded
-   "Education" heading with nothing under it is a defect.
+   "Education" heading with nothing under it is a defect. Guard the inner lists too:
+   a list environment opened with no \item in it is a compile error, so a job with
+   no achievements must emit no list at all rather than an empty one.
 5. The values are ALREADY LaTeX-escaped before rendering. Never add \textbackslash,
    \&, escaping filters, or |e. Use values as they are.
-6. Use only macros that the preamble below already defines, plus standard LaTeX. Do
-   not invent a macro and do not add \usepackage.
-7. Keep the original's visual design: same sections in the same order, same spacing
+6. Use only macros that appear in the preamble or in the body you are converting,
+   plus standard LaTeX. The worked example below is a DIFFERENT document: macros
+   like \documentTitle and \headingBf are defined by its preamble and do not exist
+   here. Copying one produces "Undefined control sequence". Take the guarding and
+   looping from the example; take the macros from the document in front of you.
+7. Keep every command the original body calls. Templatize its arguments, and guard
+   it if the data may be absent — but do not drop it. A class that typesets its
+   header from \name fails to compile if \name is gone.
+8. Keep the original's visual design: same sections in the same order, same spacing
    and typography. You are changing where the content comes from, not how it looks.
-8. Write the list of skills as skill['items'], never skill.items. Jinja resolves an
+9. Write the list of skills as skill['items'], never skill.items. Jinja resolves an
    attribute before a key, and `.items` finds Python's dictionary method instead of
    the field — which renders as a method object rather than the skills.
-9. `{#` opens a comment in Jinja, so a LaTeX group starting with a macro parameter —
+10. `{#` opens a comment in Jinja, so a LaTeX group starting with a macro parameter —
    `{#1}` — makes the file unparseable. Write such a group as `{{ '{#' }}1}`. Never
    open a Jinja comment yourself.
 """
@@ -117,8 +228,9 @@ def _worked_example() -> str:
     """The one template known to render both fixtures and compile."""
     _, body = split_document(builtin_template("mteck")["structure"])
     return (
-        "Here is a body that satisfies all of the above, for a different design. "
-        "Match this level of guarding and looping:\n\n"
+        "Here is a body that satisfies all of the above, for a different design and "
+        "a different preamble. Match its guarding and looping; do not reuse its "
+        "macros:\n\n"
         f"{body}"
     )
 
@@ -157,19 +269,13 @@ def verify(template_source: str, compile_pdf=generate_pdf_from_latex):
         resume = load_resume(name)
 
         try:
-            rendered = Template(template_source).render(escape_latex(resume))
+            rendered = render_resume_template(template_source, escape_latex(resume))
         except Exception as exc:
             # Not just TemplateError: a template is arbitrary code to Jinja, and a
             # filter applied to the wrong type raises straight out of the stdlib.
             raise TemplatizationError(
                 f"Rendering the '{name}' resume raised {type(exc).__name__}: {exc}"
             ) from exc
-
-        if "{%" in rendered or "{{" in rendered:
-            raise TemplatizationError(
-                f"Rendering the '{name}' resume left un-executed Jinja tags in the "
-                "output, so a tag is malformed."
-            )
 
         expected = resume["personal_info"]["name"]
         if expected not in rendered:
@@ -211,7 +317,7 @@ def templatize(
 
     Raises TemplatizationError if no attempt renders and compiles.
     """
-    preamble, body = split_document(source_tex)
+    preamble, body = relocate_personal_data(*split_document(source_tex))
 
     feedback = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
