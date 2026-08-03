@@ -30,13 +30,20 @@ jobs:
             curl -sfo /dev/null http://127.0.0.1:2700/ && break
             sleep 2
           done
-          printf '\\documentclass{article}\\begin{document}ok\\end{document}\n' > smoke.tex
-          tar -cf smoke.tar smoke.tex
-          # Multipart upload — the same contract the backend uses (file_ops.py).
-          curl -sf -F 'file=@smoke.tar;type=application/x-tar' \
-            'http://127.0.0.1:2700/data?target=smoke.tex&force=true&command=pdflatex' \
-            -o smoke.pdf
-          file smoke.pdf | grep -q 'PDF document'
+          compile() { # $1 = engine, $2 = extra preamble
+            printf '\\documentclass{article}%s\\begin{document}ok\\end{document}\n' "$2" > smoke.tex
+            tar -cf smoke.tar smoke.tex
+            # Multipart upload — the same contract the backend uses (file_ops.py).
+            curl -sf -F 'file=@smoke.tar;type=application/x-tar' \
+              "http://127.0.0.1:2700/data?target=smoke.tex&force=true&command=$1" \
+              -o smoke.pdf
+            file smoke.pdf | grep -q 'PDF document'
+          }
+          compile pdflatex ''
+          # Templates users upload reach for fontspec, which builds only under xelatex —
+          # a second engine, with its own format file and font machinery. A pdflatex-only
+          # smoke test says nothing about whether that half of the image works.
+          compile xelatex '\usepackage{fontspec}'
       # Fork PRs have no package write access; publish only from this repo.
       - name: Push to GHCR
         if: github.event_name != 'pull_request'

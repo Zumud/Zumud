@@ -16,12 +16,12 @@ RUN apt-get update \
 RUN git clone https://github.com/aslushnikov/latex-online /var/www \
  && cd /var/www \
  && npm ci
-# The base image ships no xelatex.fmt, and generating it on first use fails: the
-# service compiles through latexrun, which calls mktexfmt with --strict, so the
-# warnings that format generation emits become a hard error and the document dies
-# with "I can't find the format file `xelatex.fmt'". Building it here costs ~8s once
-# at build time instead. xelatex matters because an uploaded template using fontspec
-# or unicode-math cannot compile under pdflatex at all.
+# An uploaded template using fontspec or unicode-math cannot compile under pdflatex
+# at all, so xelatex is load-bearing once users bring their own LaTeX. The base image
+# ships no xelatex.fmt: the engine generates it on first use, which costs ~8s and has
+# been seen to fail outright with "I can't find the format file `xelatex.fmt'". That
+# state lives in the container, so every recreated container pays and risks it again.
+# Building it once here makes the engine's availability a property of the image.
 RUN fmtutil-sys --byfmt xelatex
 WORKDIR /var/www
 ENV NODE_ENV=production
