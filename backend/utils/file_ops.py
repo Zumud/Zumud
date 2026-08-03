@@ -13,6 +13,25 @@ from backend.config.config import TAR_FOLDER_NAME, TEX_FILE_NAME
 from backend.config.envs import LaTeX_COMPILER_URL_DATA
 from backend.utils.log import logger
 
+# Translated in a single pass, so a replacement is never itself re-scanned and the
+# order of the entries carries no meaning.
+LATEX_ESCAPES = str.maketrans(
+    {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+        "<": r"\textless{}",
+        ">": r"\textgreater{}",
+    }
+)
+
 
 def escape_latex(data):
     """
@@ -25,23 +44,7 @@ def escape_latex(data):
         The input data with all LaTeX special characters escaped
     """
     if isinstance(data, str):
-        # Handle backslash first to avoid affecting other replacements
-        text = data.replace("\\", r"\textbackslash{}")
-
-        # Then handle other special characters
-        text = text.replace("&", r"\&")
-        text = text.replace("%", r"\%")
-        text = text.replace("$", r"\$")
-        text = text.replace("#", r"\#")
-        text = text.replace("_", r"\_")
-        text = text.replace("{", r"\{")
-        text = text.replace("}", r"\}")
-        text = text.replace("~", r"\textasciitilde{}")
-        text = text.replace("^", r"\textasciicircum{}")
-        text = text.replace("<", r"\textless{}")
-        text = text.replace(">", r"\textgreater{}")
-
-        return text
+        return data.translate(LATEX_ESCAPES)
     elif isinstance(data, list):
         return [escape_latex(item) for item in data]
     elif isinstance(data, dict):
