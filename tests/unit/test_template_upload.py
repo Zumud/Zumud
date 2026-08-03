@@ -8,6 +8,7 @@ since that is the only way back to the person who uploaded it.
 
 import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -150,6 +151,38 @@ def test_a_second_upload_waits_for_the_first(db):
 
     with pytest.raises(ValueError, match="still being converted"):
         accept_upload("other.tex", DOCUMENT, None, 1, db)
+
+
+def test_two_uploads_racing_cannot_both_start_converting(db):
+    """The checks above are read-then-write, so the database has to be the one
+    holding the line — otherwise a double-click buys two conversions."""
+    accept_upload("cv.tex", DOCUMENT, None, 1, db)
+    # Bypassing accept_upload's check is exactly what a concurrent request does: it
+    # read the table before the other one committed.
+    db.add(
+        db_models.UserTemplate(user_id=1, name="Racing", source_tex="x", status=PENDING)
+    )
+
+    with pytest.raises(IntegrityError):
+        db.commit()
+    db.rollback()
+
+
+def test_losing_that_race_reads_as_being_told_to_wait(db, monkeypatch):
+    """Losing it has to look like failing the check, not like a crash."""
+    add_template(db, id=1, status=PENDING)
+    # A request that read the table before the other one committed sees no pending
+    # row, so its checks pass and only the index stops it.
+    monkeypatch.setattr(template_service, "_user_templates", lambda user_id, db: [])
+
+    with pytest.raises(ValueError, match="still being converted"):
+        accept_upload("cv.tex", DOCUMENT, None, 1, db)
+
+
+def test_users_do_not_block_each_others_uploads(db):
+    accept_upload("cv.tex", DOCUMENT, None, 1, db)
+
+    assert accept_upload("cv.tex", DOCUMENT, None, 2, db)
 
 
 def test_the_allowance_is_enforced(db):

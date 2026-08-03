@@ -13,6 +13,7 @@ and a failure is recorded on the row rather than lost — the row is the only wa
 to the person who uploaded it.
 """
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.core.templatizer import TemplatizationError, templatize
@@ -229,7 +230,16 @@ def accept_upload(
         status=PENDING,
     )
     db.add(template)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        # The checks above were read-then-write, so two uploads arriving together
+        # can both reach here; the one-pending-per-user index is what actually holds
+        # the line, and losing that race means the same thing as failing the check.
+        db.rollback()
+        raise ValueError(
+            "Your last upload is still being converted. Give it a moment."
+        ) from exc
     db.refresh(template)
     return template
 

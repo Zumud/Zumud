@@ -37,9 +37,20 @@ def upgrade() -> None:
     op.alter_column(
         "user_templates", "latex_content", existing_type=sa.TEXT(), nullable=True
     )
+    # One conversion at a time per user, enforced where it cannot be raced: the
+    # limit is there to bound what conversions cost, and two requests arriving
+    # together would both pass a count read back in Python.
+    op.create_index(
+        "uq_user_templates_one_pending_per_user",
+        "user_templates",
+        ["user_id"],
+        unique=True,
+        postgresql_where=sa.text("status = 'pending'"),
+    )
 
 
 def downgrade() -> None:
+    op.drop_index("uq_user_templates_one_pending_per_user", table_name="user_templates")
     # Rows that never finished converting carry no template at all, so there is
     # nothing to make NOT NULL — and nothing lost by dropping them, since without
     # `status` they would be indistinguishable from working ones.

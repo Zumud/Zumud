@@ -11,6 +11,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -101,6 +102,19 @@ class TailoringOptions(Base):
 
 class UserTemplate(Base):
     __tablename__ = "user_templates"
+    __table_args__ = (
+        # Every new template starts pending, so "one conversion at a time" enforced
+        # here also bounds how many a user can accumulate — and unlike a count read
+        # back in Python, two requests arriving together cannot both pass it. That
+        # matters because the limit exists to bound what conversions cost.
+        Index(
+            "uq_user_templates_one_pending_per_user",
+            "user_id",
+            unique=True,
+            postgresql_where=text("status = 'pending'"),
+            sqlite_where=text("status = 'pending'"),
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
