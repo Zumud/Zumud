@@ -155,6 +155,10 @@ main() {
   remote=$(as_zumud "git rev-parse origin/main")
 
   if [ "$current" = "$remote" ]; then
+    # Nothing to deploy, but the image invariant is still worth checking: a pull
+    # that failed on an earlier tick — the image was still building — has to be
+    # able to heal here, rather than waiting for the next commit to land.
+    sync_latex_image || return 1
     return 0
   fi
 
