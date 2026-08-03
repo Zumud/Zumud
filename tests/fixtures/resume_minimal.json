@@ -1,0 +1,27 @@
+{
+  "personal_info": {
+    "name": "Sam Reyes",
+    "email": null,
+    "phone": null,
+    "location": null,
+    "linkedin": null,
+    "github": null
+  },
+  "summary": null,
+  "skills": null,
+  "experience": [
+    {
+      "company": "Acme Corp",
+      "role": null,
+      "location": null,
+      "date_range": null,
+      "description": null,
+      "achievements": null
+    }
+  ],
+  "education": null,
+  "certifications": null,
+  "projects": null,
+  "publications": null,
+  "awards": null
+}
