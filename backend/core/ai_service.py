@@ -191,11 +191,6 @@ async def generate_structured_latex_resume_async(
         save_folder, rendered_latex, compiler
     )
 
-    if b"error: " in latex_compiler_response.content:
-        error_msg = latex_compiler_response.content.decode("utf-8")
-        logger.error(f"LaTeX compilation error: {error_msg}")
-        raise ValueError(f"Failed to compile LaTeX document: {error_msg}")
-
     logger.debug("Successfully compiled LaTeX document")
     return latex_compiler_response, rendered_latex, structured_resume_json
 
@@ -342,10 +337,6 @@ def update_resume_with_instructions(
     latex_compiler_response = generate_pdf_from_latex(
         save_path, rendered_latex, compiler
     )
-
-    if b"error: " in latex_compiler_response.content:
-        error_msg = latex_compiler_response.content.decode("utf-8")
-        raise ValueError(f"Failed to compile LaTeX document: {error_msg}")
 
     return latex_compiler_response, updated_resume_json, rendered_latex
 

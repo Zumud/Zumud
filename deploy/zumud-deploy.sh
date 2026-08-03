@@ -14,6 +14,10 @@ PAUSE_FILE=/opt/zumud/deploy-paused
 BACKEND_HEALTH=http://127.0.0.1:8000/health
 FRONTEND_URL=http://127.0.0.1:3000/
 LATEX_IMAGE=ghcr.io/zumud/zumud-latex:latest
+# The compiler runs whatever LaTeX a user's template contains, so cap what a
+# runaway document can consume. TeX has no execution limits of its own: an
+# accidental \def loop will otherwise eat the box.
+LATEX_RUN_OPTS="--memory=2g --cpus=2 --pids-limit=256 --security-opt=no-new-privileges"
 
 as_zumud() {
   sudo -u zumud -H bash -lc \
@@ -51,8 +55,9 @@ build_and_restart() { # $1 = space-separated list of changed paths
     if docker pull "$LATEX_IMAGE"; then
       log "docker/latex changed -> swapping to freshly pulled image"
       docker rm -f zumud-latex || true
+      # shellcheck disable=SC2086 # LATEX_RUN_OPTS is a deliberate word list
       docker run -d --name zumud-latex --restart unless-stopped \
-        -p 127.0.0.1:2700:2700 "$LATEX_IMAGE"
+        $LATEX_RUN_OPTS -p 127.0.0.1:2700:2700 "$LATEX_IMAGE"
     else
       log "WARN: pull of $LATEX_IMAGE failed — keeping the current LaTeX container"
     fi
