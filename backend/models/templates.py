@@ -22,10 +22,16 @@ TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 BUILTIN_PREFIX = "builtin:"
 USER_PREFIX = "user:"
 
-# Display name plus the latex-online command that compiles it. The Jinja2/LaTeX
-# source is the matching backend/templates/<slug>.tex.jinja.
+# Display name, one line for the gallery, and the latex-online command that compiles
+# it. The Jinja2/LaTeX source is the matching backend/templates/<slug>.tex.jinja, and
+# the gallery thumbnail is frontend/public/templates/<slug>.png — page one of the
+# template rendered with backend/fixtures/resume_preview.json.
 BUILTINS = {
-    "mteck": {"name": "MTeck", "compiler": "pdflatex"},
+    "mteck": {
+        "name": "MTeck",
+        "description": "Dense single column that fits a lot without feeling crowded.",
+        "compiler": "pdflatex",
+    },
 }
 
 DEFAULT_BUILTIN_SLUG = "mteck"

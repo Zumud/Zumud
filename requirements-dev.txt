@@ -5,3 +5,7 @@ pytest-cov==7.1.0
 import-linter==2.13
 diff-cover==10.3.0
 pip-audit==2.10.0
+# Rasterises a compiled template into its gallery thumbnail
+# (backend/scripts/render_template_previews.py). Dev-only: the PNGs are committed,
+# so nothing in the running app rasterises a PDF.
+pypdfium2==5.12.1
