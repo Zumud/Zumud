@@ -1,0 +1,158 @@
+{
+  "personal_info": {
+    "name": "Zoë Ólafsdóttir-Nakamura",
+    "email": "zoe.olafsdottir+jobs@example.com",
+    "phone": "+1 (555) 010-2030",
+    "location": "Reykjavík, Iceland / Remote",
+    "linkedin": "zoe-olafsdottir",
+    "github": "zoe-o"
+  },
+  "summary": "Staff engineer with 12+ years building distributed systems. Cut p99 latency by 40% & infrastructure spend by $1.2M/yr across teams of 30+. Comfortable in ambiguity; biased toward shipping. Fluent in English, Icelandic & Japanese (日本語).",
+  "skills": [
+    {
+      "category": "Languages",
+      "items": ["Python", "Go", "Rust", "TypeScript", "C++", "C#", "SQL", "Bash"]
+    },
+    {
+      "category": "Infrastructure & Platform",
+      "items": ["Kubernetes", "Terraform", "AWS (EC2/S3/RDS/Lambda)", "Postgres", "Kafka", "Redis", "ClickHouse"]
+    },
+    {
+      "category": "Practices",
+      "items": ["Distributed tracing", "SLO/SLI design", "Incident command", "A/B experimentation", "Threat modelling"]
+    },
+    {
+      "category": "Special characters (escaping probe)",
+      "items": ["100% coverage", "R&D", "cost < $50", "a > b", "under_score", "hash#tag", "tilde~char", "caret^char", "brace{s}", "back\\slash"]
+    }
+  ],
+  "experience": [
+    {
+      "company": "Norðurljós Data Platform & Analytics Group",
+      "role": "Staff Software Engineer, Platform Reliability (Tech Lead for 3 teams)",
+      "location": "Reykjavík, Iceland",
+      "date_range": "Mar 2021 – Present",
+      "description": "Technical lead for the ingestion platform handling 4.5M events/sec at 99.99% availability, spanning 3 teams and 30% of the company's compute budget.",
+      "achievements": [
+        "Redesigned the event ingestion path around a Kafka + ClickHouse pipeline, cutting p99 write latency from 850ms to 120ms (-86%) while absorbing 3x traffic growth.",
+        "Drove a $1.2M/yr reduction in AWS spend by right-sizing 400+ workloads and introducing spot-backed autoscaling with a graceful-drain controller.",
+        "Introduced SLO-based alerting across 60+ services, reducing pager volume by 72% and mean time to acknowledge from 14 min to under 4 min.",
+        "Led incident command for 9 Sev-1 events; authored the blameless postmortem process now used company-wide.",
+        "Migrated 1,800 Terraform resources from a monolithic state file to per-service workspaces with zero downtime.",
+        "Built a distributed-tracing rollout (OpenTelemetry) covering 95% of request paths, which surfaced a long-standing N+1 costing ~$18k/month.",
+        "Mentored 11 engineers; 4 were promoted to senior and 1 to staff during this period.",
+        "Established an internal platform guild that publishes a monthly reliability review read by 200+ engineers."
+      ]
+    },
+    {
+      "company": "Kaizen Robotics K.K. (カイゼンロボティクス)",
+      "role": "Senior Backend Engineer",
+      "location": "Tokyo, Japan",
+      "date_range": "Jul 2017 – Feb 2021",
+      "description": "Third engineering hire; grew the fleet-management backend from prototype to 12,000 connected industrial robots.",
+      "achievements": [
+        "Designed the command-and-control protocol (gRPC over mTLS) still used across the entire fleet, supporting at-least-once delivery with idempotent replay.",
+        "Cut firmware rollout time from 6 hours to 11 minutes with a staged canary system gated on per-device health telemetry.",
+        "Reduced database costs 35% by moving time-series telemetry out of Postgres into a purpose-built columnar store.",
+        "Owned SOC 2 Type II evidence collection for the platform; passed with zero exceptions.",
+        "Shipped the first customer-facing public API; it drove 22% of new revenue within two quarters."
+      ]
+    },
+    {
+      "company": "Bright Fjord Consulting",
+      "role": "Software Engineer",
+      "location": "Remote",
+      "date_range": "Sep 2014 – Jun 2017",
+      "description": null,
+      "achievements": [
+        "Delivered 14 client projects across fintech, logistics & public-sector reporting.",
+        "Built a reusable ETL toolkit adopted by 6 client teams, cutting typical project setup from 3 weeks to 4 days."
+      ]
+    },
+    {
+      "company": "University of Iceland, School of Engineering",
+      "role": "Research Assistant",
+      "location": "Reykjavík, Iceland",
+      "date_range": "2013 – 2014",
+      "achievements": [
+        "Implemented a geothermal-flow simulation in C++ that reduced model runtime from 40 hours to 90 minutes."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "University of Iceland",
+      "degree": "M.Sc. Computer Science, Distributed Systems (First Class Honours)",
+      "location": "Reykjavík, Iceland",
+      "date_range": "2012 – 2014",
+      "minors": ["Applied Mathematics", "Statistics & Probability"]
+    },
+    {
+      "institution": "Reykjavík University",
+      "degree": "B.Sc. Software Engineering",
+      "location": "Reykjavík, Iceland",
+      "date_range": "2009 – 2012",
+      "minors": null
+    }
+  ],
+  "certifications": [
+    { "name": "AWS Certified Solutions Architect – Professional", "issuer": "Amazon Web Services" },
+    { "name": "Certified Kubernetes Administrator (CKA)", "issuer": "The Linux Foundation" },
+    { "name": "Incident Command for IT Operations", "issuer": null }
+  ],
+  "projects": [
+    {
+      "name": "traceroute-rs — a zero-dependency async traceroute",
+      "date_range": "2023 – Present",
+      "achievements": [
+        "2.1k GitHub stars; packaged in Homebrew & the AUR.",
+        "Sustains 10k concurrent probes on a single core using io_uring."
+      ]
+    },
+    {
+      "name": "slo-lint",
+      "date_range": "2022",
+      "achievements": ["Static analysis for Prometheus alerting rules; found 40+ misconfigured alerts at 3 companies."]
+    }
+  ],
+  "publications": [
+    {
+      "title": "Bounded-Staleness Replication for High-Throughput Telemetry Ingestion",
+      "authors": "Ólafsdóttir-Nakamura, Z., Pérez, M., & Adeyemi, K.",
+      "venue": "ACM Symposium on Cloud Computing (SoCC)",
+      "volume": "14",
+      "issue": "3",
+      "pages": "221–238",
+      "date": "2024",
+      "status": null,
+      "doi": "10.1145/3620666.3651324",
+      "url": null
+    },
+    {
+      "title": "A Field Study of Blameless Postmortems in Practice",
+      "authors": "Ólafsdóttir-Nakamura, Z. & Sørensen, L.",
+      "venue": "USENIX SREcon EMEA",
+      "volume": null,
+      "issue": null,
+      "pages": null,
+      "date": "2025",
+      "status": "Under Review",
+      "doi": null,
+      "url": "https://example.com/papers/blameless-postmortems"
+    }
+  ],
+  "awards": [
+    {
+      "title": "Engineering Excellence Award",
+      "issuer": "Norðurljós",
+      "date": "2023",
+      "description": "Company-wide award for the ingestion replatform (1 of 4 recipients from 900 engineers)."
+    },
+    {
+      "title": "Best Paper, Runner-up",
+      "issuer": "SoCC",
+      "date": "2024",
+      "description": null
+    }
+  ]
+}
