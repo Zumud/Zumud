@@ -16,6 +16,13 @@ RUN apt-get update \
 RUN git clone https://github.com/aslushnikov/latex-online /var/www \
  && cd /var/www \
  && npm ci
+# The base image ships no xelatex.fmt, and generating it on first use fails: the
+# service compiles through latexrun, which calls mktexfmt with --strict, so the
+# warnings that format generation emits become a hard error and the document dies
+# with "I can't find the format file `xelatex.fmt'". Building it here costs ~8s once
+# at build time instead. xelatex matters because an uploaded template using fontspec
+# or unicode-math cannot compile under pdflatex at all.
+RUN fmtutil-sys --byfmt xelatex
 WORKDIR /var/www
 ENV NODE_ENV=production
 EXPOSE 2700
