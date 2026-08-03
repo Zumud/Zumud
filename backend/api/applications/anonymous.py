@@ -112,7 +112,7 @@ async def generate_anonymous_resume(
             anonymous_username, company_name, timestamp
         )
 
-        # Default AI model and template; watermark for anonymous users
+        # Default AI model; without a user the default built-in template is used
         tailoring_options = TailoringOptionsBase()
         (
             latex_compiler_response,
@@ -123,7 +123,6 @@ async def generate_anonymous_resume(
             resume_text,
             job_description,
             tailoring_options.ai_model,
-            tailoring_options.resume_template,
             None,  # No user ID for anonymous users
             None,  # No database session for anonymous users
             is_anonymous=True,  # Add watermark for anonymous users

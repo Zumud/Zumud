@@ -4,22 +4,32 @@ A template is a Jinja2 program that renders a `StructuredResume` into a LaTeX
 document, so the LaTeX itself lives in `backend/templates/*.tex.jinja` where it can
 be reviewed, diffed and tested. This module only names each built-in and records the
 compiler it needs; it deliberately contains no LaTeX.
+
+Which template a user's resumes render with is a single slug stored on
+`tailoring_options.resume_template`, in one of two forms:
+
+    builtin:<slug>   one of BUILTINS below, backed by backend/templates/<slug>.tex.jinja
+    user:<id>        one of the user's own rows in user_templates
+
+Adding a built-in is therefore dropping a file in that directory and naming it here:
+no migration, because the column is a plain string rather than a Postgres enum.
 """
 
-from enum import Enum
 from pathlib import Path
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 
+BUILTIN_PREFIX = "builtin:"
+USER_PREFIX = "user:"
 
-class ResumeTemplate(str, Enum):
-    MTeck_resume = "MTeck's Resume"
-
-
-# Which file backs each template, and which latex-online command compiles it.
-_BUILTINS = {
-    ResumeTemplate.MTeck_resume: {"slug": "mteck", "compiler": "pdflatex"},
+# Display name plus the latex-online command that compiles it. The Jinja2/LaTeX
+# source is the matching backend/templates/<slug>.tex.jinja.
+BUILTINS = {
+    "mteck": {"name": "MTeck", "compiler": "pdflatex"},
 }
+
+DEFAULT_BUILTIN_SLUG = "mteck"
+DEFAULT_TEMPLATE = f"{BUILTIN_PREFIX}{DEFAULT_BUILTIN_SLUG}"
 
 
 def load_template_source(slug: str) -> str:
@@ -29,10 +39,12 @@ def load_template_source(slug: str) -> str:
 
 # Read eagerly so a missing or unreadable template file fails at import rather than
 # on a user's first generation.
-Template_Details = {
-    template: {
-        "structure": load_template_source(spec["slug"]),
-        "compiler": spec["compiler"],
-    }
-    for template, spec in _BUILTINS.items()
-}
+_SOURCES = {slug: load_template_source(slug) for slug in BUILTINS}
+
+
+def builtin_template(slug: str) -> dict | None:
+    """The renderable form of a built-in, or None if there is no such built-in."""
+    spec = BUILTINS.get(slug)
+    if spec is None:
+        return None
+    return {"structure": _SOURCES[slug], "compiler": spec["compiler"]}

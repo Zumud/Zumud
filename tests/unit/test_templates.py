@@ -15,7 +15,7 @@ from jinja2 import Template
 
 from backend.models import templates as templates_module
 from backend.models.resume_models import StructuredResume
-from backend.models.templates import TEMPLATES_DIR, Template_Details
+from backend.models.templates import BUILTINS, TEMPLATES_DIR, builtin_template
 from backend.utils.file_ops import escape_latex
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures"
@@ -26,9 +26,9 @@ def load_fixture(name: str) -> dict:
     return json.loads((FIXTURES_DIR / f"{name}.json").read_text(encoding="utf-8"))
 
 
-def render(template_source: str, resume: dict) -> str:
+def render(slug: str, resume: dict) -> str:
     """Render exactly as the generation path does."""
-    return Template(template_source).render(escape_latex(resume))
+    return Template(builtin_template(slug)["structure"]).render(escape_latex(resume))
 
 
 @pytest.mark.parametrize("fixture_name", FIXTURE_NAMES)
@@ -38,12 +38,10 @@ def test_fixture_is_a_valid_structured_resume(fixture_name):
     StructuredResume.model_validate(load_fixture(fixture_name))
 
 
-@pytest.mark.parametrize("template", list(Template_Details))
+@pytest.mark.parametrize("slug", list(BUILTINS))
 @pytest.mark.parametrize("fixture_name", FIXTURE_NAMES)
-def test_builtin_renders_a_complete_document(template, fixture_name):
-    rendered = render(
-        Template_Details[template]["structure"], load_fixture(fixture_name)
-    )
+def test_builtin_renders_a_complete_document(slug, fixture_name):
+    rendered = render(slug, load_fixture(fixture_name))
 
     assert "\\documentclass" in rendered
     assert "\\begin{document}" in rendered
@@ -52,11 +50,10 @@ def test_builtin_renders_a_complete_document(template, fixture_name):
     assert "{%" not in rendered
 
 
-@pytest.mark.parametrize("template", list(Template_Details))
-def test_builtin_binds_the_resume_data(template):
+@pytest.mark.parametrize("slug", list(BUILTINS))
+def test_builtin_binds_the_resume_data(slug):
     """A template that ignores its input still compiles, so assert the data landed."""
-    resume = load_fixture("resume_kitchen_sink")
-    rendered = render(Template_Details[template]["structure"], resume)
+    rendered = render(slug, load_fixture("resume_kitchen_sink"))
 
     assert "Nakamura" in rendered
     assert "Kaizen Robotics" in rendered
@@ -67,13 +64,11 @@ def test_builtin_binds_the_resume_data(template):
     assert "Bounded-Staleness Replication" in rendered
 
 
-@pytest.mark.parametrize("template", list(Template_Details))
-def test_builtin_omits_sections_the_resume_does_not_have(template):
+@pytest.mark.parametrize("slug", list(BUILTINS))
+def test_builtin_omits_sections_the_resume_does_not_have(slug):
     """The minimal fixture has only a name and one employer; absent sections must not
     leave a stranded heading behind."""
-    rendered = render(
-        Template_Details[template]["structure"], load_fixture("resume_minimal")
-    )
+    rendered = render(slug, load_fixture("resume_minimal"))
 
     assert "Sam Reyes" in rendered
     assert "Acme Corp" in rendered
@@ -81,13 +76,11 @@ def test_builtin_omits_sections_the_resume_does_not_have(template):
         assert f"section{{{absent}}}" not in rendered
 
 
-@pytest.mark.parametrize("template", list(Template_Details))
-def test_builtin_escapes_special_characters(template):
+@pytest.mark.parametrize("slug", list(BUILTINS))
+def test_builtin_escapes_special_characters(slug):
     """`escape_latex` runs before rendering, so a literal ampersand from the AI must
     never reach the compiler unescaped."""
-    rendered = render(
-        Template_Details[template]["structure"], load_fixture("resume_kitchen_sink")
-    )
+    rendered = render(slug, load_fixture("resume_kitchen_sink"))
 
     assert "R\\&D" in rendered
     assert "100\\% coverage" in rendered
@@ -95,9 +88,14 @@ def test_builtin_escapes_special_characters(template):
 
 
 def test_every_registered_template_has_a_source_file():
-    for template, details in Template_Details.items():
-        assert details["structure"].strip(), f"{template} loaded an empty source"
-        assert details["compiler"] in {"pdflatex", "xelatex", "lualatex"}
+    for slug in BUILTINS:
+        template = builtin_template(slug)
+        assert template["structure"].strip(), f"{slug} loaded an empty source"
+        assert template["compiler"] in {"pdflatex", "xelatex", "lualatex"}
+
+
+def test_unknown_builtin_is_reported_rather_than_raising():
+    assert builtin_template("no-such-template") is None
 
 
 def test_no_latex_lives_in_the_python_module():
