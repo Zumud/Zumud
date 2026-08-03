@@ -12,11 +12,17 @@ Every 10 minutes, `zumud-deploy.timer` runs [zumud-deploy.sh](zumud-deploy.sh):
    one deploy picks up everything merged since the last tick).
 2. `git merge --ff-only origin/main`, then rebuild only what changed:
    `requirements.txt` → pip install; `frontend/` → npm ci + build;
-   `docker/latex/` → pull the new GHCR image; `migrations/` → `alembic
-   upgrade head`.
-3. Write `SENTRY_RELEASE=<sha>` to `/opt/zumud/release.env` and restart
+   `migrations/` → `alembic upgrade head`.
+3. Make the LaTeX container run the image built from this commit, pinned to that
+   commit's own tag rather than `:latest` — publishing takes minutes, so `:latest`
+   can still be the previous build when the deploy fires. A tag that is not
+   published yet leaves the running container alone and is retried next tick. A new
+   image is only kept once it has actually compiled a document under both pdflatex
+   and xelatex; otherwise the previous image goes back and the unit fails, because
+   rolling the code back cannot fix a broken compiler.
+4. Write `SENTRY_RELEASE=<sha>` to `/opt/zumud/release.env` and restart
    `zumud-backend` + `zumud-frontend`.
-4. Health-check `/health` and the frontend for up to 60s. On failure:
+5. Health-check `/health` and the frontend for up to 60s. On failure:
    hard-reset to the previous commit, rebuild, restart, and mark the unit
    failed (visible in `systemctl status zumud-deploy` / journal; the external
    uptime monitor is the second net).
@@ -37,12 +43,8 @@ sudo -u zumud -H bash -lc 'set -a; . /opt/zumud/.env; set +a; cd /opt/zumud/repo
 systemctl edit zumud-backend    # add the line above
 systemctl edit zumud-frontend   # add the line above
 
-# Switch the LaTeX container to the GHCR image (was a hand-built local tag):
-docker pull ghcr.io/zumud/zumud-latex:latest
-docker rm -f zumud-latex
-docker run -d --name zumud-latex --restart unless-stopped -p 127.0.0.1:2700:2700 ghcr.io/zumud/zumud-latex:latest
-
-# Install the deployer:
+# Install the deployer (it owns the LaTeX container from here — image, resource
+# limits, and all — so there is nothing to start by hand):
 ln -sf /opt/zumud/repo/deploy/zumud-deploy.service /etc/systemd/system/
 ln -sf /opt/zumud/repo/deploy/zumud-deploy.timer /etc/systemd/system/
 systemctl daemon-reload
