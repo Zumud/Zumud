@@ -13,6 +13,13 @@ from backend.config.config import TAR_FOLDER_NAME, TEX_FILE_NAME
 from backend.config.envs import LaTeX_COMPILER_URL_DATA
 from backend.utils.log import logger
 
+# (connect, read) seconds. Without a read timeout, a template that sends TeX into an
+# infinite loop pins a uvicorn worker forever, and production runs only two of them.
+LATEX_COMPILE_TIMEOUT = (5, 60)
+
+# How much of the compiler log to surface; the full log runs to hundreds of lines.
+LATEX_ERROR_EXCERPT = 2000
+
 
 def escape_latex(data):
     """
@@ -57,54 +64,41 @@ def generate_tex_and_tar(
     folder_name: str = "resume",
 ):
     """
-    Creates a folder, generates a .tex file inside it, and compresses the folder into a .tar file.
+    Writes the .tex file and packs it into the .tar the compiler expects.
 
     Parameters:
         file_name (str): The name of the .tex file to create.
         latex_content (str): The LaTeX content to write into the file.
-        folder_name (str): The name of the folder to create.
+        folder_name (str): The name of the folder inside the archive.
     """
-    try:
-        # Path of a folder for saving .tex files
-        resume_folder_path = save_folder
+    os.makedirs(save_folder, exist_ok=True)
 
-        # Path of .tar file
-        tar_path = save_folder
+    tex_file_path = os.path.join(save_folder, file_name)
+    if not tex_file_path.endswith(".tex"):
+        tex_file_path += ".tex"
 
-        # Ensure the folder exists
-        os.makedirs(save_folder, exist_ok=True)
+    # Strip ASCII control chars (keep \t \n \r) — pdflatex chokes on them and
+    # LLMs occasionally emit stray ones (e.g. U+0016) when transcribing RTL text.
+    latex_content = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", latex_content)
 
-        # Full path for the .tex file
-        tex_file_path = os.path.join(resume_folder_path, file_name)
+    with open(tex_file_path, "w", encoding="utf-8") as tex_file:
+        tex_file.write(latex_content)
 
-        # Ensure the file name ends with .tex
-        if not tex_file_path.endswith(".tex"):
-            tex_file_path += ".tex"
+    # Only the .tex goes in. Archiving the whole folder swept up whatever the
+    # previous generation left behind — an earlier resume.tar, resume.json and
+    # the PDF — and handed it all to the compiler.
+    tar_folder_path = os.path.join(save_folder, f"{folder_name}.tar")
+    with tarfile.open(tar_folder_path, "w") as tar:
+        tar.add(
+            tex_file_path, arcname=f"{folder_name}/{os.path.basename(tex_file_path)}"
+        )
 
-        # Strip ASCII control chars (keep \t \n \r) — pdflatex chokes on them and
-        # LLMs occasionally emit stray ones (e.g. U+0016) when transcribing RTL text.
-        latex_content = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", latex_content)
-
-        # Write the LaTeX content into the file
-        with open(tex_file_path, "w", encoding="utf-8") as tex_file:
-            tex_file.write(latex_content)
-
-        logger.debug(f"File '{tex_file_path}' created successfully.")
-
-        # Compress the folder into a .tar file
-        tar_file_name = f"{folder_name}.tar"
-        # Full path of .tar folder
-        tar_folder_path = os.path.join(tar_path, tar_file_name)
-        with tarfile.open(tar_folder_path, "w") as tar:
-            tar.add(resume_folder_path, arcname="resume")
-        return os.path.relpath(tar_folder_path)
-    except Exception as e:
-        logger.debug(f"An error occurred: {e}")
+    return os.path.relpath(tar_folder_path)
 
 
 def generate_pdf_from_latex(save_folder, latex_code, compiler):
     """
-    generate pdf file from latex code
+    Compile LaTeX into a PDF, raising ValueError if the compiler did not produce one.
     """
     tar_file = generate_tex_and_tar(
         save_folder, latex_code, TEX_FILE_NAME, TAR_FOLDER_NAME
@@ -113,13 +107,32 @@ def generate_pdf_from_latex(save_folder, latex_code, compiler):
         files = {
             "file": (os.path.basename(tar_file.name), tar_file, "application/x-tar")
         }
-        latex_compiler_response = requests.post(
-            url=LaTeX_COMPILER_URL_DATA.format(
-                tex_folder_path=f"{TAR_FOLDER_NAME}/{TEX_FILE_NAME}.tex",
-                compiler=compiler,
-            ),
-            files=files,
+        try:
+            latex_compiler_response = requests.post(
+                url=LaTeX_COMPILER_URL_DATA.format(
+                    tex_folder_path=f"{TAR_FOLDER_NAME}/{TEX_FILE_NAME}.tex",
+                    compiler=compiler,
+                ),
+                files=files,
+                timeout=LATEX_COMPILE_TIMEOUT,
+            )
+        except requests.Timeout:
+            raise ValueError(
+                f"LaTeX compilation timed out after {LATEX_COMPILE_TIMEOUT[1]}s"
+            )
+
+    # A PDF starts with %PDF; anything else is the compiler log. The previous
+    # check searched the whole body for b"error: ", which a valid PDF's binary
+    # streams could match by chance.
+    if latex_compiler_response.status_code != 200 or not (
+        latex_compiler_response.content.startswith(b"%PDF")
+    ):
+        detail = latex_compiler_response.content[:LATEX_ERROR_EXCERPT].decode(
+            "utf-8", errors="replace"
         )
+        logger.error(f"LaTeX compilation error: {detail}")
+        raise ValueError(f"Failed to compile LaTeX document: {detail}")
+
     return latex_compiler_response
 
 

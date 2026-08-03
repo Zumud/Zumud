@@ -161,7 +161,9 @@ jobs:
         run: |
           docker pull ghcr.io/zumud/zumud-latex:latest \
             || docker build -t ghcr.io/zumud/zumud-latex:latest docker/latex
-          docker run -d --name zumud-latex -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
+          docker run -d --name zumud-latex \
+            --memory=2g --cpus=2 --pids-limit=256 --security-opt=no-new-privileges \
+            -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
       - run: ./scripts/e2e-stack.sh
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -236,7 +238,9 @@ jobs:
         run: |
           docker pull ghcr.io/zumud/zumud-latex:latest \
             || docker build -t ghcr.io/zumud/zumud-latex:latest docker/latex
-          docker run -d --name zumud-latex -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
+          docker run -d --name zumud-latex \
+            --memory=2g --cpus=2 --pids-limit=256 --security-opt=no-new-privileges \
+            -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
       - name: E2E with live model
         if: steps.key.outputs.has_key == 'true'
         run: E2E_REAL_AI=1 ./scripts/e2e-stack.sh

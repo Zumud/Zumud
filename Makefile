@@ -120,12 +120,16 @@ e2e: ## Full-stack Playwright smoke (needs 'make up' + 'make latex-up' first)
 # 2024 + latex-online baked in, served on 127.0.0.1:2700. Pulled from GHCR
 # when available (fast); falls back to a local build (~4-5GB base pull).
 # The backend defaults LATEX_COMPILER_BASE_URL to this address.
+#
+# Same resource caps as prod (deploy/zumud-deploy.sh): the compiler runs LaTeX
+# from user-supplied templates, and TeX will happily loop forever on its own.
+LATEX_RUN_OPTS ?= --memory=2g --cpus=2 --pids-limit=256 --security-opt=no-new-privileges
 latex-up: ## Pull (or build) + start the local LaTeX compiler on 127.0.0.1:2700
 	docker image inspect ghcr.io/zumud/zumud-latex:latest >/dev/null 2>&1 \
 	  || docker pull ghcr.io/zumud/zumud-latex:latest \
 	  || docker build -t ghcr.io/zumud/zumud-latex:latest docker/latex
 	docker rm -f zumud-latex >/dev/null 2>&1 || true
-	docker run -d --name zumud-latex --restart unless-stopped -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
+	docker run -d --name zumud-latex --restart unless-stopped $(LATEX_RUN_OPTS) -p 2700:2700 ghcr.io/zumud/zumud-latex:latest
 	@echo "LaTeX compiler on http://127.0.0.1:2700"
 
 # Note: published on 0.0.0.0:2700 (not 127.0.0.1) because snap-Docker's loopback port
