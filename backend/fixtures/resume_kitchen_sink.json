@@ -7,7 +7,7 @@
     "linkedin": "zoe-olafsdottir",
     "github": "zoe-o"
   },
-  "summary": "Staff engineer with 12+ years building distributed systems. Cut p99 latency by 40% & infrastructure spend by $1.2M/yr across teams of 30+. Comfortable in ambiguity; biased toward shipping. Fluent in English, Icelandic & Japanese (日本語).",
+  "summary": "Staff engineer with 12+ years building distributed systems. Cut p99 latency by 40% & infrastructure spend by $1.2M/yr across teams of 30+. Comfortable in ambiguity; biased toward shipping. Fluent in English, Icelandic and Spanish.",
   "skills": [
     {
       "category": "Languages",
@@ -28,7 +28,7 @@
   ],
   "experience": [
     {
-      "company": "Norðurljós Data Platform & Analytics Group",
+      "company": "Nordurljos Data Platform & Analytics Group",
       "role": "Staff Software Engineer, Platform Reliability (Tech Lead for 3 teams)",
       "location": "Reykjavík, Iceland",
       "date_range": "Mar 2021 – Present",
@@ -45,7 +45,7 @@
       ]
     },
     {
-      "company": "Kaizen Robotics K.K. (カイゼンロボティクス)",
+      "company": "Kaizen Robotics K.K.",
       "role": "Senior Backend Engineer",
       "location": "Tokyo, Japan",
       "date_range": "Jul 2017 – Feb 2021",
@@ -144,7 +144,7 @@
   "awards": [
     {
       "title": "Engineering Excellence Award",
-      "issuer": "Norðurljós",
+      "issuer": "Nordurljos",
       "date": "2023",
       "description": "Company-wide award for the ingestion replatform (1 of 4 recipients from 900 engineers)."
     },

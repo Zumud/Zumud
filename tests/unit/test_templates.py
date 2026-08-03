@@ -7,23 +7,22 @@ the same way production does — `escape_latex()` then `Template(...).render(...
 in `ai_service.generate_structured_latex_resume_async`.
 """
 
-import json
 from pathlib import Path
 
 import pytest
 from jinja2 import Template
 
+from backend.fixtures import VERIFICATION_RESUMES, load_resume
 from backend.models import templates as templates_module
 from backend.models.resume_models import StructuredResume
 from backend.models.templates import BUILTINS, TEMPLATES_DIR, builtin_template
 from backend.utils.file_ops import escape_latex
 
-FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures"
-FIXTURE_NAMES = ["resume_kitchen_sink", "resume_minimal"]
+FIXTURE_NAMES = list(VERIFICATION_RESUMES)
 
 
 def load_fixture(name: str) -> dict:
-    return json.loads((FIXTURES_DIR / f"{name}.json").read_text(encoding="utf-8"))
+    return load_resume(name)
 
 
 def render(slug: str, resume: dict) -> str:
