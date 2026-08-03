@@ -137,8 +137,8 @@ sync_latex_image() {
 # fallible step says so explicitly: the caller tests this function, and being tested
 # suspends set -e for everything it runs, so an unchecked failure would fall through
 # to the restart instead of stopping the deploy.
-build_and_restart() { # $1 = space-separated list of changed paths
-  local changed="$1"
+build_and_restart() { # $1 = changed paths, $2 = "migrate" (default) | "keep-schema"
+  local changed="$1" schema="${2:-migrate}"
   if grep -q '^requirements.txt' <<<"$changed"; then
     log "requirements.txt changed -> installing deps"
     if [ -x "$REPO/.venv/bin/pip" ]; then
@@ -152,7 +152,12 @@ build_and_restart() { # $1 = space-separated list of changed paths
   fi
   # Before the frontend build, so a schema that cannot be brought up to date costs
   # seconds rather than the eight minutes of an npm build it would only invalidate.
-  if ! sync_migrations; then
+  # Only on the way forward, though: a rollback must not touch the schema. The
+  # revision the database is on need not even exist in the tree being restored, and
+  # failing here would skip the restart that is the entire point of rolling back —
+  # reporting "rollback OK" while the failed deploy's code kept serving. Old code
+  # tolerating a newer schema is what the expand/contract convention buys.
+  if [ "$schema" = migrate ] && ! sync_migrations; then
     log "MIGRATION FAILED — not restarting into a schema the code cannot use"
     return 1
   fi
@@ -214,7 +219,7 @@ main() {
 
   log "DEPLOY FAILED — rolling back to $current"
   as_zumud "git reset --hard $current --quiet"
-  build_and_restart "$changed" || true
+  build_and_restart "$changed" keep-schema || log "rollback rebuild had a failed step"
 
   if health_check; then
     log "rollback OK at $current — deploys need attention (unit marked failed)"
