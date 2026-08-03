@@ -1,0 +1,97 @@
+{
+  "personal_info": {
+    "name": "Amara Osei",
+    "email": "amara.osei@example.com",
+    "phone": "+44 20 7946 0812",
+    "location": "London, UK",
+    "linkedin": "linkedin.com/in/amaraosei",
+    "github": "github.com/amaraosei"
+  },
+  "summary": "Backend engineer with eight years building payment and identity systems at scale. Happiest where correctness matters and the on-call pager stays quiet.",
+  "skills": [
+    {
+      "category": "Languages",
+      "items": ["Python", "Go", "TypeScript", "SQL"]
+    },
+    {
+      "category": "Platform",
+      "items": ["PostgreSQL", "Kafka", "Redis", "Kubernetes", "Terraform"]
+    },
+    {
+      "category": "Practices",
+      "items": ["Distributed tracing", "Load testing", "Incident review"]
+    }
+  ],
+  "experience": [
+    {
+      "company": "Northwind Payments",
+      "role": "Staff Engineer",
+      "location": "London, UK",
+      "date_range": "2021 - Present",
+      "description": "Technical lead for the ledger that settles every transaction on the platform.",
+      "achievements": [
+        "Rebuilt settlement as an append-only ledger, cutting month-end reconciliation from three days to under an hour.",
+        "Cut p99 authorisation latency from 840ms to 190ms by removing a synchronous fraud call from the hot path.",
+        "Introduced contract tests across nine services, ending a recurring class of release-day outages."
+      ]
+    },
+    {
+      "company": "Halden Identity",
+      "role": "Senior Backend Engineer",
+      "location": "Remote",
+      "date_range": "2018 - 2021",
+      "description": "Owned the authentication service behind twelve million monthly sign-ins.",
+      "achievements": [
+        "Migrated password storage to Argon2 with zero forced resets and no measurable latency change.",
+        "Designed the tenant isolation model that unblocked the company's first enterprise contracts."
+      ]
+    },
+    {
+      "company": "Corvid Analytics",
+      "role": "Backend Engineer",
+      "location": "Manchester, UK",
+      "date_range": "2016 - 2018",
+      "achievements": [
+        "Built the ingest pipeline that grew from two thousand to four million events a day without a rewrite."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "University of Edinburgh",
+      "degree": "MSc Computer Science",
+      "location": "Edinburgh, UK",
+      "date_range": "2015 - 2016"
+    },
+    {
+      "institution": "University of Leeds",
+      "degree": "BSc Mathematics",
+      "location": "Leeds, UK",
+      "date_range": "2012 - 2015",
+      "minors": ["Statistics"]
+    }
+  ],
+  "certifications": [
+    {
+      "name": "Certified Kubernetes Administrator",
+      "issuer": "CNCF"
+    }
+  ],
+  "projects": [
+    {
+      "name": "ledgerfuzz",
+      "date_range": "2023",
+      "achievements": [
+        "Open-source property-based test harness for double-entry ledgers, used by four other teams."
+      ]
+    }
+  ],
+  "awards": [
+    {
+      "title": "Engineering Excellence Award",
+      "issuer": "Northwind Payments",
+      "date": "2023",
+      "description": "For the settlement ledger rebuild."
+    }
+  ]
+}

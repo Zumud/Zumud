@@ -275,6 +275,16 @@ export type UserAIRulePayload = {
   is_enabled?: boolean;
 };
 
+// A slug is either `builtin:<name>` or `user:<id>`; the client never needs to tell
+// them apart, it just sends back the one the user picked.
+export type ResumeTemplate = {
+  slug: string;
+  name: string;
+  description: string;
+  preview_url: string | null;
+  selected: boolean;
+};
+
 // Email login/signup stays client-side through Supabase Auth. Username login
 // is exchanged by the backend so the account email is never exposed.
 export const auth = {
@@ -316,6 +326,16 @@ export const aiRules = {
 
   delete: (ruleId: number): Promise<null> =>
     apiCall(`users/me/ai-rules/${ruleId}`, 'DELETE'),
+};
+
+// Both calls return the whole gallery, so selecting a template needs no second
+// request to find out what is now selected.
+export const templates = {
+  list: (): Promise<ResumeTemplate[]> =>
+    apiCall('users/me/templates'),
+
+  select: (slug: string): Promise<ResumeTemplate[]> =>
+    apiCall('users/me/templates/selected', 'PUT', { slug }),
 };
 
 // Application endpoints

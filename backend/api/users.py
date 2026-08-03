@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from backend.api.auth import get_current_user
 from backend.config.envs import SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL
+from backend.core import template_service
 from backend.core.storage_service import safe_upload_with_fallback, storage_service
 from backend.models import db_models
 from backend.models.ai_rule_models import (
@@ -28,6 +29,7 @@ from backend.models.ai_rule_models import (
 )
 from backend.models.db import SessionLocal, get_db
 from backend.models.resume_models import Resume, ResumeBase
+from backend.models.template_models import TemplateSelection, TemplateSummary
 from backend.models.user_models import User
 from backend.utils.file_ops import extract_text_from_pdf
 from backend.utils.file_utils import save_base64_pdf
@@ -560,3 +562,27 @@ def delete_user_ai_rule(
     db.delete(rule)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/me/templates", response_model=list[TemplateSummary])
+def list_templates(
+    current_user=Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """The templates the user can choose between, and which one is in use."""
+    return template_service.available_templates(current_user.id, db)
+
+
+@router.put("/me/templates/selected", response_model=list[TemplateSummary])
+def select_template(
+    selection: TemplateSelection,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Choose the template this user's resumes render with."""
+    try:
+        template_service.select_template(selection.slug, current_user.id, db)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    return template_service.available_templates(current_user.id, db)
