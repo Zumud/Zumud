@@ -22,6 +22,7 @@ produced a real PDF from both fixtures.
 
 import re
 import tempfile
+from typing import NamedTuple
 
 from openai import OpenAI
 
@@ -36,6 +37,12 @@ from backend.utils.log import logger
 
 MAX_ATTEMPTS = 3
 
+# Tried in order. pdflatex first because it is much faster and most designs build
+# under it; xelatex is what fontspec/unicode-math preambles need. NB the image CI
+# and local dev use cannot build xelatex formats yet, so that fallback only pays off
+# on the deploy host until docker/latex/ catches up.
+COMPILERS = ("pdflatex", "xelatex")
+
 # Templatizing is a harder, rarer task than tailoring, so it does not follow the
 # user's chosen tailoring model.
 TEMPLATIZER_MODEL = AIModel.gpt_4_1_mini
@@ -48,6 +55,13 @@ client = OpenAI(api_key=OPEN_AI_KEY)
 
 class TemplatizationError(Exception):
     """A user's .tex could not be turned into a template that renders and compiles."""
+
+
+class VerifiedTemplate(NamedTuple):
+    """A template that has rendered and compiled, with the engine that built it."""
+
+    source: str
+    compiler: str
 
 
 def split_document(source_tex: str) -> tuple[str, str]:
@@ -165,6 +179,9 @@ def relocate_personal_data(preamble: str, body: str) -> tuple[str, str]:
     return "".join(kept), "\n".join(moved) + "\n" + body
 
 
+ENDRAW = re.compile(r"\{%-?\s*endraw\s*-?%\}")
+
+
 def protect(preamble: str) -> str:
     """Mark the preamble as literal text rather than template source.
 
@@ -174,8 +191,16 @@ def protect(preamble: str) -> str:
     preamble is by definition not templated, so saying so is both the smallest fix
     and the honest one. (The built-in template predates this and works around the
     same collision by hand, writing `{{ '{#' }}` at each site.)
+
+    An upload that itself contains `{% endraw %}` would close the block early and
+    hand the remainder of its own preamble back to Jinja as template source, which
+    is the one way a crafted .tex could get out of the freeze — so those tokens are
+    emitted as data instead.
     """
-    return f"{{% raw %}}{preamble}{{% endraw %}}"
+    escaped = ENDRAW.sub(
+        lambda token: f"{{% endraw %}}{{{{ {token.group()!r} }}}}{{% raw %}}", preamble
+    )
+    return f"{{% raw %}}{escaped}{{% endraw %}}"
 
 
 RULES = r"""
@@ -259,12 +284,44 @@ def _strip_fences(text: str) -> str:
     return fenced.group(1) if fenced else text.strip()
 
 
-def verify(template_source: str, compile_pdf=generate_pdf_from_latex):
+def _compile_with_a_working_engine(renders: dict[str, str], compile_pdf) -> str:
+    """The first engine that builds every render, or a TemplatizationError.
+
+    Which engine a document needs is a property of its preamble, not something we
+    are told: `fontspec` and `unicode-math` require xelatex, while plenty of
+    designs only build under pdflatex. So try them in turn and report the one that
+    worked, because that is what has to be stored alongside the template.
+
+    Only the first engine's failure is reported. The feedback exists for the model
+    to fix its own LaTeX, and it cannot change the frozen preamble that decides the
+    engine — so the readable pdflatex error serves it better than a later engine
+    complaining the format file is missing.
+    """
+    failure = ""
+    for compiler in COMPILERS:
+        for name, rendered in renders.items():
+            with tempfile.TemporaryDirectory() as tmp:
+                try:
+                    compile_pdf(tmp, rendered, compiler)
+                except ValueError as exc:
+                    failure = failure or (
+                        f"Compiling the '{name}' resume failed:\n{exc}"
+                    )
+                    break
+        else:
+            return compiler
+
+    raise TemplatizationError(failure)
+
+
+def verify(template_source: str, compile_pdf=generate_pdf_from_latex) -> str:
     """Render and compile the candidate against every reference resume.
 
-    Raises TemplatizationError describing the first failure, phrased so it can be
-    handed straight back to the model.
+    Returns the LaTeX engine that built them. Raises TemplatizationError describing
+    the first failure, phrased so it can be handed straight back to the model.
     """
+    renders: dict[str, str] = {}
+
     for name in VERIFICATION_RESUMES:
         resume = load_resume(name)
 
@@ -277,20 +334,18 @@ def verify(template_source: str, compile_pdf=generate_pdf_from_latex):
                 f"Rendering the '{name}' resume raised {type(exc).__name__}: {exc}"
             ) from exc
 
-        expected = resume["personal_info"]["name"]
+        # Compared as it will actually appear: a name carrying `&` or `_` reaches the
+        # document escaped, and looking for the raw form fails a working template.
+        expected = escape_latex(resume["personal_info"]["name"])
         if expected not in rendered:
             raise TemplatizationError(
                 f"Rendering the '{name}' resume did not produce the candidate's name "
                 f"({expected!r}), so the template is not reading the data it was given."
             )
 
-        with tempfile.TemporaryDirectory() as tmp:
-            try:
-                compile_pdf(tmp, rendered, "pdflatex")
-            except ValueError as exc:
-                raise TemplatizationError(
-                    f"Compiling the '{name}' resume failed:\n{exc}"
-                ) from exc
+        renders[name] = rendered
+
+    return _compile_with_a_working_engine(renders, compile_pdf)
 
 
 def _ask_model(prompt: str) -> str:
@@ -312,7 +367,7 @@ def _ask_model(prompt: str) -> str:
 
 def templatize(
     source_tex: str, *, ask=_ask_model, compile_pdf=generate_pdf_from_latex
-) -> str:
+) -> VerifiedTemplate:
     """Convert a complete .tex resume into a verified Jinja2 template.
 
     Raises TemplatizationError if no attempt renders and compiles.
@@ -327,7 +382,7 @@ def templatize(
         candidate = f"{protect(preamble)}\n{templated_body}\n\\end{{document}}\n"
 
         try:
-            verify(candidate, compile_pdf=compile_pdf)
+            compiler = verify(candidate, compile_pdf=compile_pdf)
         except TemplatizationError as exc:
             logger.warning(
                 f"Templatization attempt {attempt}/{MAX_ATTEMPTS} rejected: {exc}"
@@ -335,8 +390,8 @@ def templatize(
             feedback = str(exc)
             continue
 
-        logger.info(f"Templatization succeeded on attempt {attempt}")
-        return candidate
+        logger.info(f"Templatization succeeded on attempt {attempt} with {compiler}")
+        return VerifiedTemplate(candidate, compiler)
 
     raise TemplatizationError(
         f"Could not build a working template after {MAX_ATTEMPTS} attempts. "

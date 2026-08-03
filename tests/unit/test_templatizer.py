@@ -6,7 +6,6 @@ and that the reason is fed back and retried rather than stored.
 """
 
 import pytest
-from jinja2 import Template
 
 from backend.core import templatizer
 from backend.core.templatizer import (
@@ -21,6 +20,7 @@ from backend.core.templatizer import (
 from backend.fixtures import load_resume
 from backend.models.templates import builtin_template
 from backend.utils.file_ops import escape_latex
+from backend.utils.jinja_env import render_resume_template
 
 PREAMBLE = "\\documentclass{article}\n\\usepackage{xcolor}\n\\begin{document}"
 
@@ -61,9 +61,69 @@ def test_a_latex_macro_parameter_in_the_preamble_survives():
         ask=lambda prompt: GOOD_BODY,
         compile_pdf=compiles_fine,
     )
-    rendered = Template(result).render(escape_latex(load_resume("resume_minimal")))
+    rendered = render_resume_template(
+        result.source, escape_latex(load_resume("resume_minimal"))
+    )
 
     assert "\\newcommand{\\bf}[2]{\\textbf{#1}{#2}}" in rendered
+
+
+def test_an_upload_cannot_escape_the_frozen_preamble():
+    """A .tex whose preamble contains `{% endraw %}` would otherwise close the block
+    early and hand the rest of itself to Jinja as template source."""
+    hostile = (
+        "\\documentclass{article}\n"
+        "% {% endraw %}{{ personal_info.email }}\n"
+        "\\begin{document}"
+    )
+
+    result = templatize(
+        f"{hostile}\n{STATIC_BODY}\n\\end{{document}}",
+        ask=lambda prompt: GOOD_BODY,
+        compile_pdf=compiles_fine,
+    )
+    rendered = render_resume_template(
+        result.source, escape_latex(load_resume("resume_kitchen_sink"))
+    )
+
+    # The tokens survive as the literal text they were, and the field beside them
+    # was never substituted.
+    assert "% {% endraw %}{{ personal_info.email }}" in rendered
+
+
+def test_a_name_needing_escaping_still_counts_as_rendered():
+    """The rendered document holds the escaped name, so looking for the raw one
+    failed templates whose candidate happens to have `&` or `_` in their name."""
+    resume = load_resume("resume_minimal")
+    resume["personal_info"]["name"] = "Ana & Bob_Smith"
+
+    rendered = render_resume_template("{{ personal_info.name }}", escape_latex(resume))
+
+    assert rendered == "Ana \\& Bob\\_Smith"
+
+
+def test_a_template_needing_xelatex_is_accepted():
+    """Which engine a document needs is a property of its preamble — fontspec means
+    xelatex — so a template is not broken merely because pdflatex refuses it."""
+    attempted = []
+
+    def only_xelatex(save_folder, latex, compiler):
+        attempted.append(compiler)
+        if compiler != "xelatex":
+            raise ValueError("! LaTeX Error: fontspec requires either XeTeX or LuaTeX")
+        return object()
+
+    compiler = verify(
+        f"{PREAMBLE}\n{GOOD_BODY}\n\\end{{document}}", compile_pdf=only_xelatex
+    )
+
+    assert compiler == "xelatex"
+    assert attempted[0] == "pdflatex"
+
+
+def test_a_template_no_engine_can_build_is_rejected():
+    with pytest.raises(TemplatizationError, match="Undefined control sequence"):
+        verify(f"{PREAMBLE}\n{GOOD_BODY}\n\\end{{document}}", compile_pdf=always_fails)
 
 
 def test_the_prompt_warns_about_the_comment_collision():
@@ -145,11 +205,13 @@ def test_the_preamble_is_reattached_verbatim():
         compile_pdf=compiles_fine,
     )
 
-    assert PREAMBLE in result
-    assert "\\documentclass{book}" not in result.split("\\begin{document}")[0]
-    assert result.rstrip().endswith("\\end{document}")
+    assert PREAMBLE in result.source
+    assert "\\documentclass{book}" not in result.source.split("\\begin{document}")[0]
+    assert result.source.rstrip().endswith("\\end{document}")
     # And it renders back out unchanged.
-    rendered = Template(result).render(escape_latex(load_resume("resume_minimal")))
+    rendered = render_resume_template(
+        result.source, escape_latex(load_resume("resume_minimal"))
+    )
     assert rendered.lstrip().startswith("\\documentclass{article}")
 
 
@@ -160,8 +222,9 @@ def test_a_verified_template_is_returned():
         compile_pdf=compiles_fine,
     )
 
-    assert "{{ personal_info.name }}" in result
-    verify(result, compile_pdf=compiles_fine)
+    assert "{{ personal_info.name }}" in result.source
+    assert result.compiler == "pdflatex"
+    verify(result.source, compile_pdf=compiles_fine)
 
 
 def test_a_template_that_ignores_the_data_is_rejected():
@@ -224,7 +287,7 @@ def test_markdown_fences_are_stripped():
         compile_pdf=compiles_fine,
     )
 
-    assert "```" not in result
+    assert "```" not in result.source
 
 
 def test_failures_are_fed_back_and_retried():
@@ -243,7 +306,7 @@ def test_failures_are_fed_back_and_retried():
     assert len(prompts) == 2
     assert "rejected" in prompts[1]
     assert "not reading the data" in prompts[1]
-    assert "{{ personal_info.name }}" in result
+    assert "{{ personal_info.name }}" in result.source
 
 
 def test_it_gives_up_rather_than_storing_something_broken():
