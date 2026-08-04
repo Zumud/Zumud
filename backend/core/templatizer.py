@@ -30,7 +30,7 @@ from backend.config.envs import OPEN_AI_KEY
 from backend.fixtures import VERIFICATION_RESUMES, load_resume
 from backend.models.ai_models import AIModel
 from backend.models.resume_models import StructuredResume
-from backend.models.templates import builtin_template
+from backend.models.templates import builtin_template, load_template_source
 from backend.utils.file_ops import escape_latex, generate_pdf_from_latex
 from backend.utils.jinja_env import render_resume_template
 from backend.utils.log import logger
@@ -246,6 +246,8 @@ Rules, all of them mandatory:
 
 
 def _rules() -> str:
+    # The sections are named from the same place verification looks for them, so what the
+    # model is told to produce cannot drift from what it is judged on.
     return RULES % {"schema": StructuredResume.model_json_schema()}
 
 
@@ -314,6 +316,123 @@ def _compile_with_a_working_engine(renders: dict[str, str], compile_pdf) -> str:
     raise TemplatizationError(failure)
 
 
+# The sections of a resume, every one of which a template has to print. Not a check that
+# a section is complete — a check that it is there at all, which is the failure that
+# hides: a design with no publications heading converts happily into a template that
+# renders, carries the name and compiles, while quietly discarding the publications of
+# everyone who uses it.
+SECTIONS = (
+    "summary",
+    "skills",
+    "experience",
+    "education",
+    "certifications",
+    "projects",
+    "publications",
+    "awards",
+)
+
+
+def _render(what: str, escaped: dict, template_source: str) -> str:
+    """One resume through the candidate, failing the way the model is told.
+
+    `what` names the resume as the model should hear it — the failure is fed straight
+    back, so "without its education" is the difference between a fixable report and an
+    unexplained TypeError.
+    """
+    try:
+        return render_resume_template(template_source, escaped)
+    except Exception as exc:
+        # Not just TemplateError: a template is arbitrary code to Jinja, and a filter
+        # applied to the wrong type raises straight out of the stdlib.
+        raise TemplatizationError(
+            f"Rendering {what} raised {type(exc).__name__}: {exc}"
+        ) from exc
+
+
+def missing_sections(name: str, escaped: dict, template_source: str) -> list[str]:
+    """Sections of this resume that make no difference to what the template prints.
+
+    Asked by taking each section away and rendering again, rather than by looking for
+    the section's values in the output: the reference resume has an academic employer, so
+    "University of Iceland" appears whether or not education is printed, and searching
+    for it would pass a template that drops every degree its users have. Whether a
+    template reads a section is a question only the template can answer.
+    """
+    printed = _render(f"the '{name}' resume", escaped, template_source)
+
+    absent = []
+    for section in SECTIONS:
+        if not escaped.get(section):
+            continue
+        # None rather than [], because that is what a resume without the section holds —
+        # and a template that raises on it is one no such candidate could use, which is
+        # a rejection in its own right rather than something to work around here.
+        without = _render(
+            f"the '{name}' resume without its {section}",
+            {**escaped, section: None},
+            template_source,
+        )
+        if without == printed:
+            absent.append(section)
+    return absent
+
+
+# The blocks we add for sections a design does not print, keyed by section. They live in
+# backend/templates/fallback_sections.tex.jinja, one `% == <section> ==` marker apiece,
+# so they can be read as the LaTeX they are. Read at import so a broken file fails on
+# startup rather than on somebody's upload.
+_MARKER = re.compile(r"^% == (\w+) ==$", re.MULTILINE)
+
+
+def _fallback_sections() -> dict[str, str]:
+    parts = _MARKER.split(load_template_source("fallback_sections"))
+    # split() yields [text before the first marker, name, block, name, block, ...].
+    blocks = dict(zip(parts[1::2], (block.strip() for block in parts[2::2])))
+
+    if set(blocks) != set(SECTIONS):
+        raise RuntimeError(
+            "fallback_sections.tex.jinja must hold exactly one block per section in "
+            f"SECTIONS; it has {sorted(blocks)} against {sorted(SECTIONS)}."
+        )
+    return blocks
+
+
+FALLBACK_SECTIONS = _fallback_sections()
+
+# The resume that has every section, so what a template omits is visible in one render.
+COVERAGE_RESUME = "resume_kitchen_sink"
+
+
+def fill_missing_sections(candidate: str) -> str:
+    """Add our own block for every section this template would not print.
+
+    A design showing four kinds of thing converts into a template that renders,
+    compiles, and silently drops the publications, certifications and awards of everyone
+    who uses it. Filling the gaps here rather than asking the model to invent sections it
+    has never seen is both more reliable and cheaper: measured against real documents,
+    demanding all eight sections up front cost conversions that had worked.
+
+    What to print is fixed; the one thing that has to follow the design is the heading,
+    which is the document's own \\section command.
+    """
+    escaped = escape_latex(load_resume(COVERAGE_RESUME))
+    absent = missing_sections(COVERAGE_RESUME, escaped, candidate)
+    if not absent:
+        return candidate
+
+    blocks = "\n\n".join(FALLBACK_SECTIONS[section] for section in absent)
+    # Written with \section*, which is what an article-based design uses and styles. A
+    # design numbering its sections defines \section only, and \section* there is an
+    # "Undefined control sequence" — so follow whichever the document itself uses.
+    if "\\section*" not in candidate and "\\section{" in candidate:
+        blocks = blocks.replace("\\section*{", "\\section{")
+
+    logger.info(f"Adding sections the design does not print: {', '.join(absent)}")
+    head, end, tail = candidate.rpartition("\\end{document}")
+    return f"{head}\n{blocks}\n{end}{tail}" if end else f"{candidate}\n{blocks}"
+
+
 def verify(template_source: str, compile_pdf=generate_pdf_from_latex) -> str:
     """Render and compile the candidate against every reference resume.
 
@@ -323,24 +442,27 @@ def verify(template_source: str, compile_pdf=generate_pdf_from_latex) -> str:
     renders: dict[str, str] = {}
 
     for name in VERIFICATION_RESUMES:
-        resume = load_resume(name)
+        # Escaped once and reused: what the template is given is what the checks below
+        # have to look for. A name carrying `&` or `_` reaches the document escaped, and
+        # looking for the raw form would fail a working template.
+        escaped = escape_latex(load_resume(name))
+        rendered = _render(f"the '{name}' resume", escaped, template_source)
 
-        try:
-            rendered = render_resume_template(template_source, escape_latex(resume))
-        except Exception as exc:
-            # Not just TemplateError: a template is arbitrary code to Jinja, and a
-            # filter applied to the wrong type raises straight out of the stdlib.
-            raise TemplatizationError(
-                f"Rendering the '{name}' resume raised {type(exc).__name__}: {exc}"
-            ) from exc
-
-        # Compared as it will actually appear: a name carrying `&` or `_` reaches the
-        # document escaped, and looking for the raw form fails a working template.
-        expected = escape_latex(resume["personal_info"]["name"])
+        expected = escaped["personal_info"]["name"]
         if expected not in rendered:
             raise TemplatizationError(
                 f"Rendering the '{name}' resume did not produce the candidate's name "
                 f"({expected!r}), so the template is not reading the data it was given."
+            )
+
+        absent = missing_sections(name, escaped, template_source)
+        if absent:
+            raise TemplatizationError(
+                f"Rendering the '{name}' resume produced nothing from its "
+                f"{', '.join(absent)}, so a resume with those would lose them. Every "
+                "section the data holds has to be rendered, even where the original "
+                "document had no such section — add one in the same style it uses for "
+                "the sections it does have."
             )
 
         renders[name] = rendered
@@ -382,6 +504,9 @@ def templatize(
         candidate = f"{protect(preamble)}\n{templated_body}\n\\end{{document}}\n"
 
         try:
+            # Before verification, because verification is what refuses a template that
+            # would drop a section — and after this there should be none left to drop.
+            candidate = fill_missing_sections(candidate)
             compiler = verify(candidate, compile_pdf=compile_pdf)
         except TemplatizationError as exc:
             logger.warning(
