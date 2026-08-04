@@ -75,6 +75,68 @@ FIXTURES = {
 
 PLAIN_TEXT = "Jane Doe\nSenior Platform Engineer\nTen years of Python experience."
 
+# Standing in for the model when a .tex upload is being converted (templatizer.py).
+# The templatizer accepts nothing it has not rendered against both reference resumes
+# and compiled for real, so a stub returning prose would only ever exercise the
+# failure path. This is a genuine Jinja body: plain LaTeX so it works under any
+# uploaded preamble, and guarded throughout so `resume_minimal` — a name and one
+# employer, every other field null — renders without a stranded heading or an empty
+# list environment. tests/unit/test_e2e_ai_stub.py holds it to that.
+TEMPLATIZED_BODY = r"""
+\begin{center}
+{\LARGE \textbf{ {{ personal_info.name }} }}
+{% if personal_info.email %}\\ {{ personal_info.email }}{% endif %}
+{% if personal_info.phone %}\\ {{ personal_info.phone }}{% endif %}
+{% if personal_info.location %}\\ {{ personal_info.location }}{% endif %}
+\end{center}
+
+{% if summary %}{{ summary }}\par{% endif %}
+
+{% if skills %}
+\section*{Skills}
+\begin{itemize}
+{% for skill in skills %}\item \textbf{ {{ skill.category }} }: {{ skill['items']|join(', ') }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+
+{% if experience %}
+\section*{Experience}
+{% for job in experience %}
+\noindent \textbf{ {{ job.company }} }{% if job.role %} --- {{ job.role }}{% endif %}{% if job.date_range %} \hfill {{ job.date_range }}{% endif %}
+\par
+{% if job.description %}{{ job.description }}\par{% endif %}
+{% if job.achievements %}
+\begin{itemize}
+{% for achievement in job.achievements %}\item {{ achievement }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if education %}
+\section*{Education}
+\begin{itemize}
+{% for entry in education %}\item \textbf{ {{ entry.institution }} }{% if entry.degree %} --- {{ entry.degree }}{% endif %}{% if entry.date_range %} \hfill {{ entry.date_range }}{% endif %}
+{% endfor %}
+\end{itemize}
+{% endif %}
+"""
+
+
+def _is_templatization(body: dict) -> bool:
+    """Whether this is the templatizer asking, rather than the tailoring service.
+
+    Both send plain completions with no json_schema to pick a fixture by, so the one
+    thing that distinguishes them is what they ask for. Keyed on the templatizer's
+    system prompt (backend/core/templatizer.py).
+    """
+    return any(
+        message.get("role") == "system" and "Jinja2" in (message.get("content") or "")
+        for message in body.get("messages") or []
+    )
+
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
@@ -84,6 +146,8 @@ async def chat_completions(request: Request):
     )
     if schema_name:
         content = json.dumps(FIXTURES[schema_name])
+    elif _is_templatization(body):
+        content = TEMPLATIZED_BODY
     else:
         content = PLAIN_TEXT
 
