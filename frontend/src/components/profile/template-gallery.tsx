@@ -46,14 +46,42 @@ export default function TemplateGallery({ onError, onSuccess }: Props) {
 
   const converting = gallery.some((template) => template.status === "pending")
 
+  // Held in a ref so that `refresh` never changes identity. The page rebuilds its
+  // handlers on every render, and every keystroke in the resume box is a render — with
+  // this in the dependencies, the mount fetch would run again on each one and the poll
+  // timer would restart before it ever fired.
+  const report = useRef(onError)
+  useEffect(() => {
+    report.current = onError
+  }, [onError])
+
+  // Counted at both ends of every mutation, so a poll can tell whether the gallery
+  // changed under it while its own request was in the air. Only one that began and
+  // finished between mutations describes what the server now holds; any other carries a
+  // gallery from before the click and would undo it, so it is dropped — a mutation's own
+  // response is the authority. A ref, because a poll's closure captures state.
+  const mutations = useRef(0)
+
   const refresh = useCallback(async () => {
+    const seen = mutations.current
     try {
-      setGallery(await templates.list())
+      const latest = await templates.list()
+      if (mutations.current === seen) setGallery(latest)
     } catch (err) {
       console.error("Failed to load templates:", err)
-      onError(err, "Failed to load your templates. Please try again later.")
+      report.current(err, "Failed to load your templates. Please try again later.")
     }
-  }, [onError])
+  }, [])
+
+  const startMutation = () => {
+    mutations.current += 1
+    setBusy(true)
+  }
+
+  const endMutation = () => {
+    mutations.current += 1
+    setBusy(false)
+  }
 
   useEffect(() => {
     const timeoutId = window.setTimeout(async () => {
@@ -71,7 +99,7 @@ export default function TemplateGallery({ onError, onSuccess }: Props) {
 
   const handleSelect = async (slug: string) => {
     const previous = gallery
-    setBusy(true)
+    startMutation()
     // Moved before the request lands so the click feels immediate; the response is
     // the authority, and a failure puts the old choice back.
     setGallery(gallery.map((template) => ({ ...template, selected: template.slug === slug })))
@@ -83,11 +111,16 @@ export default function TemplateGallery({ onError, onSuccess }: Props) {
       setGallery(previous)
       onError(err, "Failed to change your template.")
     } finally {
-      setBusy(false)
+      endMutation()
     }
   }
 
   const handleUpload = async (file: File) => {
+    // Checked here as well as on the button, because a file can also be dropped.
+    if (busy || converting) {
+      onError(null, "Your last upload is still being converted. Give it a moment.")
+      return
+    }
     if (!file.name.toLowerCase().endsWith(".tex")) {
       onError(null, "Upload the .tex source of your resume.")
       return
@@ -100,19 +133,19 @@ export default function TemplateGallery({ onError, onSuccess }: Props) {
       return
     }
 
-    setBusy(true)
+    startMutation()
     try {
       setGallery(await templates.upload(file))
       onSuccess("Converting your template. This takes a minute — you can stay on this page.")
     } catch (err) {
       onError(err, "Failed to upload that file.")
     } finally {
-      setBusy(false)
+      endMutation()
     }
   }
 
   const handleRemove = async (slug: string) => {
-    setBusy(true)
+    startMutation()
     try {
       setGallery(await templates.remove(slug))
       setConfirmingRemoval(null)
@@ -120,7 +153,7 @@ export default function TemplateGallery({ onError, onSuccess }: Props) {
     } catch (err) {
       onError(err, "Failed to remove that template.")
     } finally {
-      setBusy(false)
+      endMutation()
     }
   }
 
