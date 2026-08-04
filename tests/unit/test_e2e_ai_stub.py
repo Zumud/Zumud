@@ -11,6 +11,7 @@ import re
 
 import pytest
 
+from backend.core.templatizer import missing_sections
 from backend.fixtures import VERIFICATION_RESUMES, load_resume
 from backend.utils.file_ops import escape_latex
 from backend.utils.jinja_env import render_resume_template
@@ -51,6 +52,20 @@ def test_it_strands_no_headings():
     assert "Experience" in rendered
     assert "Skills" not in rendered
     assert "Education" not in rendered
+
+
+def test_it_leaves_the_gaps_the_fill_is_for():
+    """Deliberately not a complete template.
+
+    The stub answers the way a model does — with the design in front of it, printing what
+    that design printed — so the sections it omits are what the e2e lane then watches
+    fill_missing_sections supply. A stub that covered everything would quietly stop
+    testing that.
+    """
+    name = "resume_kitchen_sink"
+    escaped = escape_latex(load_resume(name))
+
+    assert missing_sections(name, escaped, TEMPLATIZED_BODY)
 
 
 def test_only_the_templatizer_gets_a_template():

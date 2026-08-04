@@ -11,6 +11,8 @@ import time
 
 from fastapi import FastAPI, Request
 
+from tests.templatized_body import DESIGN_BODY
+
 app = FastAPI()
 
 STRUCTURED_RESUME = {
@@ -76,53 +78,12 @@ FIXTURES = {
 PLAIN_TEXT = "Jane Doe\nSenior Platform Engineer\nTen years of Python experience."
 
 # Standing in for the model when a .tex upload is being converted (templatizer.py).
-# The templatizer accepts nothing it has not rendered against both reference resumes
-# and compiled for real, so a stub returning prose would only ever exercise the
-# failure path. This is a genuine Jinja body: plain LaTeX so it works under any
-# uploaded preamble, and guarded throughout so `resume_minimal` — a name and one
-# employer, every other field null — renders without a stranded heading or an empty
-# list environment. tests/unit/test_e2e_ai_stub.py holds it to that.
-TEMPLATIZED_BODY = r"""
-\begin{center}
-{\LARGE \textbf{ {{ personal_info.name }} }}
-{% if personal_info.email %}\\ {{ personal_info.email }}{% endif %}
-{% if personal_info.phone %}\\ {{ personal_info.phone }}{% endif %}
-{% if personal_info.location %}\\ {{ personal_info.location }}{% endif %}
-\end{center}
-
-{% if summary %}{{ summary }}\par{% endif %}
-
-{% if skills %}
-\section*{Skills}
-\begin{itemize}
-{% for skill in skills %}\item \textbf{ {{ skill.category }} }: {{ skill['items']|join(', ') }}
-{% endfor %}
-\end{itemize}
-{% endif %}
-
-{% if experience %}
-\section*{Experience}
-{% for job in experience %}
-\noindent \textbf{ {{ job.company }} }{% if job.role %} --- {{ job.role }}{% endif %}{% if job.date_range %} \hfill {{ job.date_range }}{% endif %}
-\par
-{% if job.description %}{{ job.description }}\par{% endif %}
-{% if job.achievements %}
-\begin{itemize}
-{% for achievement in job.achievements %}\item {{ achievement }}
-{% endfor %}
-\end{itemize}
-{% endif %}
-{% endfor %}
-{% endif %}
-
-{% if education %}
-\section*{Education}
-\begin{itemize}
-{% for entry in education %}\item \textbf{ {{ entry.institution }} }{% if entry.degree %} --- {{ entry.degree }}{% endif %}{% if entry.date_range %} \hfill {{ entry.date_range }}{% endif %}
-{% endfor %}
-\end{itemize}
-{% endif %}
-"""
+# The templatizer accepts nothing it has rendered against both reference resumes and
+# compiled for real, so a stub returning prose would only ever exercise the failure path.
+# This is what a good conversion looks like: the uploaded design showed a header and its
+# jobs, so that is what comes back, and the sections it never had are added afterwards by
+# fill_missing_sections — which is the part the e2e lane is here to exercise.
+TEMPLATIZED_BODY = DESIGN_BODY
 
 
 def _is_templatization(body: dict) -> bool:
