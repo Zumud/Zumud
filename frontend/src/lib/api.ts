@@ -277,12 +277,19 @@ export type UserAIRulePayload = {
 
 // A slug is either `builtin:<name>` or `user:<id>`; the client never needs to tell
 // them apart, it just sends back the one the user picked.
+//
+// Converting an upload into a template takes a model several attempts and a real
+// compile each time, far longer than a request can be held open, so a template exists
+// before it works: only a ready one can be selected, and a failed one carries the
+// reason it cannot.
 export type ResumeTemplate = {
   slug: string;
   name: string;
   description: string;
   preview_url: string | null;
   selected: boolean;
+  status: 'pending' | 'ready' | 'failed';
+  error: string | null;
 };
 
 // Email login/signup stays client-side through Supabase Auth. Username login
@@ -328,14 +335,25 @@ export const aiRules = {
     apiCall(`users/me/ai-rules/${ruleId}`, 'DELETE'),
 };
 
-// Both calls return the whole gallery, so selecting a template needs no second
-// request to find out what is now selected.
+// Every call returns the whole gallery, so nothing needs a second request to find out
+// what is now selected — including `upload`, whose gallery carries the new template as
+// pending. The client follows it from there by listing again.
 export const templates = {
   list: (): Promise<ResumeTemplate[]> =>
     apiCall('users/me/templates'),
 
   select: (slug: string): Promise<ResumeTemplate[]> =>
     apiCall('users/me/templates/selected', 'PUT', { slug }),
+
+  upload: (file: File): Promise<ResumeTemplate[]> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiCall('users/me/templates', 'POST', formData, true);
+  },
+
+  // Encoded because a slug carries a colon, which is only unreserved by accident.
+  remove: (slug: string): Promise<ResumeTemplate[]> =>
+    apiCall(`users/me/templates/${encodeURIComponent(slug)}`, 'DELETE'),
 };
 
 // Application endpoints

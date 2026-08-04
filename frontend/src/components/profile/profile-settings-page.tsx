@@ -2,7 +2,6 @@
 
 import { type ChangeEvent, type KeyboardEvent, type MouseEvent, useEffect, useRef, useState } from "react"
 import {
-  Check,
   CheckCircle,
   Edit3,
   Loader2,
@@ -15,22 +14,14 @@ import {
   Upload,
   X,
 } from "lucide-react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  account,
-  aiRules,
-  resume,
-  templates,
-  type CurrentUser,
-  type ResumeTemplate,
-  type UserAIRule,
-} from "@/lib/api"
+import { account, aiRules, resume, type CurrentUser, type UserAIRule } from "@/lib/api"
 import { errorMessage, signOut } from "@/lib/utils"
+import TemplateGallery from "./template-gallery"
 
 const AI_RULE_INSTRUCTION_MAX = 500
 
@@ -83,10 +74,6 @@ export default function ProfileSettingsPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle")
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const [templateGallery, setTemplateGallery] = useState<ResumeTemplate[]>([])
-  const [templatesLoading, setTemplatesLoading] = useState(false)
-  const [changingTemplate, setChangingTemplate] = useState(false)
 
   const [rules, setRules] = useState<UserAIRule[]>([])
   const [rulesLoading, setRulesLoading] = useState(false)
@@ -141,19 +128,6 @@ export default function ProfileSettingsPage() {
     }
   }
 
-  const fetchTemplates = async () => {
-    setTemplatesLoading(true)
-    try {
-      setTemplateGallery(await templates.list())
-      setIsAuthError(false)
-    } catch (err) {
-      console.error("Failed to load templates:", err)
-      showError(err, "Failed to load your templates. Please try again later.")
-    } finally {
-      setTemplatesLoading(false)
-    }
-  }
-
   const fetchAIRules = async () => {
     setRulesLoading(true)
     try {
@@ -172,7 +146,6 @@ export default function ProfileSettingsPage() {
     const timeoutId = window.setTimeout(() => {
       void fetchAccountData()
       void fetchResumeData()
-      void fetchTemplates()
       void fetchAIRules()
     }, 0)
     return () => window.clearTimeout(timeoutId)
@@ -192,29 +165,6 @@ export default function ProfileSettingsPage() {
       showError(err, "Failed to update resume text.")
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleSelectTemplate = async (slug: string) => {
-    const previous = templateGallery
-    setError(null)
-    setSuccess(null)
-    setIsAuthError(false)
-    setChangingTemplate(true)
-    // Moved before the request lands so the click feels immediate; the response is
-    // the authority, and a failure puts the old choice back.
-    setTemplateGallery(
-      templateGallery.map((template) => ({ ...template, selected: template.slug === slug }))
-    )
-
-    try {
-      setTemplateGallery(await templates.select(slug))
-      setSuccess("Template updated. Your next resume will use it.")
-    } catch (err) {
-      setTemplateGallery(previous)
-      showError(err, "Failed to change your template.")
-    } finally {
-      setChangingTemplate(false)
     }
   }
 
@@ -545,63 +495,17 @@ export default function ProfileSettingsPage() {
           </Tabs>
         </div>
 
-        <section className="surface mb-6 p-6">
-          <h2 className="text-xl font-semibold">Resume template</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            The design every resume you generate is built with. Changing it affects your next
-            resume, not the ones you have already made.
-          </p>
-
-          {templatesLoading ? (
-            <div className="mt-5 flex items-center gap-3 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading templates...
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {templateGallery.map((template) => (
-                <button
-                  key={template.slug}
-                  type="button"
-                  onClick={() => handleSelectTemplate(template.slug)}
-                  disabled={changingTemplate || template.selected}
-                  aria-pressed={template.selected}
-                  className={`group flex cursor-pointer flex-col overflow-hidden rounded-xl border text-left transition-colors disabled:cursor-default ${
-                    template.selected
-                      ? "border-brand ring-1 ring-brand"
-                      : "border-border hover:border-brand/50"
-                  }`}
-                >
-                  <span className="relative block aspect-[3/4] w-full overflow-hidden border-b border-border bg-muted/30">
-                    {template.preview_url ? (
-                      <Image
-                        src={template.preview_url}
-                        alt={`A resume built with the ${template.name} template`}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover object-top"
-                      />
-                    ) : (
-                      <span className="flex h-full items-center justify-center px-4 text-center text-xs text-muted-foreground">
-                        Your own template
-                      </span>
-                    )}
-                    {template.selected && (
-                      <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-brand px-2 py-1 text-xs font-medium text-brand-foreground">
-                        <Check className="h-3 w-3" />
-                        In use
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex flex-1 flex-col gap-1 p-3">
-                    <span className="text-sm font-medium">{template.name}</span>
-                    <span className="text-xs text-muted-foreground">{template.description}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
+        <TemplateGallery
+          onError={(err, fallback) => {
+            setSuccess(null)
+            showError(err, fallback)
+          }}
+          onSuccess={(message) => {
+            setError(null)
+            setIsAuthError(false)
+            setSuccess(message)
+          }}
+        />
 
         <section className="surface mb-6 p-6">
           <div>
