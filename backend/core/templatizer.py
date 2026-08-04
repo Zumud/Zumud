@@ -424,8 +424,11 @@ def fill_missing_sections(candidate: str) -> str:
     blocks = "\n\n".join(FALLBACK_SECTIONS[section] for section in absent)
     # Written with \section*, which is what an article-based design uses and styles. A
     # design numbering its sections defines \section only, and \section* there is an
-    # "Undefined control sequence" — so follow whichever the document itself uses.
-    if "\\section*" not in candidate and "\\section{" in candidate:
+    # "Undefined control sequence" — so follow whichever the document itself uses. Read
+    # from the body alone: the preamble is full of \section in \titleformat and
+    # \newcommand definitions, which say nothing about how the design writes a heading.
+    _, _, printed_body = candidate.rpartition("\\begin{document}")
+    if "\\section*" not in printed_body and "\\section{" in printed_body:
         blocks = blocks.replace("\\section*{", "\\section{")
 
     logger.info(f"Adding sections the design does not print: {', '.join(absent)}")

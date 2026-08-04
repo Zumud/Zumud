@@ -285,12 +285,19 @@ def test_the_sections_a_design_never_had_are_added_for_it():
 
 def test_what_is_added_follows_the_design_s_own_heading():
     """`\\section*` is undefined in a class that numbers its sections, so a block written
-    with one is an "Undefined control sequence" in half the documents people upload."""
-    numbered = f"{PREAMBLE}\n\\section{{Experience}}\n{DESIGN_BODY}\n\\end{{document}}"
+    with one is an "Undefined control sequence" in half the documents people upload.
 
-    assert "\\section*" not in fill_missing_sections(
-        numbered.replace("section*", "section")
-    )
+    Read from the body, not the whole file: a preamble configuring `\\section*` through
+    titlesec says nothing about how this design writes its headings, and letting it decide
+    puts a starred heading into a document that has none.
+    """
+    preamble = f"\\titleformat{{\\section*}}{{\\large}}{{}}{{0em}}{{}}\n{PREAMBLE}"
+    numbered = DESIGN_BODY.replace("section*", "section")
+
+    filled = fill_missing_sections(f"{preamble}\n{numbered}\n\\end{{document}}")
+
+    assert "\\section{Publications}" in filled
+    assert "\\section*{Publications}" not in filled
 
 
 def test_a_template_that_prints_everything_is_left_alone():
