@@ -192,15 +192,19 @@
       ] %}
     {% endif %}
     
+    {# People paste "linkedin.com/in/them" as often as they type "them", and the prefix is
+       added below either way — so take the handle off the end of whatever they gave us. #}
     {% if personal_info.linkedin and personal_info.linkedin != 'None' %}
+      {% set handle = personal_info.linkedin.rstrip('/').split('/')[-1] %}
       {% set contact_parts = contact_parts + [
-        '\\href{https://www.linkedin.com/in/' ~ personal_info.linkedin ~ '}{\\raisebox{-0.15\\height}{\\faLinkedin}~' ~ personal_info.linkedin ~ '}'
+        '\\href{https://www.linkedin.com/in/' ~ handle ~ '}{\\raisebox{-0.15\\height}{\\faLinkedin}~' ~ handle ~ '}'
       ] %}
     {% endif %}
     
     {% if personal_info.github and personal_info.github != 'None' %}
+      {% set handle = personal_info.github.rstrip('/').split('/')[-1] %}
       {% set contact_parts = contact_parts + [
-        '\\href{https://github.com/' ~ personal_info.github ~ '}{\\raisebox{-0.15\\height}{\\faGithub}~' ~ personal_info.github ~ '}'
+        '\\href{https://github.com/' ~ handle ~ '}{\\raisebox{-0.15\\height}{\\faGithub}~' ~ handle ~ '}'
       ] %}
     {% endif %}
     

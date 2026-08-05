@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from jinja2 import Template
 
-from backend.fixtures import VERIFICATION_RESUMES, load_resume
+from backend.fixtures import PREVIEW, VERIFICATION_RESUMES, load_resume
 from backend.models import templates as templates_module
 from backend.models.resume_models import StructuredResume
 from backend.models.templates import BUILTINS, TEMPLATES_DIR, builtin_template
@@ -73,6 +73,18 @@ def test_builtin_omits_sections_the_resume_does_not_have(slug):
     assert "Acme Corp" in rendered
     for absent in ("Skills", "Education", "Projects", "Publications", "Awards"):
         assert f"section{{{absent}}}" not in rendered
+
+
+@pytest.mark.parametrize("slug", list(BUILTINS))
+def test_builtin_links_a_pasted_profile_once(slug):
+    """A profile is stored as "linkedin.com/in/them" as often as "them", and the template
+    adds the prefix itself — so the first form used to link to
+    linkedin.com/in/linkedin.com/in/them, a dead link in every PDF anyone generated."""
+    rendered = render(slug, load_fixture(PREVIEW))
+
+    assert "linkedin.com/in/linkedin.com" not in rendered
+    assert "github.com/github.com" not in rendered
+    assert "linkedin.com/in/amaraosei" in rendered
 
 
 @pytest.mark.parametrize("slug", list(BUILTINS))
