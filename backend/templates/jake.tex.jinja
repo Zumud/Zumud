@@ -1,0 +1,241 @@
+{% raw %}%-------------------------
+% Jake's Resume
+%-------------------------
+% Author:      Jake Gutierrez — https://github.com/jakegut/resume
+% Based off of: https://github.com/sb2nov/resume
+% License:     MIT
+%-------------------------
+% Adapted for Zumud: the body is a Jinja2 template over the resume schema, and
+% \resumeSubheading wraps a long line rather than pushing the date off the page. The
+% design is otherwise Jake's — same sections in his order, same typography.
+%
+% Everything down to \begin{document} is held in a Jinja raw block: the macros below
+% open a group with a macro parameter, which Jinja reads as the start of a comment.
+%-------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+%----------FONT OPTIONS----------
+% sans-serif
+% \usepackage[sfdefault]{FiraSans}
+% \usepackage[sfdefault]{roboto}
+% \usepackage[sfdefault]{noto-sans}
+% \usepackage[default]{sourcesanspro}
+
+% serif
+% \usepackage{CormorantGaramond}
+% \usepackage{charter}
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% Ensure that generate pdf is machine readable/ATS parsable
+\pdfgentounicode=1
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+% Zumud: the left column is a wrapping p{} rather than an l, so a degree or a job title
+% longer than the ones in Jake's own resume takes a second line instead of dragging the
+% date past the right margin.
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{@{}>{\raggedright\arraybackslash}p{0.62\textwidth}@{\extracolsep{\fill}}r@{}}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{@{}>{\raggedright\arraybackslash}p{0.72\textwidth}@{\extracolsep{\fill}}r@{}}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+% Zumud: a flat list at the same indent as the headings above it, for the sections whose
+% entries are one line each.
+\newcommand{\resumeFlatListStart}{\begin{itemize}[leftmargin=0.15in, itemsep=1pt, parsep=0pt, topsep=2pt]}
+\newcommand{\resumeFlatListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}{% endraw %}
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge \scshape {{ personal_info.name }}} \\ \vspace{1pt}
+    {% set contact = [] %}
+    {% if personal_info.phone %}{% set _ = contact.append(personal_info.phone) %}{% endif %}
+    {% if personal_info.email %}{% set _ = contact.append('\\href{mailto:' ~ personal_info.email ~ '}{\\underline{' ~ personal_info.email ~ '}}') %}{% endif %}
+    {% if personal_info.location %}{% set _ = contact.append(personal_info.location) %}{% endif %}
+    {# People paste "linkedin.com/in/them" as often as they type "them", and both have to
+       come out as one profile link rather than the prefix twice over. #}
+    {% if personal_info.linkedin %}{% set handle = personal_info.linkedin.rstrip('/').split('/')[-1] %}{% set _ = contact.append('\\href{https://linkedin.com/in/' ~ handle ~ '}{\\underline{linkedin.com/in/' ~ handle ~ '}}') %}{% endif %}
+    {% if personal_info.github %}{% set handle = personal_info.github.rstrip('/').split('/')[-1] %}{% set _ = contact.append('\\href{https://github.com/' ~ handle ~ '}{\\underline{github.com/' ~ handle ~ '}}') %}{% endif %}
+    \small {{ contact|join(' $|$ ') }}
+\end{center}
+
+{% if summary %}
+%----------SUMMARY----------
+\section{Summary}
+{{ summary }}
+\vspace{-5pt}
+{% endif %}
+
+{% if education %}
+%----------EDUCATION----------
+\section{Education}
+  \resumeSubHeadingListStart
+  {% for entry in education %}
+    \resumeSubheading
+      { {{ entry.institution }} }{ {{ entry.location|default('', true) }} }
+      { {{ entry.degree|default('', true) }}{% if entry.minors %}, Minor in {{ entry['minors']|join(', ') }}{% endif %} }{ {{ entry.date_range|default('', true) }} }
+  {% endfor %}
+  \resumeSubHeadingListEnd
+{% endif %}
+
+{% if experience %}
+%----------EXPERIENCE----------
+\section{Experience}
+  \resumeSubHeadingListStart
+  {% for job in experience %}
+    {# Jake's design leads with the title and puts the employer underneath. Without a
+       title the employer takes the top line, rather than being printed twice. #}
+    \resumeSubheading
+      { {{ job.role|default(job.company, true) }} }{ {{ job.date_range|default('', true) }} }
+      { {{ job.company if job.role else '' }} }{ {{ job.location|default('', true) }} }
+    {% if job.description %}
+      \resumeItemListStart
+        \resumeItem{ {{ job.description }} }
+      \resumeItemListEnd
+    {% endif %}
+    {% if job.achievements %}
+      \resumeItemListStart
+      {% for achievement in job.achievements %}
+        \resumeItem{ {{ achievement }} }
+      {% endfor %}
+      \resumeItemListEnd
+    {% endif %}
+  {% endfor %}
+  \resumeSubHeadingListEnd
+{% endif %}
+
+{% if projects %}
+%----------PROJECTS----------
+\section{Projects}
+  \resumeSubHeadingListStart
+  {% for project in projects %}
+    \resumeProjectHeading
+      { \textbf{ {{ project.name }} } }{ {{ project.date_range|default('', true) }} }
+    {% if project.achievements %}
+      \resumeItemListStart
+      {% for achievement in project.achievements %}
+        \resumeItem{ {{ achievement }} }
+      {% endfor %}
+      \resumeItemListEnd
+    {% endif %}
+  {% endfor %}
+  \resumeSubHeadingListEnd
+{% endif %}
+
+{% if skills %}
+%----------TECHNICAL SKILLS----------
+\section{Technical Skills}
+  \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+    {% for skill in skills %}
+      \textbf{ {{ skill.category }} }{:} {{ skill['items']|join(', ') }} \\
+    {% endfor %}
+    }}
+  \end{itemize}
+{% endif %}
+
+{% if certifications %}
+%----------CERTIFICATIONS----------
+\section{Certifications}
+  \resumeFlatListStart
+  {% for certification in certifications %}
+    \resumeItem{ {{ certification.name }}{% if certification.issuer %} \textemdash{} {{ certification.issuer }}{% endif %} }
+  {% endfor %}
+  \resumeFlatListEnd
+{% endif %}
+
+{% if publications %}
+%----------PUBLICATIONS----------
+\section{Publications}
+  \resumeFlatListStart
+  {% for paper in publications %}
+    {# Author lists usually end in an initial, so their own full stop is already there. #}
+    \resumeItem{ {% if paper.authors %}{{ paper.authors }}{% if not paper.authors.endswith('.') %}.{% endif %} {% endif %}\textit{ {{ paper.title }}}{% if paper.venue %}. {{ paper.venue }}{% if paper.volume %}, {{ paper.volume }}{% if paper.issue %}({{ paper.issue }}){% endif %}{% endif %}{% if paper.pages %}, {{ paper.pages }}{% endif %}{% endif %}{% if paper.date %}, {{ paper.date }}{% endif %}.{% if paper.status %} \textbf{ {{ paper.status }} }.{% endif %}{% if paper.doi %} \href{https://doi.org/{{ paper.doi }}}{\underline{doi.org/{{ paper.doi }}}}{% elif paper.url %} \href{ {{ paper.url }} }{\underline{ {{ paper.url }} }}{% endif %} }
+  {% endfor %}
+  \resumeFlatListEnd
+{% endif %}
+
+{% if awards %}
+%----------AWARDS----------
+\section{Awards}
+  \resumeFlatListStart
+  {% for award in awards %}
+    \resumeItem{ \textbf{ {{ award.title }}}{% if award.issuer %} \textemdash{} {{ award.issuer }}{% endif %}{% if award.date %} ({{ award.date }}){% endif %}{% if award.description %}. {{ award.description }}{% endif %} }
+  {% endfor %}
+  \resumeFlatListEnd
+{% endif %}
+
+\end{document}

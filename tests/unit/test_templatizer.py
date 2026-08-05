@@ -21,7 +21,7 @@ from backend.core.templatizer import (
     verify,
 )
 from backend.fixtures import load_resume
-from backend.models.templates import builtin_template
+from backend.models.templates import BUILTINS, builtin_template
 from backend.utils.file_ops import escape_latex
 from backend.utils.jinja_env import render_resume_template
 from tests.templatized_body import COMPLETE_BODY, DESIGN_BODY
@@ -436,9 +436,11 @@ def test_the_prompt_carries_the_schema_and_a_worked_example():
     assert "READ-ONLY" in prompt and "\\usepackage{xcolor}" in prompt
 
 
-def test_the_shipped_builtin_would_pass_its_own_verification():
-    """The example we hold the model to has to meet the bar we set."""
-    verify(builtin_template("mteck")["structure"], compile_pdf=compiles_fine)
+@pytest.mark.parametrize("slug", list(BUILTINS))
+def test_a_shipped_builtin_would_pass_its_own_verification(slug):
+    """What we ship has to meet the bar we set for what users upload — including that it
+    prints every section, since a built-in that drops one loses the same data."""
+    verify(builtin_template(slug)["structure"], compile_pdf=compiles_fine)
 
 
 def test_no_network_is_used_when_the_model_is_injected(monkeypatch):
