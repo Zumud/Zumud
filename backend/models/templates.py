@@ -32,6 +32,11 @@ BUILTINS = {
         "description": "Dense single column that fits a lot without feeling crowded.",
         "compiler": "pdflatex",
     },
+    "jake": {
+        "name": "Jake's Resume",
+        "description": "The plain, widely recommended layout that every ATS can read.",
+        "compiler": "pdflatex",
+    },
 }
 
 DEFAULT_BUILTIN_SLUG = "mteck"
