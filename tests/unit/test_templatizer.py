@@ -10,8 +10,11 @@ import pytest
 from backend.core import templatizer
 from backend.core.templatizer import (
     MAX_ATTEMPTS,
+    SECTIONS,
     TemplatizationError,
     build_prompt,
+    fill_missing_sections,
+    missing_sections,
     relocate_personal_data,
     split_document,
     templatize,
@@ -21,18 +24,19 @@ from backend.fixtures import load_resume
 from backend.models.templates import builtin_template
 from backend.utils.file_ops import escape_latex
 from backend.utils.jinja_env import render_resume_template
+from tests.templatized_body import COMPLETE_BODY, DESIGN_BODY
 
 PREAMBLE = "\\documentclass{article}\n\\usepackage{xcolor}\n\\begin{document}"
 
-GOOD_BODY = """
-{{ personal_info.name }}
-{% if experience %}
-\\section*{Experience}
-{% for job in experience %}\\textbf{ {{ job.company }} }{% if job.role %} — {{ job.role }}{% endif %}
-{% endfor %}
-{% endif %}
-{% if skills %}\\section*{Skills}{% for group in skills %}{{ group['items']|join(', ') }}{% endfor %}{% endif %}
-"""
+# A body has to cover every section to be accepted at all, so the good candidate is the
+# shared one rather than a sketch. See tests/templatized_body.py.
+GOOD_BODY = COMPLETE_BODY
+
+# Covers everything except the publications, which verification has to notice: it
+# renders, it carries the name, and it compiles.
+BODY_MISSING_A_SECTION = COMPLETE_BODY.replace(
+    "{% if publications %}", "{% if false %}"
+)
 
 # The trap the prompt warns about: `.items` finds dict.items, not the field.
 BODY_WITH_ITEMS_COLLISION = """
@@ -227,6 +231,97 @@ def test_a_verified_template_is_returned():
     verify(result.source, compile_pdf=compiles_fine)
 
 
+def test_a_template_that_drops_a_section_is_rejected():
+    """The quietest failure of all: the design had no publications, so the template has
+    none either, and every user who has them loses them without being told."""
+    with pytest.raises(TemplatizationError, match="publications"):
+        verify(
+            f"{PREAMBLE}\n{BODY_MISSING_A_SECTION}\n\\end{{document}}",
+            compile_pdf=compiles_fine,
+        )
+
+
+def test_a_section_is_missing_even_when_its_words_appear_elsewhere():
+    """Why coverage is measured by taking the section away rather than by searching.
+
+    The reference resume's fourth employer is 'University of Iceland, School of
+    Engineering' and its first degree is from the University of Iceland — so a template
+    that prints jobs and no education still has the institution in its output, and
+    looking for the words would call that covered.
+    """
+    name = "resume_kitchen_sink"
+    escaped = escape_latex(load_resume(name))
+    body = "{{ personal_info.name }}{% if experience %}{% for job in experience %}{{ job.company }}{% endfor %}{% endif %}"
+
+    assert escaped["education"][0]["institution"] in render_resume_template(
+        body, escaped
+    )
+    assert "education" in missing_sections(name, escaped, body)
+
+
+def test_an_unguarded_section_is_reported_by_name():
+    """Taking a section away to see if it is printed also asks whether the template
+    survives without it — which is what a candidate who has none of that will do."""
+    body = "{{ personal_info.name }}{% for job in experience %}{{ job.company }}{% endfor %}"
+
+    with pytest.raises(TemplatizationError, match="without its experience"):
+        missing_sections(
+            "resume_kitchen_sink",
+            escape_latex(load_resume("resume_kitchen_sink")),
+            body,
+        )
+
+
+def test_the_sections_a_design_never_had_are_added_for_it():
+    """A design showing a header and jobs is most designs. Converting one faithfully
+    would otherwise mean everyone using it loses their degrees and publications."""
+    filled = fill_missing_sections(f"{PREAMBLE}\n{DESIGN_BODY}\n\\end{{document}}")
+    name = "resume_kitchen_sink"
+
+    assert not missing_sections(name, escape_latex(load_resume(name)), filled)
+    # Ours go before the end, so the document is still a document.
+    assert filled.rstrip().endswith("\\end{document}")
+
+
+def test_what_is_added_follows_the_design_s_own_heading():
+    """`\\section*` is undefined in a class that numbers its sections, so a block written
+    with one is an "Undefined control sequence" in half the documents people upload.
+
+    Read from the body, not the whole file: a preamble configuring `\\section*` through
+    titlesec says nothing about how this design writes its headings, and letting it decide
+    puts a starred heading into a document that has none.
+    """
+    preamble = f"\\titleformat{{\\section*}}{{\\large}}{{}}{{0em}}{{}}\n{PREAMBLE}"
+    numbered = DESIGN_BODY.replace("section*", "section")
+
+    filled = fill_missing_sections(f"{preamble}\n{numbered}\n\\end{{document}}")
+
+    assert "\\section{Publications}" in filled
+    assert "\\section*{Publications}" not in filled
+
+
+def test_a_template_that_prints_everything_is_left_alone():
+    """Nothing is added to a design that already covers the resume — the model's own
+    version of a section is in the design's idiom, and ours is not."""
+    complete = f"{PREAMBLE}\n{GOOD_BODY}\n\\end{{document}}"
+
+    assert fill_missing_sections(complete) == complete
+
+
+def test_a_faithful_conversion_becomes_a_complete_template():
+    """The two halves together: the model converts what it sees, we supply the rest, and
+    what gets stored is a template that prints every section of a resume."""
+    result = templatize(
+        f"{PREAMBLE}\n{STATIC_BODY}\n\\end{{document}}",
+        ask=lambda prompt: DESIGN_BODY,
+        compile_pdf=compiles_fine,
+    )
+    name = "resume_kitchen_sink"
+
+    assert not missing_sections(name, escape_latex(load_resume(name)), result.source)
+    assert all(f"{{% if {section} %}}" in result.source for section in SECTIONS)
+
+
 def test_a_template_that_ignores_the_data_is_rejected():
     """The failure mode that compiles perfectly: the model returns the original
     document, so every user gets the first user's resume."""
@@ -261,18 +356,26 @@ def test_broken_jinja_is_rejected():
 def test_latex_that_renders_to_double_braces_is_accepted():
     """`\\textbf{{Languages:} Python}` is ordinary LaTeX — a group inside a macro
     argument — and rejecting it as a stray Jinja tag failed good templates."""
-    body = "{{ personal_info.name }}\n{% if skills %}\\textbf{ {% for s in skills %}{ {{ s.category }}:} {% endfor %} }{% endif %}"
+    quirk = "{% if skills %}\\textbf{ {% for s in skills %}{ {{ s.category }}:} {% endfor %} }{% endif %}"
 
-    verify(f"{PREAMBLE}\n{body}\n\\end{{document}}", compile_pdf=compiles_fine)
+    # Beside a complete body, because verification wants every section covered and
+    # what is under test here is only that the quirk is not mistaken for a Jinja tag.
+    verify(
+        f"{PREAMBLE}\n{quirk}\n{GOOD_BODY}\n\\end{{document}}",
+        compile_pdf=compiles_fine,
+    )
 
 
 def test_a_template_may_use_the_do_extension():
     """Models reach for `{% do %}` to build a contact line out of the fields that
     happen to be present; verification has to run the same Jinja that generation
     does, or a template passes here and breaks for the user."""
-    body = "{% set parts = [] %}{% do parts.append(personal_info.name) %}{{ parts|join(' ') }}"
+    contact = "{% set parts = [] %}{% do parts.append(personal_info.name) %}{{ parts|join(' ') }}"
 
-    verify(f"{PREAMBLE}\n{body}\n\\end{{document}}", compile_pdf=compiles_fine)
+    verify(
+        f"{PREAMBLE}\n{contact}\n{GOOD_BODY}\n\\end{{document}}",
+        compile_pdf=compiles_fine,
+    )
 
 
 def test_a_template_that_does_not_compile_is_rejected():
@@ -312,7 +415,7 @@ def test_failures_are_fed_back_and_retried():
 def test_it_gives_up_rather_than_storing_something_broken():
     attempts = []
 
-    with pytest.raises(TemplatizationError, match="after 3 attempts"):
+    with pytest.raises(TemplatizationError, match=f"after {MAX_ATTEMPTS} attempts"):
         templatize(
             f"{PREAMBLE}\n{STATIC_BODY}\n\\end{{document}}",
             ask=lambda prompt: attempts.append(prompt) or STATIC_BODY,

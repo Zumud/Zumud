@@ -1,0 +1,84 @@
+% Sections we add to a converted template that would otherwise not print them.
+%
+% Most resume designs show four or five kinds of thing, so a template made from one
+% quietly drops the rest: the candidate with publications uploads a design that has no
+% publications heading and never learns they went missing. The model is poor at
+% inventing a section it has never seen — measured on real documents, asking it to cost
+% us conversions that had worked — and it does not need to, because what to print is
+% fixed. Only the heading has to match the design, and that is the document's own
+% \section command (see fill_missing_sections in backend/core/templatizer.py).
+%
+% Each block is guarded so it appears only for a resume that has the data, and opens no
+% list environment it cannot put an \item in. One block per section in SECTION_PROBES;
+% import fails if the two ever disagree.
+
+% == summary ==
+{% if summary %}
+\section*{Summary}
+{{ summary }}
+{% endif %}
+
+% == skills ==
+{% if skills %}
+\section*{Skills}
+\begin{itemize}
+{% for skill in skills %}\item \textbf{ {{ skill.category }} }: {{ skill['items']|join(', ') }}
+{% endfor %}\end{itemize}
+{% endif %}
+
+% == experience ==
+{% if experience %}
+\section*{Experience}
+{% for job in experience %}\noindent \textbf{ {{ job.company }} }{% if job.role %} --- {{ job.role }}{% endif %}{% if job.date_range %} \hfill {{ job.date_range }}{% endif %}
+\par
+{% if job.description %}{{ job.description }}\par{% endif %}
+{% if job.achievements %}\begin{itemize}
+{% for achievement in job.achievements %}\item {{ achievement }}
+{% endfor %}\end{itemize}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+% == education ==
+{% if education %}
+\section*{Education}
+\begin{itemize}
+{% for entry in education %}\item \textbf{ {{ entry.institution }} }{% if entry.degree %} --- {{ entry.degree }}{% endif %}{% if entry.date_range %} \hfill {{ entry.date_range }}{% endif %}
+{% endfor %}\end{itemize}
+{% endif %}
+
+% == certifications ==
+{% if certifications %}
+\section*{Certifications}
+\begin{itemize}
+{% for certification in certifications %}\item {{ certification.name }}{% if certification.issuer %} --- {{ certification.issuer }}{% endif %}
+{% endfor %}\end{itemize}
+{% endif %}
+
+% == projects ==
+{% if projects %}
+\section*{Projects}
+{% for project in projects %}\noindent \textbf{ {{ project.name }} }{% if project.date_range %} \hfill {{ project.date_range }}{% endif %}
+\par
+{% if project.achievements %}\begin{itemize}
+{% for achievement in project.achievements %}\item {{ achievement }}
+{% endfor %}\end{itemize}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+% == publications ==
+{% if publications %}
+\section*{Publications}
+\begin{itemize}
+{% for paper in publications %}\item {{ paper.title }}{% if paper.authors %} --- {{ paper.authors }}{% endif %}{% if paper.venue %}, \textit{ {{ paper.venue }} }{% endif %}{% if paper.date %} ({{ paper.date }}){% endif %}
+{% endfor %}\end{itemize}
+{% endif %}
+
+% == awards ==
+{% if awards %}
+\section*{Awards}
+\begin{itemize}
+{% for award in awards %}\item \textbf{ {{ award.title }} }{% if award.issuer %} --- {{ award.issuer }}{% endif %}{% if award.date %} ({{ award.date }}){% endif %}{% if award.description %}. {{ award.description }}{% endif %}
+{% endfor %}\end{itemize}
+{% endif %}
