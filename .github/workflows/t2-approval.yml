@@ -1,9 +1,16 @@
 name: T2 approval
 
-# The risk-tier merge policy's only human step. PRs labeled tier:T2 (auth,
-# billing, migrations, dependencies, pipeline files — see labeler.yml) fail
-# this required check until the maintainer approves the PR; everything else
-# passes automatically and can auto-merge on green.
+# The risk-tier merge policy's only human step. A PR touching auth, billing,
+# migrations, dependencies or the pipeline itself fails this required check
+# until the maintainer signs off; everything else passes automatically and can
+# auto-merge on green.
+#
+# Which tier a PR is in is worked out here from its own diff
+# (scripts/tier_gate.py, using labeler.yml's paths) rather than read from the
+# tier:T2 label. The label is applied by another workflow using GITHUB_TOKEN,
+# and a token-driven label starts no further workflow runs — so this check
+# raced the labeler and passed vacuously whenever it won, which is how #210 and
+# #212 merged with no human step. The label stays for visibility only.
 
 on:
   pull_request:
@@ -27,6 +34,9 @@ jobs:
       - name: Merge queue pass-through
         if: github.event_name == 'merge_group'
         run: echo "Tier policy already satisfied at PR level."
+      - name: Check out the gate
+        if: github.event_name != 'merge_group'
+        uses: actions/checkout@v4
       - name: Check tier policy
         if: github.event_name != 'merge_group'
         env:
@@ -34,11 +44,15 @@ jobs:
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
         run: |
-          labels=$(gh api "repos/$REPO/pulls/$PR" --jq '[.labels[].name] | join(",")')
-          if ! grep -q 'tier:T2' <<<"$labels"; then
-            echo "Not tier:T2 — no human approval required."
+          # Fetched into a variable rather than piped, so that an API failure aborts the
+          # step under `bash -e`. Piped, it would reach the gate as an empty diff and be
+          # waved through as tier 1 — a gate has to fail closed.
+          files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate --jq '.[].filename')
+          if printf '%s\n' "$files" | python3 scripts/tier_gate.py; then
+            echo "Tier 1 — no human sign-off required."
             exit 0
           fi
+          labels=$(gh api "repos/$REPO/pulls/$PR" --jq '[.labels[].name] | join(",")')
           # Maintainer sign-off is either a PR approval or the t2-approved
           # label (GitHub forbids approving your own PR, so a solo maintainer
           # — or an agent authoring under their account — signs off by
