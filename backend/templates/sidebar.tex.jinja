@@ -1,0 +1,227 @@
+{% raw %}%-------------------------
+% Sidebar
+%-------------------------
+% Written for Zumud. Public domain — do what you like with it.
+%
+% The gallery's other two designs are both one column with the dates on the right, so
+% this one is deliberately shaped differently: a tinted column carries what a recruiter
+% skims for (contact, skills, degrees, certificates) and the page is left to the work.
+% Everything it needs is in TeX Live, because the compiler only ever receives one .tex —
+% a design depending on its own .cls could not be shipped here.
+%
+% xelatex, because fontspec is what gets Fira Sans and its Light weight; the pdflatex
+% package would give neither.
+%
+% Neither column is boxed. A minipage would be neater to write and would silently cap
+% the resume at one page: the box cannot break, so a second job's worth of content
+% pushes the whole column onto page 2 and leaves page 1 half empty. The text is inset
+% with \leftskip/\rightskip instead, which page-breaks like ordinary prose.
+%
+% Everything down to \begin{document} is inside a Jinja raw block: the macros open a
+% group with a macro parameter, and "{#1" reads to Jinja as the start of a comment.
+%-------------------------
+
+\documentclass[letterpaper,10pt]{article}
+
+% Real margins, so both columns' text is inset by the page geometry rather than by
+% \leftskip. The skip route looks equivalent and is not: \raggedright zeroes \leftskip,
+% and a \section heading does not inherit it, so headings and body ended up on
+% different left edges. The tint reaches the paper's edge by being painted, below.
+\usepackage[left=0.36in, right=0.45in, top=0.5in, bottom=0.5in]{geometry}
+\usepackage{fontspec}
+\usepackage{xcolor}
+\usepackage{paracol}
+\usepackage{enumitem}
+\usepackage{fontawesome5}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{needspace}
+\usepackage{eso-pic}
+\usepackage{etoolbox}
+
+% Fira Sans covers Light through SemiBold, which is what lets the name sit quietly at
+% 28pt and a heading stand out at 8pt without either shouting.
+\setmainfont{FiraSans}[
+  Extension      = .otf,
+  UprightFont    = *-Regular,
+  ItalicFont     = *-Italic,
+  BoldFont       = *-SemiBold,
+  BoldItalicFont = *-SemiBoldItalic,
+]
+\newfontfamily\thin{FiraSans}[Extension=.otf, UprightFont=*-Light, ItalicFont=*-LightItalic]
+
+\definecolor{ink}{HTML}{1B2733}
+\definecolor{accent}{HTML}{16697A}
+\definecolor{muted}{HTML}{5C6B7A}
+\color{ink}
+
+% The gutter is \columnsep, not space left over by the ratios — paracol gives any
+% remainder to the right margin, so ratios that do not sum to 1 move the page's edge
+% rather than parting the columns.
+\columnratio{0.29}
+\setlength{\columnsep}{0.40in}
+
+% The tint is painted as a full-height band behind every page rather than with paracol's
+% own column background, which covers only the part of the column that page happened to
+% fill — on a two-page resume that ends the panel in mid-air. It runs from the paper's
+% edge to a little past the sidebar's text: left margin, column, and a slice of gutter.
+\definecolor{panel}{HTML}{F0F4F6}
+\AddToShipoutPictureBG{\put(0,0){\color{panel}%
+  \rule{\dimexpr 0.36in + 0.29\textwidth + 0.14in\relax}{\paperheight}}}
+
+% Justifying a 2-inch column sets the rivers you see in every badly typeset CV, so both
+% columns are ragged; \emergencystretch buys the last resort a loose line rather than
+% one poking into the gutter.
+\raggedright
+\setlength{\emergencystretch}{1em}
+
+\setlength{\parindent}{0pt}
+\pagestyle{empty}
+
+% Headings: small spaced capitals in accent. The same shape in both columns, so the two
+% halves read as one document rather than two.
+\titleformat{\section}{\bfseries\footnotesize\color{accent}}{}{0em}{\MakeUppercase}
+\titlespacing*{\section}{0pt}{13pt}{4pt}
+
+% An entry's heading: what you did, where, and when. The date takes its own line rather
+% than the right margin — with a sidebar taking a third of the page, a \hfill between
+% two long strings has nowhere to put them.
+%
+% Blank arguments are the normal case, not the exception: a resume with no job title, no
+% dates or no location is one somebody will upload. \ifblank rather than \ifx because
+% every argument arrives padded with spaces — Jinja needs "{ {{ x }} }" to keep its own
+% braces apart from LaTeX's, so an "empty" argument is a space and \ifx sees text.
+% Usage: \role{Title}{Employer}{Dates}{Location}
+\newcommand{\role}[4]{\needspace{3\baselineskip}%
+  \vspace{5pt}%
+  {\bfseries #1}\ifblank{#2}{}{{\color{accent}\bfseries\ \textbullet\ #2}}\par
+  \ifblank{#3}
+    {\ifblank{#4}{}{\sub{#4}}}
+    {\sub{#3\ifblank{#4}{}{\ \textbar\ #4}}}%
+  \vspace{1pt}%
+}
+\newcommand{\sub}[1]{{\thin\small\color{muted}#1}\par}
+
+\newenvironment{points}
+  {\begin{itemize}[leftmargin=11pt, itemsep=1pt, parsep=0pt, topsep=2pt,
+                   label={\color{accent}\footnotesize\textbullet}]}
+  {\end{itemize}}
+
+% One line per thing, no bullet: for the sections whose entries are a sentence.
+\newenvironment{plainlist}
+  {\begin{itemize}[leftmargin=0pt, itemsep=4pt, parsep=0pt, topsep=3pt, label={}]}
+  {\end{itemize}}
+
+\begin{document}{% endraw %}
+
+{# The name spans both columns, so it is set before the columns begin. #}
+\vspace{6pt}
+{\thin\fontsize{28}{32}\selectfont {{ personal_info.name }}}\par
+\vspace{5pt}
+{\color{accent}\rule{34pt}{1.6pt}}\par
+\vspace{12pt}
+
+\begin{paracol}{2}
+
+%---------- SIDEBAR ----------
+
+{# Guarded as a whole: a resume with no contact details at all would otherwise print the
+   heading over nothing, and a heading with nothing under it reads as a fault. #}
+{% if personal_info.email or personal_info.phone or personal_info.location or personal_info.linkedin or personal_info.github %}
+\section*{Contact}
+{\small
+{# An address is one long word to TeX. Breaking after the @ keeps a real one inside the
+   column instead of across the gutter; the link itself is unaffected. #}
+{% if personal_info.email %}\href{mailto:{{ personal_info.email }}}{ {{ personal_info.email|replace('@', '@\\allowbreak ') }} }\par\vspace{3pt}{% endif %}
+{% if personal_info.phone %}\faPhone*\enskip {{ personal_info.phone }}\par\vspace{3pt}{% endif %}
+{% if personal_info.location %}\faMapMarker*\enskip {{ personal_info.location }}\par\vspace{3pt}{% endif %}
+{# A pasted "linkedin.com/in/them" and a typed "them" have to come out as one link. #}
+{% if personal_info.linkedin %}{% set handle = personal_info.linkedin.rstrip('/').split('/')[-1] %}\faLinkedin\enskip \href{https://linkedin.com/in/{{ handle }}}{ {{ handle }} }\par\vspace{3pt}{% endif %}
+{% if personal_info.github %}{% set handle = personal_info.github.rstrip('/').split('/')[-1] %}\faGithub\enskip \href{https://github.com/{{ handle }}}{ {{ handle }} }\par{% endif %}
+}
+{% endif %}
+
+{% if skills %}
+\section*{Skills}
+{\small
+{# "AWS (EC2/S3/RDS/Lambda)" is one word to TeX — digits and slashes block hyphenation —
+   and one word too wide for a 2-inch column pokes out into the page. Offering a break
+   after each slash is the difference between a tidy column and overlapping text. #}
+{% for skill in skills %}{\bfseries {{ skill.category }} }\par
+{\color{muted}{{ skill['items']|join(', ')|replace('/', '/\\allowbreak ') }} }\par\vspace{5pt}
+{% endfor %}
+}
+{% endif %}
+
+{% if education %}
+\section*{Education}
+{\small
+{% for entry in education %}{\bfseries {{ entry.institution }} }\par
+{% if entry.degree %}{{ entry.degree }}\par{% endif %}
+{% if entry.minors %}{\color{muted}Minor in {{ entry['minors']|join(', ') }} }\par{% endif %}
+{% if entry.date_range or entry.location %}{\thin\color{muted}{{ entry.date_range|default('', true) }}{% if entry.date_range and entry.location %} \textbar\ {% endif %}{{ entry.location|default('', true) }} }\par{% endif %}
+\vspace{5pt}
+{% endfor %}
+}
+{% endif %}
+
+{% if certifications %}
+\section*{Certifications}
+{\small
+{% for certification in certifications %}{{ certification.name }}\par
+{% if certification.issuer %}{\color{muted}{{ certification.issuer }} }\par{% endif %}
+\vspace{4pt}
+{% endfor %}
+}
+{% endif %}
+
+\switchcolumn
+
+%---------- THE WORK ----------
+
+{% if summary %}
+\section*{Profile}
+{{ summary }}
+{% endif %}
+
+{% if experience %}
+\section*{Experience}
+{% for job in experience %}
+\role{ {{ job.role|default(job.company, true) }} }{ {{ job.company if job.role else '' }} }{ {{ job.date_range|default('', true) }} }{ {{ job.location|default('', true) }} }
+{% if job.description %}{{ job.description }}\par{% endif %}
+{% if job.achievements %}
+\begin{points}
+{% for achievement in job.achievements %}\item {{ achievement }}
+{% endfor %}\end{points}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if projects %}
+\section*{Projects}
+{% for project in projects %}
+\role{ {{ project.name }} }{}{ {{ project.date_range|default('', true) }} }{}
+{% if project.achievements %}
+\begin{points}
+{% for achievement in project.achievements %}\item {{ achievement }}
+{% endfor %}\end{points}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if publications %}
+\section*{Publications}
+\begin{plainlist}
+{% for paper in publications %}\item {% if paper.authors %}{{ paper.authors }}{% if not paper.authors.endswith('.') %}.{% endif %} {% endif %}{\itshape {{ paper.title }}}{% if paper.venue %}. {{ paper.venue }}{% if paper.volume %}, {{ paper.volume }}{% if paper.issue %}({{ paper.issue }}){% endif %}{% endif %}{% if paper.pages %}, {{ paper.pages }}{% endif %}{% endif %}{% if paper.date %}, {{ paper.date }}{% endif %}.{% if paper.status %} {\bfseries {{ paper.status }}}.{% endif %}{% if paper.doi %} \href{https://doi.org/{{ paper.doi }}}{doi.org/{{ paper.doi }}}{% elif paper.url %} \href{ {{ paper.url }} }{ {{ paper.url }} }{% endif %}
+{% endfor %}\end{plainlist}
+{% endif %}
+
+{% if awards %}
+\section*{Awards}
+\begin{plainlist}
+{% for award in awards %}\item {\bfseries {{ award.title }}}{% if award.issuer %} \textbullet\ {{ award.issuer }}{% endif %}{% if award.date %}, {{ award.date }}{% endif %}{% if award.description %}\par{\color{muted}{{ award.description }} }{% endif %}
+{% endfor %}\end{plainlist}
+{% endif %}
+
+\end{paracol}
+\end{document}
