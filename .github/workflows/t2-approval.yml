@@ -12,8 +12,22 @@ name: T2 approval
 # raced the labeler and passed vacuously whenever it won, which is how #210 and
 # #212 merged with no human step. The label stays for visibility only.
 
+# pull_request_target so the workflow and the gate script come from the BASE
+# branch: on pull_request they come from the PR's own head, which lets a PR
+# neuter the check in the very change that needs it. Safe here for the reason it
+# is in labeler.yml — nothing from the PR is checked out or executed; the gate
+# reads the file list from the API and the paths from base's labeler.yml.
+#
+# Migrating a required check's trigger takes two steps, because a pull_request
+# run comes from the head copy while a pull_request_target run comes from base:
+# drop `pull_request` here in the same PR that adds `pull_request_target` and
+# neither fires, leaving "T2 approval" forever pending and every merge blocked.
+# So both triggers run for now (same verdict from each), and a follow-up PR
+# removes `pull_request` once base can fire the new one.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  pull_request_target:
     types: [opened, synchronize, reopened, labeled, unlabeled]
   pull_request_review:
     types: [submitted, dismissed]
@@ -34,6 +48,8 @@ jobs:
       - name: Merge queue pass-through
         if: github.event_name == 'merge_group'
         run: echo "Tier policy already satisfied at PR level."
+      # No ref: that is base on pull_request_target and the PR head on
+      # pull_request, which is what each event should be judged by.
       - name: Check out the gate
         if: github.event_name != 'merge_group'
         uses: actions/checkout@v4
