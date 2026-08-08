@@ -37,6 +37,11 @@ BUILTINS = {
         "description": "The plain, widely recommended layout that every ATS can read.",
         "compiler": "pdflatex",
     },
+    "sidebar": {
+        "name": "Sidebar",
+        "description": "Two columns: skills and schooling down the side, the work down the page.",
+        "compiler": "xelatex",
+    },
 }
 
 DEFAULT_BUILTIN_SLUG = "mteck"
