@@ -6,6 +6,7 @@
 requirements.txt @mohammadi-com
 requirements-dev.txt @mohammadi-com
 /frontend/package.json @mohammadi-com
+/frontend/package-lock.json @mohammadi-com
 /backend/api/auth.py @mohammadi-com
 /backend/api/billing.py @mohammadi-com
 /backend/core/supabase_auth.py @mohammadi-com

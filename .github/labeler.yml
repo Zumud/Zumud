@@ -8,6 +8,10 @@
           - requirements.txt
           - requirements-dev.txt
           - frontend/package.json
+          # The lockfile alone is a dependency change too: it is what a version
+          # bump under a transitive package touches, and #219 (nanoid, js-yaml,
+          # dompurify) passed the tier gate as tier 1 without it.
+          - frontend/package-lock.json
           # Auth, billing, and schema.
           - backend/api/auth.py
           - backend/core/supabase_auth.py

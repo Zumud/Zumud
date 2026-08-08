@@ -44,6 +44,9 @@ def test_a_glob_it_cannot_evaluate_raises():
     [
         "requirements.txt",
         "frontend/package.json",
+        # A bump under a transitive package touches nothing else — #219 moved
+        # nanoid, js-yaml and dompurify and was waved through as tier 1.
+        "frontend/package-lock.json",
         "backend/core/supabase_auth.py",
         "migrations/versions/23ef185de22c_baseline.py",
         ".github/workflows/ci.yml",
