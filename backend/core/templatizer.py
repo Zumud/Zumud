@@ -38,9 +38,9 @@ from backend.utils.log import logger
 MAX_ATTEMPTS = 3
 
 # Tried in order. pdflatex first because it is much faster and most designs build
-# under it; xelatex is what fontspec/unicode-math preambles need. NB the image CI
-# and local dev use cannot build xelatex formats yet, so that fallback only pays off
-# on the deploy host until docker/latex/ catches up.
+# under it; xelatex is what fontspec/unicode-math preambles need. Both engines work
+# everywhere now — docker/latex/ builds xelatex.fmt into the image, and the deploy
+# host refuses an image that cannot compile fontspec (deploy/zumud-deploy.sh).
 COMPILERS = ("pdflatex", "xelatex")
 
 # Templatizing is a harder, rarer task than tailoring, so it does not follow the
