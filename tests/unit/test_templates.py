@@ -7,6 +7,7 @@ the same way production does — `escape_latex()` then `Template(...).render(...
 in `ai_service.generate_structured_latex_resume_async`.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -116,3 +117,16 @@ def test_no_latex_lives_in_the_python_module():
     assert "\\documentclass" not in source
     assert "\\begin{document}" not in source
     assert list(TEMPLATES_DIR.glob("*.tex.jinja")), "no template files on disk"
+
+
+def test_mteck_leaves_breathing_room_before_achievement_lists():
+    """Company copy and project headings must not run into their first bullet."""
+    source = builtin_template("mteck")["structure"]
+
+    assert re.search(r"\\newenvironment\{resume_list\}\{\s*\\vspace\{-5pt\}", source)
+    assert re.search(
+        r"\\newcommand\{\\companyDescription\}.*?"
+        r"\\end\{itemize\}\s*\\vspace\{-4pt\}",
+        source,
+        re.DOTALL,
+    )
