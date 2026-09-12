@@ -21,7 +21,6 @@ from backend.api.auth import get_current_user
 from backend.core import ai_service
 from backend.core.storage_service import storage_service
 from backend.core.stripe_billing_service import check_payment_method_required
-from backend.models.ai_models import AIModel
 from backend.models.db import get_db
 from backend.models.tailoring_options import TailoringOptionsBase
 from backend.utils.file_ops import save_pdf
@@ -56,7 +55,6 @@ async def generate_and_save_pdf_resume(
     require_resume_content(current_user, before="before generating a PDF")
 
     ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
-
     company_name = ai_service.get_company_name(job_description)
     save_path = get_or_create_application(
         current_user.username, company_name, is_new_application
@@ -224,6 +222,7 @@ async def edit_resume_with_instructions(
         )
 
     ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
+    tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
 
     try:
         latex_compiler_response, updated_resume_json, tex_content = (
@@ -232,7 +231,7 @@ async def edit_resume_with_instructions(
                 job_description,
                 edit_instruction,
                 str(new_save_path),
-                AIModel.gpt_4_1_nano,
+                tailoring_options.ai_model,
                 current_user.id,
                 db,
                 ai_rules_prompt,

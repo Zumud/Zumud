@@ -207,11 +207,13 @@ async def edit_cover_letter_with_instructions(
 
     try:
         ai_rules_prompt = get_ai_rules_prompt(db, current_user.id)
+        tailoring_options = current_user.tailoring_options or TailoringOptionsBase()
         updated_cover_letter = ai_service.update_cover_letter_with_instructions(
             cover_letter_text,
             current_user.resumes.resume_content,
             job_description,
             edit_instruction,
+            tailoring_options.ai_model,
             ai_rules_prompt=ai_rules_prompt,
         )
 

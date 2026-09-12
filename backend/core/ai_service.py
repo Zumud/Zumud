@@ -22,11 +22,84 @@ from backend.utils.file_ops import (
 )
 from backend.utils.jinja_env import render_resume_template
 from backend.utils.log import logger
+from backend.utils.writing_quality import (
+    find_writing_quality_issues,
+    quality_retry_instruction,
+)
 
 client = OpenAI(api_key=OPEN_AI_KEY)
 
 # Async client for async operations
 async_client = AsyncOpenAI(api_key=OPEN_AI_KEY)
+
+
+def _response_content(completion) -> str:
+    content = completion.choices[0].message.content
+    if not content:
+        raise ValueError("The AI returned an empty response.")
+    return content
+
+
+def _parse_with_quality_review(*, model, messages, response_format) -> str:
+    """Request structured output and make one focused repair pass when needed."""
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=messages,
+        response_format=response_format,
+    )
+    content = _response_content(completion)
+    issues = find_writing_quality_issues(content)
+    if not issues:
+        return content
+
+    logger.info("Retrying generated prose after quality checks: %s", issues)
+    repaired = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            *messages,
+            {"role": "assistant", "content": content},
+            {"role": "user", "content": quality_retry_instruction(issues)},
+        ],
+        response_format=response_format,
+    )
+    repaired_content = _response_content(repaired)
+    remaining = find_writing_quality_issues(repaired_content)
+    if remaining:
+        logger.warning(
+            "Generated prose still has quality issues after repair: %s", remaining
+        )
+    return repaired_content
+
+
+async def _parse_with_quality_review_async(*, model, messages, response_format) -> str:
+    """Async counterpart used by resume generation."""
+    completion = await async_client.beta.chat.completions.parse(
+        model=model,
+        messages=messages,
+        response_format=response_format,
+    )
+    content = _response_content(completion)
+    issues = find_writing_quality_issues(content)
+    if not issues:
+        return content
+
+    logger.info("Retrying generated prose after quality checks: %s", issues)
+    repaired = await async_client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            *messages,
+            {"role": "assistant", "content": content},
+            {"role": "user", "content": quality_retry_instruction(issues)},
+        ],
+        response_format=response_format,
+    )
+    repaired_content = _response_content(repaired)
+    remaining = find_writing_quality_issues(repaired_content)
+    if remaining:
+        logger.warning(
+            "Generated prose still has quality issues after repair: %s", remaining
+        )
+    return repaired_content
 
 
 def get_enabled_ai_rules(user_id: int, db: Session) -> list[db_models.UserAIRule]:
@@ -111,7 +184,7 @@ async def generate_structured_latex_resume_async(
     save_folder: str,
     resume: str,
     job_description: str,
-    model=AIModel.gpt_4_1_nano,
+    model=AIModel.gpt_4_1_mini,
     user_id: int = None,
     db: Session = None,
     is_anonymous: bool = False,
@@ -127,26 +200,20 @@ async def generate_structured_latex_resume_async(
         tuple: (latex_compiler_response, rendered_latex, structured_resume_json)
     """
 
-    # Use standard system content
-    system_content = """You are a world-class resume writer, career strategist, and ATS optimization expert. You specialize in transforming general resumes into sharply focused, high-impact documents tailored for specific job applications — increasing interview rates significantly."""
-
     prompt = prompts.structured_resume_prompt.format(
         resume=resume,
         job_description=job_description,
         user_ai_rules=ai_rules_prompt or "No user-specific AI rules are enabled.",
     )
 
-    # First, get structured resume data from GPT using async client
-    completion = await async_client.beta.chat.completions.parse(
+    structured_resume_json = await _parse_with_quality_review_async(
         model=model,
         messages=[
-            {"role": "system", "content": system_content},
+            {"role": "system", "content": prompts.RESUME_SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
         response_format=StructuredResume,
     )
-
-    structured_resume_json = completion.choices[0].message.content
     structured_resume = json.loads(structured_resume_json)
 
     logger.debug(f"Structured resume: {structured_resume}")
@@ -195,15 +262,15 @@ async def generate_structured_latex_resume_async(
 def generate_tailored_coverletter_text(
     resume: str,
     job_description: str,
-    model=AIModel.gpt_4_1_nano,
+    model=AIModel.gpt_4_1_mini,
     ai_rules_prompt: str | None = None,
 ) -> str:
-    completion = client.beta.chat.completions.parse(
+    content = _parse_with_quality_review(
         model=model,
         messages=[
             {
                 "role": "system",
-                "content": "You are an expert career coach and professional writer.",
+                "content": prompts.COVER_LETTER_SYSTEM_PROMPT,
             },
             {
                 "role": "user",
@@ -217,7 +284,7 @@ def generate_tailored_coverletter_text(
         ],
         response_format=TailoredCoverLetter,
     )
-    return json.loads(completion.choices[0].message.content)["tailored_coverletter"]
+    return json.loads(content)["tailored_coverletter"]
 
 
 def generate_answer_questions(
@@ -225,13 +292,13 @@ def generate_answer_questions(
     job_description: str,
     question: str,
     save_folder: str = None,
-    model=AIModel.gpt_4_1_nano,
+    model=AIModel.gpt_4_1_mini,
     ai_rules_prompt: str | None = None,
 ):
-    completion = client.beta.chat.completions.parse(
+    content = _parse_with_quality_review(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a helpful assisstant."},
+            {"role": "system", "content": prompts.APPLICATION_ANSWER_SYSTEM_PROMPT},
             {
                 "role": "user",
                 "content": prompts.answer_application_question.format(
@@ -246,7 +313,7 @@ def generate_answer_questions(
         response_format=TailoredAnswer,
     )
 
-    answer = json.loads(completion.choices[0].message.content)["tailored_answer"]
+    answer = json.loads(content)["tailored_answer"]
 
     # Save the question and answer if save_folder is provided
     if save_folder:
@@ -264,7 +331,7 @@ def update_resume_with_instructions(
     job_description: str,
     instructions: str,
     save_path: str,
-    model=AIModel.gpt_4_1_nano,
+    model=AIModel.gpt_4_1_mini,
     user_id: int = None,
     db: Session = None,
     ai_rules_prompt: str | None = None,
@@ -284,37 +351,21 @@ def update_resume_with_instructions(
     Returns:
         tuple: (latex_compiler_response, updated_resume_json, tex_content)
     """
-    prompt = (
-        f"You are an expert resume writer helping to refine a resume based on specific feedback. "
-        f"I have a structured resume in JSON format and need you to update it according to the provided instructions.\n\n"
-        f"When making changes:\n"
-        f"1. Follow the instructions precisely while maintaining the JSON structure\n"
-        f"2. Ensure all modifications align with the job description requirements\n"
-        f"3. Keep the resume professional, accurate, and ATS-friendly\n"
-        f"4. Maintain consistency in formatting, dates, and style\n"
-        f"5. Only modify the fields that need to be changed based on the instructions\n"
-        f"6. Preserve all other information exactly as provided\n"
-        f"7. Ensure the final JSON is valid and complete\n\n"
-        f"{ai_rules_prompt or 'No user-specific AI rules are enabled.'}\n\n"
-        f"Job Description:\n{job_description}\n\n"
-        f"Original Structured Resume JSON:\n{original_structured_resume}\n\n"
-        f"Instructions for changes:\n{instructions}\n\n"
-        f"Please provide the updated structured resume JSON."
+    prompt = prompts.update_resume_prompt.format(
+        user_ai_rules=ai_rules_prompt or "No user-specific AI rules are enabled.",
+        job_description=job_description,
+        original_structured_resume=original_structured_resume,
+        instructions=instructions,
     )
 
-    completion = client.beta.chat.completions.parse(
+    updated_resume_json = _parse_with_quality_review(
         model=model,
         messages=[
-            {
-                "role": "system",
-                "content": "You are a professional resume editor. Update the provided structured resume JSON according to the instructions while maintaining proper JSON structure and professional quality.",
-            },
+            {"role": "system", "content": prompts.RESUME_SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
         response_format=StructuredResume,
     )
-
-    updated_resume_json = completion.choices[0].message.content
 
     # Parse the updated JSON to get the structured resume
     structured_resume = json.loads(updated_resume_json)
@@ -341,7 +392,7 @@ def update_cover_letter_with_instructions(
     resume_content: str,
     job_description: str,
     instructions: str,
-    model=AIModel.gpt_4_1_nano,
+    model=AIModel.gpt_4_1_mini,
     ai_rules_prompt: str | None = None,
 ) -> str:
     """
@@ -357,44 +408,24 @@ def update_cover_letter_with_instructions(
     Returns:
         str: The updated cover letter text
     """
-    prompt = (
-        f"You are an expert career coach specializing in cover letters that win interviews. You help job seekers refine their cover letters to make them compelling, relevant, and tailored to specific positions.\n\n"
-        f"I have a cover letter that needs improvement based on specific instructions. I'll provide you with the candidate's resume, job description, current cover letter, and editing instructions.\n\n"
-        f"When editing the cover letter, please:\n\n"
-        f"1. Make only the changes requested in the instructions\n"
-        f"2. Keep the overall structure and flow unless specified otherwise\n"
-        f"3. Ensure the letter maintains a clear introduction, body paragraphs that demonstrate value, and strong closing\n"
-        f"4. Highlight relevant qualifications and experiences from the resume that align with the job description\n"
-        f"5. Maintain a professional yet conversational tone appropriate for the industry\n"
-        f"6. Use concrete examples of achievements from the resume when applicable\n"
-        f"7. Keep paragraphs focused and concise (3-5 sentences per paragraph)\n"
-        f"8. Ensure the letter expresses enthusiasm for the role and organization\n"
-        f"9. Ensure the letter references skills and experiences that actually appear in the resume\n"
-        f"10. Tailor the content to address specific requirements mentioned in the job description\n"
-        f"11. Avoid clichés and generic language in favor of specific, compelling content\n\n"
-        f"Return only the improved cover letter text, maintaining appropriate professional language and formatting.\n\n"
-        f"{ai_rules_prompt or 'No user-specific AI rules are enabled.'}\n\n"
-        f"Candidate's Resume:\n{resume_content}\n\n"
-        f"Job Description:\n{job_description}\n\n"
-        f"Original Cover Letter:\n{cover_letter}\n\n"
-        f"Instructions:\n{instructions}"
+    prompt = prompts.update_cover_letter_prompt.format(
+        user_ai_rules=ai_rules_prompt or "No user-specific AI rules are enabled.",
+        resume_content=resume_content,
+        job_description=job_description,
+        cover_letter=cover_letter,
+        instructions=instructions,
     )
 
-    completion = client.beta.chat.completions.parse(
+    content = _parse_with_quality_review(
         model=model,
         messages=[
-            {
-                "role": "system",
-                "content": "You are a professional cover letter editor. Provide the updated cover letter with the requested changes.",
-            },
+            {"role": "system", "content": prompts.COVER_LETTER_SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
         response_format=TailoredCoverLetter,
     )
 
-    updated_cover_letter = json.loads(completion.choices[0].message.content)[
-        "tailored_coverletter"
-    ]
+    updated_cover_letter = json.loads(content)["tailored_coverletter"]
     return updated_cover_letter
 
 
@@ -404,7 +435,7 @@ def update_answer_with_instructions(
     job_description: str,
     resume_content: str,
     instructions: str,
-    model=AIModel.gpt_4_1_nano,
+    model=AIModel.gpt_4_1_mini,
     ai_rules_prompt: str | None = None,
 ) -> str:
     """
@@ -421,40 +452,23 @@ def update_answer_with_instructions(
     Returns:
         str: The updated answer text
     """
-    prompt = (
-        f"You are an expert job application coach specializing in interview questions. You help candidates refine their answers to make them more impactful, relevant, and tailored to specific positions.\n\n"
-        f"I have an answer to a job application question that needs refinement based on specific instructions. I'll provide you with the candidate's resume, job description, question, original answer, and edit instructions.\n\n"
-        f"When updating the answer, please:\n"
-        f"1. Make only the changes requested in the instructions\n"
-        f"2. Keep the overall structure and flow unless specified otherwise\n"
-        f"3. Ensure the answer directly addresses the question asked\n"
-        f"4. Highlight relevant skills/experiences from the resume that match the job description\n"
-        f"5. Maintain a professional, confident tone\n"
-        f"6. Use concrete examples and quantifiable achievements from the resume when possible\n"
-        f"7. Keep the answer concise and impactful (typically 3-5 sentences for brief answers, 2-3 paragraphs for detailed ones)\n"
-        f"8. Ensure all information is truthful and accurately reflects what's in the resume\n\n"
-        f"Return only the improved answer text, maintaining appropriate professional language and formatting.\n\n"
-        f"{ai_rules_prompt or 'No user-specific AI rules are enabled.'}\n\n"
-        f"Candidate's Resume:\n{resume_content}\n\n"
-        f"Job Description:\n{job_description}\n\n"
-        f"Question:\n{question}\n\n"
-        f"Original Answer:\n{original_answer}\n\n"
-        f"Instructions:\n{instructions}"
+    prompt = prompts.update_answer_prompt.format(
+        user_ai_rules=ai_rules_prompt or "No user-specific AI rules are enabled.",
+        resume_content=resume_content,
+        job_description=job_description,
+        question=question,
+        original_answer=original_answer,
+        instructions=instructions,
     )
 
-    completion = client.beta.chat.completions.parse(
+    content = _parse_with_quality_review(
         model=model,
         messages=[
-            {
-                "role": "system",
-                "content": "You are a professional job application answer editor. Provide the updated answer with the requested changes.",
-            },
+            {"role": "system", "content": prompts.APPLICATION_ANSWER_SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
         response_format=TailoredAnswer,
     )
 
-    updated_answer = json.loads(completion.choices[0].message.content)[
-        "tailored_answer"
-    ]
+    updated_answer = json.loads(content)["tailored_answer"]
     return updated_answer

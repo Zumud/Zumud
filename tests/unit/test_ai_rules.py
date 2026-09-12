@@ -329,6 +329,9 @@ def test_user_rules_are_applied_to_resume_generation(monkeypatch, tmp_path):
     )
 
     prompt = captured[0]["messages"][1]["content"]
+    assert (
+        captured[0]["messages"][0]["content"] == ai_service.prompts.RESUME_SYSTEM_PROMPT
+    )
     assert "USER-SPECIFIC AI RULES" in prompt
     assert "Keep my resume under two pages." in prompt
 
@@ -365,6 +368,9 @@ def test_user_rules_are_applied_to_resume_editing(monkeypatch, tmp_path):
     )
 
     prompt = captured[0]["messages"][1]["content"]
+    assert (
+        captured[0]["messages"][0]["content"] == ai_service.prompts.RESUME_SYSTEM_PROMPT
+    )
     assert "USER-SPECIFIC AI RULES" in prompt
     assert "Always generate my resume in English." in prompt
 
