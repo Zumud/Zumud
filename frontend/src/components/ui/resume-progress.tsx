@@ -223,72 +223,142 @@ export default function ResumeProgress({ isVisible, onComplete, onClose }: Resum
   )
 }
 
-const inlineSteps: ProgressStep[] = [
-  {
-    id: "analyzing",
-    title: "Review role",
-    description: "Identify priorities and required experience",
-    duration: 8,
-  },
-  {
-    id: "tailoring",
-    title: "Tailor content",
-    description: "Align your resume with the role",
-    duration: 12,
-  },
-  {
-    id: "formatting",
-    title: "Refine structure",
-    description: "Improve clarity and ATS compatibility",
-    duration: 8,
-  },
-  {
-    id: "generating",
-    title: "Prepare document",
-    description: "Render the final resume",
-    duration: 2,
-  },
-]
+export type GenerationProgressKind = "resume" | "cover-letter" | "answer"
 
-interface InlineResumeProgressProps {
-  isVisible: boolean
-  onComplete?: () => void
-  forceComplete?: boolean
+interface InlineProgressConfig {
+  label: string
+  heading: string
+  description: string
+  steps: ProgressStep[]
 }
 
-export function InlineResumeProgress({ isVisible, onComplete, forceComplete }: InlineResumeProgressProps) {
+const inlineProgressConfig: Record<GenerationProgressKind, InlineProgressConfig> = {
+  resume: {
+    label: "Resume generation",
+    heading: "Preparing your resume",
+    description: "Tailoring the content and formatting it for this role.",
+    steps: [
+      {
+        id: "analyzing",
+        title: "Review role",
+        description: "Identify priorities and required experience",
+        duration: 8,
+      },
+      {
+        id: "tailoring",
+        title: "Tailor content",
+        description: "Align your resume with the role",
+        duration: 12,
+      },
+      {
+        id: "formatting",
+        title: "Refine structure",
+        description: "Improve clarity and ATS compatibility",
+        duration: 8,
+      },
+      {
+        id: "generating",
+        title: "Prepare document",
+        description: "Render the final resume",
+        duration: 2,
+      },
+    ],
+  },
+  "cover-letter": {
+    label: "Cover letter generation",
+    heading: "Preparing your cover letter",
+    description: "Connecting your experience to the role in a focused letter.",
+    steps: [
+      {
+        id: "analyzing",
+        title: "Review role",
+        description: "Identify the employer's main priorities",
+        duration: 7,
+      },
+      {
+        id: "matching",
+        title: "Match experience",
+        description: "Select the strongest evidence from your background",
+        duration: 10,
+      },
+      {
+        id: "drafting",
+        title: "Draft letter",
+        description: "Build a clear and specific narrative",
+        duration: 10,
+      },
+      {
+        id: "refining",
+        title: "Polish wording",
+        description: "Check tone, clarity, and structure",
+        duration: 3,
+      },
+    ],
+  },
+  answer: {
+    label: "Answer generation",
+    heading: "Preparing your answer",
+    description: "Building a direct answer around the role and your experience.",
+    steps: [
+      {
+        id: "analyzing",
+        title: "Read question",
+        description: "Determine what the employer is asking for",
+        duration: 6,
+      },
+      {
+        id: "matching",
+        title: "Find evidence",
+        description: "Choose relevant details from your experience",
+        duration: 8,
+      },
+      {
+        id: "drafting",
+        title: "Draft answer",
+        description: "Write a focused and natural response",
+        duration: 8,
+      },
+      {
+        id: "refining",
+        title: "Final review",
+        description: "Improve clarity and remove repetition",
+        duration: 3,
+      },
+    ],
+  },
+}
+
+interface InlineGenerationProgressProps {
+  kind: GenerationProgressKind
+  onComplete?: () => void
+  isComplete?: boolean
+}
+
+export function InlineGenerationProgress({
+  kind,
+  onComplete,
+  isComplete,
+}: InlineGenerationProgressProps) {
+  const config = inlineProgressConfig[kind]
+  const duration = totalDuration(config.steps)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [progress, setProgress] = useState(0)
-  const [timeRemaining, setTimeRemaining] = useState(30)
+  const [timeRemaining, setTimeRemaining] = useState(duration)
   const [isWaitingForBackend, setIsWaitingForBackend] = useState(false)
   const [isCompleted, setIsCompleted] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const onCompleteRef = useRef(onComplete)
 
   useEffect(() => {
-    if (!isVisible) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset when inline progress closes
-      setCurrentStepIndex(0)
-      setProgress(0)
-      setTimeRemaining(30)
-      setIsWaitingForBackend(false)
-      setIsCompleted(false)
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-      return
-    }
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
-    if (isCompleted) return
-
-    const duration = totalDuration(inlineSteps)
+  useEffect(() => {
     let elapsed = 0
 
     intervalRef.current = setInterval(() => {
-      if (isCompleted) return
-
       elapsed += 0.5
-      setCurrentStepIndex(stepIndexAt(elapsed, inlineSteps))
+      setCurrentStepIndex(stepIndexAt(elapsed, config.steps))
 
       if (elapsed >= duration) {
         setProgress(95)
@@ -306,24 +376,30 @@ export function InlineResumeProgress({ isVisible, onComplete, forceComplete }: I
         intervalRef.current = null
       }
     }
-  }, [isVisible, isCompleted])
+  }, [config.steps, duration])
 
   useEffect(() => {
-    if (forceComplete && (isWaitingForBackend || progress > 0) && !isCompleted) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
+    if (!isComplete || isCompleted) return
 
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- backend completion updates the progress state
-      setIsCompleted(true)
-      setProgress(100)
-      const timeout = setTimeout(() => onComplete?.(), 500)
-      return () => clearTimeout(timeout)
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
     }
-  }, [forceComplete, isWaitingForBackend, progress, isCompleted, onComplete])
 
-  if (!isVisible) return null
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the completed request drives the progress state
+    setIsCompleted(true)
+    setCurrentStepIndex(config.steps.length - 1)
+    setProgress(100)
+    setTimeRemaining(0)
+    setIsWaitingForBackend(false)
+  }, [config.steps.length, isComplete, isCompleted])
+
+  useEffect(() => {
+    if (!isCompleted) return
+
+    const timeout = setTimeout(() => onCompleteRef.current?.(), 500)
+    return () => clearTimeout(timeout)
+  }, [isCompleted])
 
   const statusText = isCompleted
     ? "Ready"
@@ -335,18 +411,18 @@ export function InlineResumeProgress({ isVisible, onComplete, forceComplete }: I
     <section
       className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
       aria-live="polite"
-      aria-label="Resume generation progress"
+      aria-label={`${config.label} progress`}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Resume generation
+            {config.label}
           </p>
           <h3 className="mt-1.5 text-lg font-semibold tracking-tight text-card-foreground">
-            Preparing your resume
+            {config.heading}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Tailoring the content and formatting it for this role.
+            {config.description}
           </p>
         </div>
         <div className="flex items-baseline gap-2 sm:block sm:text-right">
@@ -364,8 +440,15 @@ export function InlineResumeProgress({ isVisible, onComplete, forceComplete }: I
         />
       </div>
 
+      <p className="mt-3 text-sm text-muted-foreground">
+        <span className="font-medium text-card-foreground">
+          {isCompleted ? "Complete" : `Current step: ${config.steps[currentStepIndex].title}`}
+        </span>
+        {!isCompleted && ` — ${config.steps[currentStepIndex].description}`}
+      </p>
+
       <ol className="mt-6 grid gap-3 sm:grid-cols-4">
-        {inlineSteps.map((step, index) => {
+        {config.steps.map((step, index) => {
           const stepComplete = isCompleted || index < currentStepIndex
           const stepActive = !isCompleted && index === currentStepIndex
 

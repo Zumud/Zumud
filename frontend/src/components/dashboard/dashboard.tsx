@@ -6,7 +6,10 @@ import { errorMessage, signOut } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import { applications, billing } from "@/lib/api"
 import PdfViewer from "@/components/pdf-viewer"
-import { InlineResumeProgress } from "@/components/ui/resume-progress"
+import {
+  InlineGenerationProgress,
+  type GenerationProgressKind,
+} from "@/components/ui/resume-progress"
 import Sidebar from "@/components/ui/sidebar"
 import { 
   Download, 
@@ -36,8 +39,11 @@ export default function Dashboard() {
   const [answer, setAnswer] = useState("")
   const [coverLetter, setCoverLetter] = useState("")
   const [isGeneratingResume, setIsGeneratingResume] = useState(false)
-  const [showResumeProgress, setShowResumeProgress] = useState(false)
-  const [forceCompleteProgress, setForceCompleteProgress] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState<{
+    kind: GenerationProgressKind
+    runId: number
+    isComplete: boolean
+  } | null>(null)
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false)
   const [isGeneratingAnswer, setIsGeneratingAnswer] = useState(false)
   const [generatedResumePdf, setGeneratedResumePdf] = useState<string | null>(null)
@@ -66,8 +72,9 @@ export default function Dashboard() {
   const [isCoverLetterCopied, setIsCoverLetterCopied] = useState(false)
   const [isAnswerCopied, setIsAnswerCopied] = useState(false)
 
-    // Ref for the main input area to scroll to
+  // Ref for the main input area to scroll to
   const inputAreaRef = useRef<HTMLDivElement>(null)
+  const generationRunIdRef = useRef(0)
   
   // State to track if user has made their first generation
   const [hasGenerated, setHasGenerated] = useState(false)
@@ -201,15 +208,25 @@ export default function Dashboard() {
     return url
   }
 
-  // Generic async operation handler with processing message
+  const startGenerationProgress = (kind: GenerationProgressKind) => {
+    generationRunIdRef.current += 1
+    const runId = generationRunIdRef.current
+    setGenerationProgress({ kind, runId, isComplete: false })
+    return runId
+  }
+
+  const hideGenerationProgress = (runId: number) => {
+    setGenerationProgress((current) => current?.runId === runId ? null : current)
+  }
+
+  // Generic async operation handler
   const asyncOperation = async <T,>(
     operation: () => Promise<T>,
     setLoading: (loading: boolean) => void,
-    operationName: string,
-    processingMessage: string,
-    onSuccess: (result: T) => void,
+    onSuccess: (result: T) => unknown,
     defaultErrorMessage: string,
-    validationFn?: () => string | null
+    validationFn?: () => string | null,
+    progressKind?: GenerationProgressKind
   ) => {
     // Run validation if provided
     if (validationFn) {
@@ -221,6 +238,10 @@ export default function Dashboard() {
       }
     }
 
+    const progressRunId = progressKind
+      ? startGenerationProgress(progressKind)
+      : null
+
     setLoading(true)
     setError(null)
     setIsAuthError(false)
@@ -229,12 +250,17 @@ export default function Dashboard() {
       const result = await operation()
       setError(null)
       setIsAuthError(false)
-      onSuccess(result)
+      await onSuccess(result)
+      if (progressRunId !== null) {
+        setGenerationProgress((current) =>
+          current?.runId === progressRunId
+            ? { ...current, isComplete: true }
+            : current
+        )
+      }
     } catch (err) {
-      // Hide progress immediately on any error for resume generation
-      if (operationName === "resume generation") {
-        setShowResumeProgress(false)
-        setForceCompleteProgress(false)
+      if (progressRunId !== null) {
+        hideGenerationProgress(progressRunId)
       }
       
 
@@ -250,9 +276,6 @@ export default function Dashboard() {
     // Clear previous resume immediately for better UX
     setGeneratedResumePdf(null)
     setGeneratedResumeFilename(null)
-    // Show inline progress (not blocking modal)
-    setShowResumeProgress(true)
-    setForceCompleteProgress(false) // Reset force complete flag
     // Mark as first generation to hide welcome section
     setHasGenerated(true)
     
@@ -277,10 +300,6 @@ export default function Dashboard() {
       },
       // Set loading state
       setIsGeneratingResume,
-      // Operation name 
-      "resume generation",
-      // Processing message
-      "Generating resume...",
       // Success handler
       (result) => {
         // Handle new response format with blob and filename
@@ -291,23 +310,15 @@ export default function Dashboard() {
         setGeneratedResumePdf(pdfUrl)
         setGeneratedResumeFilename(filename)
         
-        // Trigger progress completion animation
-        setForceCompleteProgress(true)
-        
         // Reset new application flag after successful generation
         setIsNewApplication(false)
       },
       // Default error message
       "Failed to generate resume",
       // Validation
-      () => !jobDescription.trim() ? "Please enter a job description" : null
+      () => !jobDescription.trim() ? "Please enter a job description" : null,
+      "resume"
     )
-  }
-
-  const handleResumeProgressComplete = () => {
-    // This will be called when progress animation completes
-    setShowResumeProgress(false)
-    setForceCompleteProgress(false)
   }
 
   const handleGenerateCoverLetter = () => {
@@ -321,15 +332,14 @@ export default function Dashboard() {
     asyncOperation(
       () => applications.generateCoverLetter(jobDescription, isNewApplication),
       setIsGeneratingCoverLetter,
-      "cover letter generation",
-      "Generating cover letter...",
       (result) => {
         setCoverLetter(result)
         // Reset new application flag after successful generation
         setIsNewApplication(false)
       },
       "Failed to generate cover letter",
-      () => !jobDescription.trim() ? "Please enter a job description" : null
+      () => !jobDescription.trim() ? "Please enter a job description" : null,
+      "cover-letter"
     )
   }
 
@@ -342,8 +352,6 @@ export default function Dashboard() {
     asyncOperation(
       () => applications.answerQuestion(jobDescription, question, isNewApplication),
       setIsGeneratingAnswer,
-      "answer generation",
-      "Generating answer...",
       (result) => {
         setAnswer(result)
         // Reset new application flag after successful generation
@@ -354,7 +362,8 @@ export default function Dashboard() {
         if (!jobDescription.trim()) return "Please enter a job description"
         if (!question.trim()) return "Please enter a question"
         return null
-      }
+      },
+      "answer"
     )
   }
 
@@ -400,8 +409,6 @@ export default function Dashboard() {
     asyncOperation(
       () => applications.getResumeTeX(),
       setIsDownloadingTeX,
-      "TeX download",
-      "Downloading TeX...",
       (blob) => downloadBlob(blob, "resume.tex"),
       "Failed to download TeX file"
     )
@@ -411,8 +418,6 @@ export default function Dashboard() {
     asyncOperation(
       () => applications.getResumeTeXContent(),
       setIsPreparingOverleaf,
-      "Overleaf preparation",
-      "Preparing Overleaf...",
       (texContent) => {
         // Create a form to POST to Overleaf
         const form = document.createElement('form')
@@ -441,8 +446,6 @@ export default function Dashboard() {
     asyncOperation(
       () => applications.getCoverLetterPDF(),
       setIsDownloadingCoverLetter,
-      "cover letter download",
-      "Downloading cover letter...",
       (result) => {
         const blob = result.blob || result
         const filename = result.filename || "cover_letter.pdf"
@@ -475,8 +478,6 @@ export default function Dashboard() {
     asyncOperation(
       () => applications.editResumeWithInstructions(instructionToUse, jobDescription),
       setIsEditingResume,
-      "resume editing",
-      "Editing resume...",
       (result) => {
         const blob = result.blob || result
         const filename = result.filename || null
@@ -492,7 +493,8 @@ export default function Dashboard() {
         setEditInstruction("")
       },
       "Failed to edit resume",
-      () => !instructionToUse.trim() ? "Please enter an edit instruction" : null
+      () => !instructionToUse.trim() ? "Please enter an edit instruction" : null,
+      "resume"
     )
   }
 
@@ -501,8 +503,6 @@ export default function Dashboard() {
     asyncOperation(
       () => applications.editCoverLetterWithInstructions(instructionToUse, jobDescription),
       setIsEditingCoverLetter,
-      "cover letter editing",
-      "Editing cover letter...",
       async (result) => {
         // Handle new response format with blob and filename for cover letters
         const blob = result.blob || result
@@ -526,7 +526,8 @@ export default function Dashboard() {
         setCoverLetterEditInstruction('')
       },
       "Failed to edit cover letter",
-      () => !instructionToUse.trim() ? "Please enter an edit instruction" : null
+      () => !instructionToUse.trim() ? "Please enter an edit instruction" : null,
+      "cover-letter"
     )
   }
 
@@ -535,8 +536,6 @@ export default function Dashboard() {
     asyncOperation(
       () => applications.editAnswerWithInstructions(instructionToUse, answer, question, jobDescription),
       setIsEditingAnswer,
-      "answer editing",
-      "Editing answer...",
       (result) => {
         if (result) {
           setAnswer(result)
@@ -544,7 +543,8 @@ export default function Dashboard() {
         setAnswerEditInstruction('')
       },
       "Failed to edit answer",
-      () => !instructionToUse.trim() ? "Please enter an edit instruction" : null
+      () => !instructionToUse.trim() ? "Please enter an edit instruction" : null,
+      "answer"
     )
   }
 
@@ -644,7 +644,7 @@ export default function Dashboard() {
                 <Button
                   onClick={handleGenerateResume}
                   variant="brand"
-                  disabled={isGeneratingResume || !jobDescription.trim()}
+                  disabled={Boolean(generationProgress) || !jobDescription.trim()}
                   className="h-12 text-sm font-semibold md:h-14 md:text-base"
                 >
                   {isGeneratingResume ? (
@@ -664,7 +664,7 @@ export default function Dashboard() {
 
                 <Button
                   onClick={handleGenerateCoverLetter}
-                  disabled={isGeneratingCoverLetter || !jobDescription.trim()}
+                  disabled={Boolean(generationProgress) || !jobDescription.trim()}
                   className="h-12 rounded-lg bg-[var(--accent2)] text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 hover:shadow-lg disabled:opacity-50 md:h-14 md:text-base"
                 >
                   {isGeneratingCoverLetter ? (
@@ -685,7 +685,7 @@ export default function Dashboard() {
                 <Button
                   onClick={() => setActiveTab('question')}
                   variant="outline"
-                  disabled={isGeneratingAnswer || !jobDescription.trim()}
+                  disabled={Boolean(generationProgress) || !jobDescription.trim()}
                   className="h-12 text-sm font-semibold md:h-14 md:text-base sm:col-span-2 lg:col-span-1"
                 >
                   <HelpCircle className="mr-2 h-4 w-4 text-brand" />
@@ -694,13 +694,14 @@ export default function Dashboard() {
                 </Button>
               </div>
 
-              {/* Resume Progress - Inline */}
-              {showResumeProgress && (
+              {/* Generation Progress - Inline */}
+              {generationProgress && (
                 <div className="pt-4 border-t border-border">
-                  <InlineResumeProgress 
-                    isVisible={showResumeProgress}
-                    forceComplete={forceCompleteProgress}
-                    onComplete={handleResumeProgressComplete}
+                  <InlineGenerationProgress
+                    key={generationProgress.runId}
+                    kind={generationProgress.kind}
+                    isComplete={generationProgress.isComplete}
+                    onComplete={() => hideGenerationProgress(generationProgress.runId)}
                   />
                 </div>
               )}
@@ -721,7 +722,7 @@ export default function Dashboard() {
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault()
-                          if (!isGeneratingAnswer && jobDescription.trim() && question.trim()) {
+                          if (!generationProgress && jobDescription.trim() && question.trim()) {
                             handleAnswerQuestion()
                           }
                         }
@@ -738,7 +739,7 @@ export default function Dashboard() {
                   <Button
                     onClick={handleAnswerQuestion}
                     variant="brand"
-                    disabled={isGeneratingAnswer || !jobDescription.trim() || !question.trim()}
+                    disabled={Boolean(generationProgress) || !jobDescription.trim() || !question.trim()}
                     className="w-full font-semibold sm:w-auto"
                   >
                     {isGeneratingAnswer ? (
@@ -907,28 +908,28 @@ export default function Dashboard() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => handleQuickAction("Make it shorter and more concise")}
-                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                            disabled={Boolean(generationProgress)}
                             className="cursor-pointer px-2.5 py-1 text-xs font-medium rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             ✂️ <span className="hidden sm:inline">Make </span>shorter
                           </button>
                           <button
                             onClick={() => handleQuickAction("Make the tone more formal and professional")}
-                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                            disabled={Boolean(generationProgress)}
                             className="cursor-pointer px-2.5 py-1 text-xs font-medium rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             👔 <span className="hidden sm:inline">More </span>formal
                           </button>
                           <button
                             onClick={() => handleQuickAction("Make the tone more casual and approachable")}
-                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                            disabled={Boolean(generationProgress)}
                             className="cursor-pointer px-2.5 py-1 text-xs font-medium rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-200/50 dark:border-orange-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             😊 <span className="hidden sm:inline">More </span>casual
                           </button>
                           <button
                             onClick={() => handleQuickAction("Add more technical skills and keywords relevant to the job")}
-                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                            disabled={Boolean(generationProgress)}
                             className="cursor-pointer px-2.5 py-1 text-xs font-medium rounded-full bg-violet-500/10 hover:bg-violet-500/20 text-violet-700 dark:text-violet-300 border border-violet-200/50 dark:border-violet-700/50 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             🔑 <span className="hidden sm:inline">Add </span>keywords
@@ -951,7 +952,7 @@ export default function Dashboard() {
                                 handleFollowUpSubmit()
                               }
                             }}
-                            disabled={isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                            disabled={Boolean(generationProgress)}
                           />
                           <div className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-1 text-xs text-muted-foreground">
                             <kbd className="flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 font-mono text-xs">
@@ -965,7 +966,7 @@ export default function Dashboard() {
                           type="button"
                           variant="brand"
                           onClick={handleFollowUpSubmit}
-                          disabled={!followUpInstruction.trim() || isEditingResume || isEditingCoverLetter || isEditingAnswer}
+                          disabled={!followUpInstruction.trim() || Boolean(generationProgress)}
                           className="h-12 w-full px-6 font-semibold md:w-auto"
                         >
                           {(isEditingResume || isEditingCoverLetter || isEditingAnswer) ? (
