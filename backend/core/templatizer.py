@@ -242,6 +242,13 @@ Rules, all of them mandatory:
 10. `{#` opens a comment in Jinja, so a LaTeX group starting with a macro parameter —
    `{#1}` — makes the file unparseable. Write such a group as `{{ '{#' }}1}`. Never
    open a Jinja comment yourself.
+11. Inside a Jinja tag there may be no backslash. A tag is anything between {{ and }}
+   or between {% and %}: only field names, if / for / and / or / not / in / is,
+   string literals, and filters such as join, length, default. Every LaTeX command,
+   every line break, and every separator from the document belongs in the LaTeX text
+   OUTSIDE the tags. A contact line is therefore a chain of guarded prints, never one
+   expression. Join with a plain separator such as ', ' — never with one containing
+   a backslash — or emit each item with its own guarded prefix instead.
 """
 
 
@@ -345,8 +352,16 @@ def _render(what: str, escaped: dict, template_source: str) -> str:
     except Exception as exc:
         # Not just TemplateError: a template is arbitrary code to Jinja, and a filter
         # applied to the wrong type raises straight out of the stdlib.
+        hint = ""
+        if "unexpected char" in str(exc) and "\\" in str(exc):
+            hint = (
+                " A backslash leaked inside a Jinja tag (between {{ and }} or "
+                "between {% and %}), where only field names and filters may appear. "
+                "Move every LaTeX command and separator out of the tags and print "
+                "each field with its own guarded tag instead."
+            )
         raise TemplatizationError(
-            f"Rendering {what} raised {type(exc).__name__}: {exc}"
+            f"Rendering {what} raised {type(exc).__name__}: {exc}.{hint}"
         ) from exc
 
 
